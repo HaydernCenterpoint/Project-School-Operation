@@ -218,10 +218,9 @@ async function pressTab(page) {
   const key = {
     code: "Tab",
     key: "Tab",
-    nativeVirtualKeyCode: 9,
     windowsVirtualKeyCode: 9,
   };
-  await page.send("Input.dispatchKeyEvent", { ...key, type: "keyDown" });
+  await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
   await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
   await delay(25);
 }
@@ -800,6 +799,8 @@ describe(
       const actionFocus = await evaluate(page, () => {
         const active = document.activeElement;
         return {
+          tagName: active?.tagName,
+          name: active?.getAttribute("name"),
           outlineWidth: Number.parseFloat(
             getComputedStyle(active).outlineWidth,
           ),
@@ -807,7 +808,7 @@ describe(
           type: active?.getAttribute("type"),
         };
       });
-      assert.equal(actionFocus.type, "submit");
+      assert.equal(actionFocus.type, "submit", JSON.stringify(actionFocus));
       assert.ok(actionFocus.text?.includes("Công bố"));
       assert.ok(actionFocus.outlineWidth >= 3);
 
