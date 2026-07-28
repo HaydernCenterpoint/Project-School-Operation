@@ -208,6 +208,25 @@ gitleaks git --redact --no-banner
 
 The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The current local candidate provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
 
+## External evidence packet (Day 13–14)
+
+Complete every row against one immutable staging candidate, using synthetic accounts only. Record timestamps in UTC. A command result without a named owner, reviewer and durable artifact remains `NO-GO`.
+
+| Gate | Owner | Target, build or SHA | UTC timestamp | Exact probe or scenario and expected result | Observed result | Evidence URL or artifact | Reviewer | Decision |
+|---|---|---|---|---|---|---|---|---|
+| Candidate freeze and staging deploy | _Unassigned_ | _Pending_ | _Pending_ | Hosted CI passes for the promoted SHA; immutable web/BFF deployment IDs and HTTPS origins are recorded | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Target migration and synthetic pilot seed | _Unassigned_ | _Pending_ | _Pending_ | Expected predecessor and append-only migration list are verified and applied; the synthetic seed manifest contains no real or under-18 learner data | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Target backup and isolated restore | _Unassigned_ | _Pending_ | _Pending_ | Provider backup/PITR ID, retention and restore owner are recorded; isolated restore matches schema, row-count fingerprint and RLS checks | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Promoted API integration and Chrome E2E | _Unassigned_ | _Pending_ | _Pending_ | Fresh integration and browser suites run against the recorded HTTPS origins and promoted SHA; critical flows and cross-tenant denial pass | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Gateway limits and monitoring | _Unassigned_ | _Pending_ | _Pending_ | Bursts of authenticated GET, invalid-JWT and pre-mutation requests are limited before database work; `429` includes `Retry-After`; dashboard captures request, rejection, latency and error signals | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| EAS Preview and Android accessibility | _Unassigned_ | _Pending_ | _Pending_ | Fresh APK install records build URL, device model and Android version; Student critical flow, TalkBack labels/swipe order, 200% text scaling and error states pass | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Admin, Teacher and Moderator UAT | _Unassigned_ | _Pending_ | _Pending_ | Login, tenant isolation, class/assignment, feedback, community report and human moderation scenarios match the acceptance criteria | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Student/mobile UAT | _Unassigned_ | _Pending_ | _Pending_ | Login, class → assignment → idempotent submission → feedback plus community post/report/realtime scenarios match the acceptance criteria | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| AI mode decision | _Unassigned_ | _Pending_ | _Pending_ | Record `OFF` with fresh AI-off regression, or `ON` only with approved provider, privacy/safeguarding, consent policy, 8/8 semantic review and staging failure-mode evidence | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Rollback rehearsal | _Unassigned_ | _Pending_ | _Pending_ | Previous immutable web/BFF deployment is restored and critical flows pass; isolated PITR is rehearsed only as a separate database-recovery drill or when data-integrity risk requires it | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Post-freeze recertification | _Unassigned_ | _Pending_ | _Pending_ | Record no post-D12 changes, or list every changed code/config/migration item and rerun affected regression, full academic E2E, affected UAT, EAS build when mobile changed and QA/Security review | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Production smoke and final handover | _Unassigned_ | _Pending_ | _Pending_ | Production deployment IDs and synthetic-role smoke are recorded; report/runbook, Admin/Teacher guidance, UAT decisions, blocker owners and QA/Security Go/No-Go all reference the exact promoted SHA | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+
 ## Known issues
 
 | Issue | Severity / consequence | Owner / exit condition |
