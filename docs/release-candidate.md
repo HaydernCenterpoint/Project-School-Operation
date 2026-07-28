@@ -33,7 +33,7 @@ The table below records the last confirmed Day 6 evidence from 29 July 2026. It 
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
 
-### Current Day 10 local delta evidence
+### Day 10 implementation evidence
 
 | Check | Exact command | Result |
 |---|---|---|
@@ -41,9 +41,9 @@ The local migration and restore scripts deliberately refuse to run without `ALLO
 | Day 10 inventory guard | `pnpm test:config` | Pass; 5/5 including eight migration filenames, 17 web BFF routes, two web page entry points, four web runtime-library files, two functional web UI components, 11 Expo route files, four workspace package manifests and their declared dependency inventories |
 | Shared mobile API client states | `pnpm test:mobile-client` | Pass; 4/4 including stable offline error mapping and preserved `AbortError` cancellation |
 
-The rows above are local working-tree evidence until the Day 10 implementation is committed and hosted CI is recorded. They do not inherit the immutable provenance below.
+The immutable application/config/test candidate is `88bac45e56d6dbee1fb15b1607dd8c6a08166663`. Hosted [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) passed both jobs for that exact SHA. This release-ledger update is documentation-only and does not redefine the code candidate.
 
-### Last immutable full regression baseline
+### Full regression evidence for the same implementation SHA
 
 | Check | Exact command or artifact | Result |
 |---|---|---|
@@ -54,7 +54,7 @@ The rows above are local working-tree evidence until the Day 10 implementation i
 | Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
 | Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
 | Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
-| Hosted CI for the Day 9 implementation commit | [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) | Pass; jobs `quality` and `database` for immutable SHA `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f` |
+| Hosted CI for the Day 10 implementation commit | [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) | Pass; `quality` 1m39s and `database` 9m04s for immutable SHA `88bac45e56d6dbee1fb15b1607dd8c6a08166663` |
 
 The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
 
@@ -205,7 +205,7 @@ CI downloads Gitleaks `v8.30.1` from the upstream GitHub release, verifies archi
 gitleaks git --redact --no-banner
 ```
 
-The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The Day 9 implementation provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
+The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The Day 10 implementation provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
 
 ## Known issues
 
@@ -232,4 +232,4 @@ The quality job checks out full history before scanning. Once this workflow exis
 | Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Hosted CI/Gitleaks | `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f` | [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) | 29 July 2026 | PASS |
+| Hosted CI/Gitleaks | `88bac45e56d6dbee1fb15b1607dd8c6a08166663` | [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) | 29 July 2026 | PASS |
