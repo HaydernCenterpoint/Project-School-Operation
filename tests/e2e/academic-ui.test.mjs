@@ -220,6 +220,7 @@ async function pressTab(page) {
     key: "Tab",
     windowsVirtualKeyCode: 9,
   };
+  await page.send("Page.bringToFront");
   await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
   await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
   await delay(25);
