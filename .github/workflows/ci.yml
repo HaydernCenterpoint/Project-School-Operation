@@ -92,7 +92,7 @@ jobs:
             pnpm db:reset
 
             auth_settings_status=""
-            for attempt in {1..30}; do
+            for attempt in {1..60}; do
               auth_settings_status="$(
                 curl --silent --output /dev/null --write-out '%{http_code}' \
                   --connect-timeout 1 --max-time 2 \
