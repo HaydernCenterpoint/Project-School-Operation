@@ -88,6 +88,21 @@ jobs:
           export AI_PROVIDER_MODEL="citation-model-v1"
           export AI_PROVIDER_TIMEOUT_MS="150"
 
+          reset_local_db() {
+            pnpm db:reset
+
+            for attempt in {1..30}; do
+              if curl --silent --fail --connect-timeout 1 --max-time 2 \
+                "$SUPABASE_URL/auth/v1/health" > /dev/null; then
+                return 0
+              fi
+              sleep 1
+            done
+
+            echo "Supabase Auth did not become ready after reset."
+            return 1
+          }
+
           pnpm build:web
           pnpm --filter web exec next start --hostname 127.0.0.1 --port 3210 \
             > /tmp/academic-next.log 2>&1 &
@@ -106,14 +121,14 @@ jobs:
           done
 
           curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null
-          pnpm db:reset
+          reset_local_db
           pnpm test:ai-eval
-          pnpm db:reset
+          reset_local_db
           pnpm test:integration
           pnpm test:e2e:web
           pnpm security:check /tmp/academic-next.log
 
-          pnpm db:reset
+          reset_local_db
           export ACADEMIC_API_URL="http://127.0.0.1:3211"
           export AI_TUTOR_ENABLED="false"
           unset AI_PROVIDER_URL AI_PROVIDER_API_KEY AI_PROVIDER_ID AI_PROVIDER_MODEL

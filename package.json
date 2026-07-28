@@ -25,7 +25,7 @@
     "security:check": "node scripts/security-check.mjs",
     "verify:static": "pnpm lint && pnpm typecheck && pnpm build:web && pnpm build:mobile && pnpm test:mobile-client && pnpm test:config && pnpm test:accessibility && pnpm test:security && pnpm security:check",
     "db:start": "supabase start",
-    "db:reset": "supabase db reset",
+    "db:reset": "supabase db reset || supabase db reset --debug",
     "db:test": "supabase test db",
     "db:lint": "supabase db lint",
     "db:upgrade-smoke": "node scripts/migration-upgrade-smoke.mjs",
