@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Sao Do University",
+    "slug": "sao-do-university",
+    "scheme": "saodo",
+    "version": "0.1.0",
+    "icon": "./assets/sao-do-logo.png",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#071A34",
+        "foregroundImage": "./assets/sao-do-logo.png"
+      },
+      "package": "vn.edu.saodo.schoolai"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,65 @@
+const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
+
+export const hasAcademicApi = Boolean(apiUrl);
+
+type ApiErrorBody = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+function errorMessage(status: number, code?: string) {
+  if (status === 401 || code === "unauthorized") {
+    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  }
+  if (status === 403 || code === "forbidden") {
+    return "Bạn không có quyền thực hiện thao tác này.";
+  }
+  if (status === 404 || code === "not_found") {
+    return "Không tìm thấy dữ liệu hoặc bạn không có quyền truy cập.";
+  }
+  if (status === 409 || code === "conflict") {
+    return "Dữ liệu đã thay đổi hoặc thao tác này đã được thực hiện.";
+  }
+  if (status === 415) {
+    return "Ứng dụng chỉ hỗ trợ dữ liệu JSON.";
+  }
+  if (status === 413 || code === "payload_too_large") {
+    return "Dữ liệu gửi lên vượt quá giới hạn cho phép.";
+  }
+  if (status === 422 || code === "unprocessable") {
+    return "Không thể xử lý dữ liệu đã gửi.";
+  }
+  if (status === 429 || code === "rate_limited") {
+    return "Bạn thao tác quá nhanh. Vui lòng thử lại sau một phút.";
+  }
+  if (status >= 500) {
+    return "Hệ thống đang gián đoạn. Vui lòng thử lại sau.";
+  }
+  return "Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại.";
+}
+
+export async function academicRequest<T>(
+  path: string,
+  accessToken: string,
+  init?: RequestInit,
+): Promise<T> {
+  if (!apiUrl) throw new Error("Ứng dụng chưa được cấu hình địa chỉ API.");
+
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new Error(errorMessage(response.status, body?.error?.code));
+  }
+
+  return (await response.json()) as T;
+}

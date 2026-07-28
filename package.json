@@ -1,0 +1,34 @@
+{
+  "name": "sao-do-school-ai",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm test:rls",
+    "test:rls": "supabase test db",
+    "test:integration": "node --test tests/integration/academic-flow.test.mjs",
+    "test:e2e:web": "node --test tests/e2e/academic-ui.test.mjs",
+    "test:security": "node --test tests/security/security-check.test.mjs",
+    "test:accessibility": "node --test tests/accessibility/color-contrast.test.mjs",
+    "test:config": "node --test tests/config/mobile-build-env.test.mjs",
+    "build:web": "pnpm --filter web build",
+    "build:mobile": "pnpm --filter mobile exec expo export --platform android --output-dir dist/android-export",
+    "security:check": "node scripts/security-check.mjs",
+    "verify:static": "pnpm lint && pnpm typecheck && pnpm build:web && pnpm build:mobile && pnpm test:config && pnpm test:accessibility && pnpm test:security && pnpm security:check",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:lint": "supabase db lint",
+    "db:upgrade-smoke": "node scripts/migration-upgrade-smoke.mjs",
+    "db:restore-smoke": "node scripts/backup-restore-smoke.mjs"
+  },
+  "devDependencies": {
+    "supabase": "2.110.0"
+  }
+}

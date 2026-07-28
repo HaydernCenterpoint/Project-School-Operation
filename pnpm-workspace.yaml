@@ -1,0 +1,38 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+overrides:
+  "@react-native/metro-config": "0.86.0"
+  react-dom: "19.2.3"
+  react-native-worklets: "0.10.3"
+minimumReleaseAgeExclude:
+  - '@supabase/cli-windows-x64@2.110.0'
+  - '@react-native/assets-registry@0.86.2'
+  - '@react-native/codegen@0.86.2'
+  - '@react-native/community-cli-plugin@0.86.2'
+  - '@react-native/debugger-frontend@0.86.2'
+  - '@react-native/debugger-shell@0.86.2'
+  - '@react-native/dev-middleware@0.86.2'
+  - '@react-native/gradle-plugin@0.86.2'
+  - '@react-native/js-polyfills@0.86.2'
+  - '@react-native/normalize-colors@0.86.2'
+  - '@react-native/virtualized-lists@0.86.2'
+  - '@supabase/auth-js@2.110.9'
+  - '@supabase/functions-js@2.110.9'
+  - '@supabase/postgrest-js@2.110.9'
+  - '@supabase/realtime-js@2.110.9'
+  - '@supabase/storage-js@2.110.9'
+  - '@supabase/supabase-js@2.110.9'
+  - postcss@8.5.24
+  - react-native@0.86.2
+  - supabase@2.110.0
+  - '@supabase/cli-darwin-arm64@2.110.0'
+  - '@supabase/cli-darwin-x64@2.110.0'
+  - '@supabase/cli-linux-arm64-musl@2.110.0'
+  - '@supabase/cli-linux-arm64@2.110.0'
+  - '@supabase/cli-linux-x64-musl@2.110.0'
+  - '@supabase/cli-linux-x64@2.110.0'
+  - '@supabase/cli-windows-arm64@2.110.0'
