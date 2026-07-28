@@ -221,14 +221,36 @@ async function fill(page, selector, value) {
 }
 
 async function pressTab(page) {
+  const start = await evaluate(page, () => {
+    window.__academicE2eFocusBeforeTab = document.activeElement;
+    return {
+      name: document.activeElement?.getAttribute?.("name") ?? "",
+      tagName: document.activeElement?.tagName ?? "",
+      text: document.activeElement?.textContent?.trim().slice(0, 80) ?? "",
+    };
+  });
   const key = {
     code: "Tab",
     key: "Tab",
     windowsVirtualKeyCode: 9,
   };
-  await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
-  await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
-  await delay(25);
+  try {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
+      await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
+      await delay(50);
+      const moved = await evaluate(
+        page,
+        () => document.activeElement !== window.__academicE2eFocusBeforeTab,
+      );
+      if (moved) return;
+    }
+    assert.fail(`Tab did not move focus from ${JSON.stringify(start)}.`);
+  } finally {
+    await evaluate(page, () => {
+      delete window.__academicE2eFocusBeforeTab;
+    });
+  }
 }
 
 async function pressTabUntilName(page, expectedName, attempts = 8) {
