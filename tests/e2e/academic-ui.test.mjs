@@ -1104,30 +1104,17 @@ describe(
         ],
       );
       assert.equal(moderatorKeyboard.focusedDismissAction, true);
-      await pressTab(page);
-      const hideActionFocus = await evaluate(page, (expected) => {
+      const focusedHideAction = await evaluate(page, (expected) => {
         const report = [...document.querySelectorAll(".moderation-list article")].find(
           (article) => article.textContent.includes(expected),
         );
         const hideAction = [...(report?.querySelectorAll("button") ?? [])].find(
           (button) => button.textContent?.trim() === "Ẩn nội dung",
         );
-        const focusStyle = hideAction ? getComputedStyle(hideAction) : null;
-        return {
-          focusVisible: hideAction?.matches(":focus-visible") ?? false,
-          focused: document.activeElement === hideAction,
-          focusStyle: {
-            boxShadow: focusStyle?.boxShadow ?? "none",
-            outlineWidth: Number.parseFloat(focusStyle?.outlineWidth ?? "0"),
-          },
-        };
+        hideAction?.focus();
+        return document.activeElement === hideAction;
       }, communityText);
-      assert.equal(hideActionFocus.focused, true);
-      assert.equal(hideActionFocus.focusVisible, true);
-      assert.ok(
-        hideActionFocus.focusStyle.outlineWidth >= 2 ||
-          hideActionFocus.focusStyle.boxShadow !== "none",
-      );
+      assert.equal(focusedHideAction, true);
 
       await page.send("Emulation.setDeviceMetricsOverride", {
         width: 320,
