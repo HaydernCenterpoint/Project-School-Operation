@@ -40,6 +40,7 @@ The TAP output contains 25 passing tests because it includes one parent test plu
 | `pnpm test:integration` | Pass; academic, community and AI Tutor suites each 1/1 |
 | `pnpm test:e2e:web` | Pass; Chrome 16/16, including Campus A `AURORA_A_ONLY` excerpt, no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
 | AI-off production server | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
+| Hosted CI | Pass; [run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676), jobs `quality` and `database`, implementation SHA `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f` |
 
 The evaluation uses a loopback fake OpenAI-compatible provider and synthetic seeded text. It does not validate an external provider.
 
@@ -60,6 +61,6 @@ The evaluation uses a loopback fake OpenAI-compatible provider and synthetic see
 - Human semantic-grounding review for all eight answerable cases.
 - Named staging deployment and fresh promoted-build evidence.
 - EAS Preview install, Android physical-device smoke and TalkBack/text-scaling review.
-- UAT, release signatures and hosted CI for the current immutable SHA.
+- UAT and release signatures; any later promoted SHA must repeat hosted CI and deployment-target smoke evidence.
 
 Passing automation is not a human approval or a release decision.

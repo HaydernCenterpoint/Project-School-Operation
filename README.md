@@ -64,7 +64,7 @@ Historical Day 6 evidence was **202/202 pgTAP checks**, two local production-BFF
 
 Fresh Day 9 local evidence passes `pnpm verify:static`, a clean database reset, **298/298 pgTAP checks**, schema lint, the fixed AI evaluation at **24/24 cases** (TAP 25 including its parent), all three seeded API integration suites at **1/1 each**, and **16/16 Chrome E2E checks**. The optimized Next.js build contains **17 BFF route files: four academic, ten community and three AI**. The Tutor E2E opens the authorized Campus A citation excerpt without exposing the Campus B marker, recovers through the real BFF after a provider 500, checks honest Cancel behavior and retries with a fresh request UUID. API evaluation also checks canonical 404 responses for malformed, unknown, foreign-tenant and wrong-class citation requests. A separate AI-off production server passes academic **1/1** and AI-off **1/1** without provider configuration or AI usage.
 
-The fixed evaluation made 16 provider calls, recorded 10 terminal usage rows per Student and left no usage row in `started`. Human semantic-grounding review remains **PENDING for 8/8 answerable cases**; provider/privacy approval, staging, EAS physical-device/TalkBack, UAT, signatures and hosted CI for the current SHA also remain external gates.
+The fixed evaluation made 16 provider calls, recorded 10 terminal usage rows per Student and left no usage row in `started`. Hosted [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) passed both jobs for immutable implementation commit `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f`. Human semantic-grounding review remains **PENDING for 8/8 answerable cases**; provider/privacy approval, staging, EAS physical-device/TalkBack, UAT and signatures remain external gates.
 
 Local CI configures a loopback fake OpenAI-compatible provider and uses only synthetic or de-identified seeded text chunks. The security evidence includes configuration **2/2**, contrast **2/2**, security canary **1/1**, repository/runtime scanning, an explicit scan of the new AI/UI files, and no configured provider environment name or value in generated client bundles. None of this validates an external provider.
 
@@ -72,7 +72,7 @@ CDP operating-system text scale had no measurable desktop metric effect, so CSS 
 
 Security evidence includes mobile configuration **2/2 pass**, one Hermes `.hbc` runtime binary scanned with no secret/service-role finding, and an anon validator that accepts only publishable keys or JWTs with role `anon`. Database quotas now cover membership mutations, but gateway limits for GET, invalid JWT and pre-database rejected attempts still require staging configuration and testing.
 
-The CI database job builds and starts the production Next.js bundle, then runs the academic, community and AI Tutor integration suites plus the dependency-free Chrome E2E. Hosted CI provenance must still be recorded before external promotion.
+The CI database job builds and starts the production Next.js bundle, then runs the academic, community and AI Tutor integration suites plus the dependency-free Chrome E2E. The Day 9 implementation SHA and green hosted run are recorded above; any later promoted SHA still requires its own fresh run.
 
 Scope, evidence and current limitations are documented in:
 

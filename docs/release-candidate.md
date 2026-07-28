@@ -45,6 +45,7 @@ The local migration and restore scripts deliberately refuse to run without `ALLO
 | Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
 | Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
 | Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
+| Hosted CI for the Day 9 implementation commit | [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) | Pass; jobs `quality` and `database` for immutable SHA `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f` |
 
 The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
 
@@ -182,7 +183,7 @@ CI downloads Gitleaks `v8.30.1` from the upstream GitHub release, verifies archi
 gitleaks git --redact --no-banner
 ```
 
-The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. This provenance becomes release evidence only when the hosted CI run URL and immutable Git SHA are recorded below.
+The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The Day 9 implementation provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
 
 ## Known issues
 
@@ -191,7 +192,6 @@ The quality job checks out full history before scanning. Once this workflow exis
 | No staging or production deployment | Release blocker | Release Operator records deployment IDs and smoke evidence |
 | No EAS Preview install or physical-device/TalkBack evidence | Release blocker | Mobile QA records build URL, device and checklist |
 | No UAT or privacy/safeguarding approval | Release blocker for any pilot | Product Lead records approvals |
-| Hosted CI/Gitleaks run URL and immutable SHA are not recorded | Release blocker | Repository owner commits, pushes and records the green run |
 | No approved external AI provider/key or privacy/safeguarding approval for provider transfer | AI enablement blocker | Keep `AI_TUTOR_ENABLED=false` until named approvals and staging failure-mode evidence are recorded |
 | Human semantic-grounding review is pending for 8/8 cases | AI enablement blocker | A named reviewer checks all eight answerable cases and records 8/8 decisions; automation is not approval |
 | Accessibility evidence is automated/browser-based and does not include Android TalkBack, a physical-device audit or a complete WCAG audit | Incomplete mobile/accessibility gate | QA completes manual WCAG checks plus TalkBack, swipe-order and 200% text-scaling checks on the EAS Preview |
@@ -210,4 +210,4 @@ The quality job checks out full history before scanning. Once this workflow exis
 | Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Hosted CI/Gitleaks | _Pending SHA_ | _Pending run URL_ | _Pending_ | NO-GO |
+| Hosted CI/Gitleaks | `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f` | [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) | 29 July 2026 | PASS |
