@@ -148,7 +148,7 @@ CI downloads Gitleaks `v8.30.1` from the upstream GitHub release, verifies archi
 gitleaks git --redact --no-banner
 ```
 
-The quality job checks out full history before scanning and can be started with `workflow_dispatch`. This provenance becomes release evidence only when the hosted CI run URL and immutable Git SHA are recorded below.
+The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. This provenance becomes release evidence only when the hosted CI run URL and immutable Git SHA are recorded below.
 
 ## Known issues
 
