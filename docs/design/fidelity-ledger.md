@@ -23,4 +23,4 @@
 
 ## Sai khác có chủ đích
 
-Academic Alpha hiện thực nút tạo lớp, chọn giảng viên/sinh viên, công bố bài, bài nộp và phản hồi bằng dữ liệu BFF/RLS thật. Bộ lọc nâng cao, sĩ số tổng hợp, dashboard, biểu đồ, upload và nút lưu nháp vẫn bị loại bỏ vì chưa có hợp đồng nghiệp vụ hoàn chỉnh. Student web chỉ đọc trạng thái; nộp bài thuộc bề mặt Expo. Khi thiếu cấu hình, portal không giả lập thao tác học thuật thật; mobile demo luôn có nhãn dữ liệu mẫu.
+Academic Alpha hiện thực nút tạo lớp, chọn giảng viên/sinh viên, công bố bài, bài nộp và phản hồi bằng dữ liệu BFF/RLS thật. Bộ lọc nâng cao, sĩ số tổng hợp, dashboard, biểu đồ, upload và nút lưu nháp vẫn bị loại bỏ vì chưa có hợp đồng nghiệp vụ hoàn chỉnh. Student web chỉ đọc trạng thái; nộp bài thuộc bề mặt Expo. Khi thiếu cấu hình runtime, web và mobile đều fail closed thay vì giả lập thao tác hoặc dùng dữ liệu mẫu. Bằng chứng hiện có chỉ dành cho local hardening; chưa có deployment staging hoặc bằng chứng thiết bị vật lý.

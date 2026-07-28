@@ -54,8 +54,7 @@ button { color: inherit; }
 .pinned-heading h2 { max-width: 520px; margin: 0; font-size: clamp(2.4rem, 4vw, 4.5rem); line-height: 1; letter-spacing: -.045em; }
 .story-list { display: grid; gap: 32vh; padding-top: 8vh; }
 .story-list article { min-height: 340px; padding: 44px 0; border-top: 2px solid var(--ink); }
-.story-list article > span { color: var(--red); font-weight: 800; }
-.story-list h3 { margin: 54px 0 16px; font-size: clamp(1.7rem, 3vw, 3rem); letter-spacing: -.03em; }
+.story-list h3 { margin: 20px 0 16px; font-size: clamp(1.7rem, 3vw, 3rem); letter-spacing: -.03em; }
 .story-list p { max-width: 590px; color: var(--muted); font-size: 1.1rem; }
 .login-section { padding: clamp(96px, 14vw, 200px) clamp(24px, 7vw, 112px); display: grid; grid-template-columns: 7fr 5fr; gap: 10vw; color: #fff; background: var(--blue); }
 .login-intro h2 { max-width: 720px; margin: 0; font-size: clamp(3rem, 5vw, 5.6rem); line-height: .98; letter-spacing: -.05em; }
@@ -105,7 +104,6 @@ button { color: inherit; }
 .section-heading > div { display: flex; align-items: baseline; gap: 12px; }
 .section-heading h2 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
 .section-heading p { margin: 0; color: var(--muted); }
-.section-number { color: var(--red); font-weight: 850; }
 .class-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .class-cards > button, .assignment-list > button { min-height: 116px; padding: 18px; display: grid; align-content: center; gap: 7px; text-align: left; color: var(--ink); background: var(--mist); border: 1px solid var(--border); border-radius: 7px; cursor: pointer; }
 .class-cards > button:hover, .assignment-list > button:hover { border-color: var(--blue); }
@@ -196,8 +194,8 @@ button { color: inherit; }
   .rail-brand, .rail-orbits { display: none; }
   .portal-rail nav { height: 64px; padding: 6px 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .portal-rail nav a { min-height: 52px; display: flex; flex-direction: column; justify-content: center; gap: 2px; font-size: 11px; }
-  .portal-topbar { min-height: 58px; padding: 0 18px; gap: 16px; font-size: 12px; }
-  .portal-topbar span:first-child { display: none; }
+  .portal-topbar { min-height: 58px; padding: 0 18px; justify-content: space-between; gap: 12px; font-size: 12px; }
+  .portal-topbar span:first-child { max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .portal-content { padding: 22px 14px calc(88px + env(safe-area-inset-bottom)); }
   .page-heading h1 { font-size: 28px; }
   .portal-notice { align-items: flex-start; flex-wrap: wrap; }

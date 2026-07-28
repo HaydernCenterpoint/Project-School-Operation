@@ -145,7 +145,6 @@ export default function AccessPage() {
         </div>
         <div className="story-list">
           <article>
-            <span>01</span>
             <h3>Đăng nhập an toàn</h3>
             <p>
               Tài khoản được xác thực trước khi portal tải bất kỳ dữ liệu lớp
@@ -153,7 +152,6 @@ export default function AccessPage() {
             </p>
           </article>
           <article>
-            <span>02</span>
             <h3>Vai trò theo từng cơ sở</h3>
             <p>
               Quan hệ thành viên xác định bạn là quản trị viên, giảng viên hay
@@ -161,7 +159,6 @@ export default function AccessPage() {
             </p>
           </article>
           <article>
-            <span>03</span>
             <h3>Danh sách lớp đúng quyền</h3>
             <p>
               Chính sách dữ liệu của hệ thống chỉ trả về những lớp tài khoản

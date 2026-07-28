@@ -411,7 +411,6 @@ export default function PortalPage() {
         <main className="portal-content">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Academic Alpha · Ngày 4–7</p>
               <h1>Không gian học thuật</h1>
               {session && (
                 <p>
@@ -450,7 +449,6 @@ export default function PortalPage() {
                 <section className="academic-section" id="classes">
                   <div className="section-heading">
                     <div>
-                      <span className="section-number">01</span>
                       <h2>Lớp học</h2>
                     </div>
                     <p>{session.classes.length} lớp được phép truy cập</p>
@@ -535,7 +533,6 @@ export default function PortalPage() {
                   <section className="academic-section" id="assignments">
                     <div className="section-heading">
                       <div>
-                        <span className="section-number">02</span>
                         <h2>Bài tập</h2>
                       </div>
                       <p>{selectedClass?.name ?? "Chọn một lớp để tiếp tục"}</p>

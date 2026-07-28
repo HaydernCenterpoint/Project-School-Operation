@@ -68,5 +68,8 @@ Scope, evidence and current limitations are documented in:
 
 - `docs/day-1-3-foundation.md`
 - `docs/day-4-7-academic-alpha.md`
+- `docs/fixture-manifest.md`
+- `docs/operator-guide.md`
 - `docs/release-candidate.md`
 - `docs/design/brand-system.md`
+- `docs/design/fidelity-ledger.md`

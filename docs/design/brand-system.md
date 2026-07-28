@@ -35,7 +35,7 @@ Use Geist with system sans-serif fallback. Headings are wide and compact; contro
 
 - Web: fixed navy rail, white top bar, open table, split class detail, red primary action.
 - Mobile: branded navy header, angular book divider, open class rows, three-item bottom navigation.
-- Focus: 2px university blue plus 2px paper offset; yellow may reinforce focus on dark surfaces.
+- Focus: 3px paper outline with 2px offset and an ink outer ring; the two-tone treatment stays visible on both light and branded surfaces.
 - Motion: GSAP is limited to the public access page. Portal motion uses CSS transitions and respects `prefers-reduced-motion`.
 
 ## Visible-copy inventory
