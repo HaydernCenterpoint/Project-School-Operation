@@ -33,15 +33,16 @@ The table below records the last confirmed Day 6 evidence from 29 July 2026. It 
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
 
-### Day 10 implementation evidence
+### Current local candidate evidence
 
-| Check | Exact command | Result |
+| Check | Exact command or artifact | Result |
 |---|---|---|
 | Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 17 BFF route files: four academic, ten community and three AI |
 | Day 10 inventory guard | `pnpm test:config` | Pass; 5/5 including eight migration filenames, 17 web BFF routes, two web page entry points, four web runtime-library files, two functional web UI components, 11 Expo route files, four workspace package manifests and their declared dependency inventories |
 | Shared mobile API client states | `pnpm test:mobile-client` | Pass; 4/4 including stable offline error mapping and preserved `AbortError` cancellation |
+| Supabase reset/Auth lifecycle | Hosted `reset_local_db` sequence | Pass; reset retries once with debug, polls the non-session Auth settings route, then uses at most three fail-closed synthetic sign-in probes without logging tokens |
 
-The immutable application/config/test candidate is `88bac45e56d6dbee1fb15b1607dd8c6a08166663`. Hosted [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) passed both jobs for that exact SHA. This release-ledger update is documentation-only and does not redefine the code candidate.
+The immutable application/config/test candidate is `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020`. Hosted [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) passed both jobs for that exact SHA. The database job then passed two additional same-SHA reruns, providing three consecutive lifecycle executions. This release-ledger update is documentation-only and does not redefine the code candidate.
 
 ### Full regression evidence for the same implementation SHA
 
@@ -54,7 +55,7 @@ The immutable application/config/test candidate is `88bac45e56d6dbee1fb15b1607dd
 | Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
 | Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
 | Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
-| Hosted CI for the Day 10 implementation commit | [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) | Pass; `quality` 1m39s and `database` 9m04s for immutable SHA `88bac45e56d6dbee1fb15b1607dd8c6a08166663` |
+| Hosted CI for the immutable local candidate | [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) | Pass for SHA `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020`; `quality` 1m37s and three consecutive `database` executions: [9m06s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90430684752), [9m14s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90432411990) and [8m43s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90434096577) |
 
 The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
 
@@ -205,7 +206,7 @@ CI downloads Gitleaks `v8.30.1` from the upstream GitHub release, verifies archi
 gitleaks git --redact --no-banner
 ```
 
-The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The Day 10 implementation provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
+The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The current local candidate provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
 
 ## Known issues
 
@@ -232,4 +233,4 @@ The quality job checks out full history before scanning. Once this workflow exis
 | Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Hosted CI/Gitleaks | `88bac45e56d6dbee1fb15b1607dd8c6a08166663` | [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) | 29 July 2026 | PASS |
+| Hosted CI/Gitleaks | `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020` | [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) | 29 July 2026 | PASS |

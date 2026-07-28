@@ -14,8 +14,8 @@
 - **Ngày 9 — AI eval/citation hardening:** hoàn tất bộ eval tự động cố định 24 case, citation mở được nhưng vẫn fail-closed, Cancel/Retry trên web/mobile và regression AI-off bằng production server riêng.
 - **Ngày 10 — feature freeze:** inventory guard khóa tám tên migration, 17 web BFF route, hai web page entry point, bốn web runtime-library file, hai functional web UI component, 11 Expo route, bốn workspace package và direct dependency inventory; mobile API dùng chung ánh xạ lỗi mất mạng ổn định để retry nhưng vẫn giữ nguyên `AbortError` cho Cancel.
 - **Ngày 8–12:** local hardening gồm quota tại DB mutation boundary, config/accessibility/security checks, migration `002 → current`, backup/restore, runbook release và feature-freeze guard; các gate thiết bị, staging và phê duyệt vẫn ở bên ngoài workspace.
-- **Implementation evidence Ngày 10:** `verify:static` đạt; configuration/freeze đạt 5/5; mobile API client đạt 4/4; implementation SHA bất biến là `88bac45e56d6dbee1fb15b1607dd8c6a08166663`.
-- **Full regression cùng SHA:** migration reset sạch; 298/298 pgTAP và schema lint sạch; Next production build có 17 BFF route (4 academic, 10 community, 3 AI); eval đạt 24/24 (TAP 25 gồm parent); ba production API integration suite đạt 1/1; Chrome E2E đạt 16/16; production server AI-off đạt academic 1/1 + AI-off 1/1. Hosted [CI run 30401561230](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30401561230) đạt `quality` trong 1m39s và `database` trong 9m04s cho đúng implementation SHA Ngày 10.
+- **Implementation evidence Ngày 10 + CI hardening Ngày 11–12:** `verify:static` đạt; configuration/freeze đạt 5/5; mobile API client đạt 4/4; reset Supabase có fallback debug và barrier Auth fail-closed; candidate SHA bất biến là `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020`.
+- **Full regression cùng SHA:** migration reset sạch; 298/298 pgTAP và schema lint sạch; Next production build có 17 BFF route (4 academic, 10 community, 3 AI); eval đạt 24/24 (TAP 25 gồm parent); ba production API integration suite đạt 1/1; Chrome E2E đạt 16/16; production server AI-off đạt academic 1/1 + AI-off 1/1. Hosted [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) đạt `quality` trong 1m37s; job `database` đạt ba lần liên tiếp trên cùng SHA trong [9m06s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90430684752), [9m14s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90432411990) và [8m43s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90434096577).
 - **Gate chưa đạt bên ngoài workspace:** gateway limit/monitoring trên staging cho GET, invalid JWT và attempt bị chặn trước DB mutation; human semantic-grounding reviewer cho 8/8 answerable case; nhà cung cấp/key AI được phê duyệt và privacy/safeguarding approval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT và sign-off. Mọi SHA được promote sau này vẫn phải chạy lại hosted CI và smoke trên đúng deployment target.
 - Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha + text-only Community Safety + bounded AI Tutor / Day 10 local candidate**, chưa phải school pilot hoặc release candidate bên ngoài.
 - Runbook, known issues và slot sign-off: `docs/release-candidate.md`.
@@ -334,15 +334,16 @@ Automated local coverage đạt đúng bộ 24 case cố định và xác nhận
 Fast CI phải được tạo từ ngày 2 và chạy trên mỗi PR/merge; tên script có thể điều chỉnh nhưng bằng chứng không được bỏ:
 
 ```text
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:rls
-pnpm test:e2e:web
-pnpm build:web
-pnpm typecheck:mobile
-supabase db reset
+pnpm verify:static
+pnpm db:start
+pnpm db:reset
+pnpm db:test
+pnpm db:lint
+ALLOW_LOCAL_DB_UPGRADE_SMOKE=1 pnpm db:upgrade-smoke
+ALLOW_LOCAL_DB_RESTORE_SMOKE=1 pnpm db:restore-smoke
 ```
+
+Bộ AI eval, API integration, Chrome E2E và AI-off phải chạy theo production-server sequence trong `.github/workflows/ci.yml`; không thay bằng dev server hoặc mock application fallback.
 
 EAS không chạy trên mỗi PR. Build ba mốc bắt buộc:
 
