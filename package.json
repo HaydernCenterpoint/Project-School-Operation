@@ -19,7 +19,7 @@
     "test:mobile-client": "node --test tests/mobile/academic-api.test.mjs",
     "test:security": "node --test tests/security/security-check.test.mjs",
     "test:accessibility": "node --test tests/accessibility/color-contrast.test.mjs",
-    "test:config": "node --test tests/config/mobile-build-env.test.mjs",
+    "test:config": "node --test tests/config/mobile-build-env.test.mjs tests/config/release-freeze.test.mjs",
     "build:web": "pnpm --filter web build",
     "build:mobile": "pnpm --filter mobile exec expo export --platform android --output-dir dist/android-export",
     "security:check": "node scripts/security-check.mjs",

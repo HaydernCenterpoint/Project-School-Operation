@@ -4,7 +4,7 @@
 
 | Field | Current value |
 |---|---|
-| Label | **Academic Alpha + Day 6 Community Safety + bounded Day 9 AI Tutor / local candidate** |
+| Label | **Academic Alpha + text-only Community Safety + bounded AI Tutor / Day 10 local candidate** |
 | Data | Two synthetic tenants and eight synthetic identities: six academic accounts plus two Moderators |
 | AI | **OFF by default**; the server-only Tutor gateway, lexical retrieval, openable citation detail and fixed 24-case automated evaluation are present for local validation, with no approved external provider or key |
 | External release decision | **NO-GO** until staging, EAS/device, UAT and sign-off gates are complete |
@@ -13,7 +13,7 @@ This document is an operator checklist, not evidence of a staging or production 
 
 ## Evidence ledger
 
-The table below records the last confirmed Day 6 evidence from 29 July 2026. It predates the current Day 9 candidate and must not be used as proof that the current tree passes.
+The table below records the last confirmed Day 6 evidence from 29 July 2026. It predates the current Day 10 candidate and must not be used as proof that the current tree passes.
 
 | Check | Latest result | Boundary |
 |---|---|---|
@@ -33,11 +33,20 @@ The table below records the last confirmed Day 6 evidence from 29 July 2026. It 
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
 
-### Current Day 9 local evidence
+### Current Day 10 local delta evidence
 
 | Check | Exact command | Result |
 |---|---|---|
 | Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 17 BFF route files: four academic, ten community and three AI |
+| Day 10 inventory guard | `pnpm test:config` | Pass; 5/5 including eight migration filenames, 17 web BFF routes, two web page entry points, four web runtime-library files, two functional web UI components, 11 Expo route files, four workspace package manifests and their declared dependency inventories |
+| Shared mobile API client states | `pnpm test:mobile-client` | Pass; 4/4 including stable offline error mapping and preserved `AbortError` cancellation |
+
+The rows above are local working-tree evidence until the Day 10 implementation is committed and hosted CI is recorded. They do not inherit the immutable provenance below.
+
+### Last immutable full regression baseline
+
+| Check | Exact command or artifact | Result |
+|---|---|---|
 | Clean local migration and synthetic seed | `pnpm db:reset` | Pass |
 | PostgreSQL authorization, consent, quota, lexical retrieval, citation detail and content-free telemetry | `pnpm db:test` | Pass; 298/298 pgTAP checks |
 | Database schema lint | `pnpm db:lint` | Pass; clean |
@@ -55,11 +64,24 @@ Chrome's CDP operating-system text-scale override produced no measurable desktop
 
 The current tree may be used for local demonstrations with synthetic data. It must not be described as staging-ready, production-ready or approved for real learners.
 
+### Day 10 feature freeze
+
+The frozen local candidate contains the Academic Alpha critical flow, the already-exposed text-only Community Safety extension and the conditional AI Tutor, which remains **OFF by default**. `tests/config/release-freeze.test.mjs` guards the current inventory of:
+
+- eight ordered SQL migration filenames;
+- 17 web BFF route files: four academic, ten community and three AI;
+- two web page entry points, four web runtime-library files and two functional web UI components;
+- 11 Expo route files; and
+- four workspace package manifests and their declared direct dependencies.
+
+Synthetic seed data and the loopback fake provider are permitted only in deterministic tests; the production-BFF integration suites exercise seeded Supabase instead of an application fallback. The automated guard detects inventory changes, while migration contents and runtime behavior remain protected by migration replay, pgTAP, integration and E2E evidence. After this freeze, a guarded file, route, package or direct dependency may change only to close a release-blocking Critical/High or P0/P1 finding; the inventory test and every affected evidence suite must then be reviewed, updated when intentional and rerun.
+
 External promotion requires all of the following:
 
 - A committed immutable Git SHA and a successful hosted CI run for that SHA.
 - A named staging Supabase project and HTTPS web/BFF deployment.
 - Fresh API integration and Chrome E2E evidence against the promoted build.
+- Tested gateway limits and monitoring evidence in staging for GET requests, invalid JWTs and attempts rejected before a database mutation.
 - A named, approved external AI provider and server-only key before the Tutor is enabled outside local deterministic tests.
 - Privacy and safeguarding approval for the provider transfer, consent text and policy version.
 - Human semantic-grounding approval for all eight answerable evaluation cases.

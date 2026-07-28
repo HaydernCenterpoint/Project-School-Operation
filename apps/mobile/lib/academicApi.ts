@@ -87,10 +87,27 @@ export async function academicRequest<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "AbortError"
+    ) {
+      throw error;
+    }
+    throw new AcademicApiError(
+      "Không thể kết nối đến hệ thống. Hãy kiểm tra mạng rồi thử lại.",
+      0,
+      "network_unavailable",
+    );
+  }
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;

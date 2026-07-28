@@ -3,24 +3,27 @@ import { after, before, beforeEach, test } from "node:test";
 
 const originalFetch = globalThis.fetch;
 const requests = [];
+let AcademicApiError;
 let academicRequest;
+
+async function successfulFetch(url, init) {
+  requests.push({ init, url });
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
+}
 
 before(async () => {
   process.env.EXPO_PUBLIC_API_URL = "https://school-api.test/";
-  ({ academicRequest } = await import(
+  ({ AcademicApiError, academicRequest } = await import(
     "../../apps/mobile/lib/academicApi.ts"
   ));
-  globalThis.fetch = async (url, init) => {
-    requests.push({ init, url });
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
-  };
 });
 
 beforeEach(() => {
   requests.length = 0;
+  globalThis.fetch = successfulFetch;
 });
 
 after(() => {
@@ -59,5 +62,34 @@ test("mobile academic request preserves an explicit content type", async () => {
   assert.equal(
     headers.get("Content-Type"),
     "application/vnd.school+json",
+  );
+});
+
+test("mobile academic request maps offline failures without swallowing aborts", async () => {
+  globalThis.fetch = async () => {
+    throw new TypeError("Network request failed");
+  };
+
+  await assert.rejects(
+    academicRequest("/api/classes", "student-token"),
+    (error) => {
+      assert.ok(error instanceof AcademicApiError);
+      assert.equal(error.status, 0);
+      assert.equal(error.code, "network_unavailable");
+      assert.equal(
+        error.message,
+        "Không thể kết nối đến hệ thống. Hãy kiểm tra mạng rồi thử lại.",
+      );
+      return true;
+    },
+  );
+
+  globalThis.fetch = async () => {
+    throw new DOMException("The operation was aborted", "AbortError");
+  };
+
+  await assert.rejects(
+    academicRequest("/api/ai/tutor", "student-token"),
+    (error) => error instanceof DOMException && error.name === "AbortError",
   );
 });

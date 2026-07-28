@@ -12,10 +12,12 @@
 - **Ngày 6:** hoàn tất Community Safety text-only có Moderator riêng, membership controls, report/hide/escalate/resolve và tenant-safe realtime.
 - **Ngày 7 — AI Tutor có điều kiện:** hoàn tất gateway server-only, consent/version, quota DB, usage metadata không chứa prompt/answer, PostgreSQL lexical FTS, citation allowlist/abstain, timeout/provider failure, web Student panel và Expo Student stack route. Runtime vẫn **OFF theo mặc định**.
 - **Ngày 9 — AI eval/citation hardening:** hoàn tất bộ eval tự động cố định 24 case, citation mở được nhưng vẫn fail-closed, Cancel/Retry trên web/mobile và regression AI-off bằng production server riêng.
-- **Ngày 8–12:** local hardening tiếp tục gồm quota tại DB mutation boundary, config/accessibility/security checks, migration `002 → current`, backup/restore và runbook release.
-- **Bằng chứng hiện tại:** `verify:static` đạt; migration reset sạch; 298/298 pgTAP và schema lint sạch; Next production build có 17 BFF route (4 academic, 10 community, 3 AI); bộ eval tự động cố định đạt 24/24 (TAP 25 gồm parent), 16 lần gọi provider, mỗi Student có 10 usage terminal và không còn `started`; citation BFF trả canonical 404 cho ID sai/không tồn tại/sai tenant/sai lớp; ba production API integration suite Academic/Community/AI Tutor đều đạt 1/1; Chrome E2E đạt 16/16, gồm mở excerpt Campus A không lộ marker Campus B, phục hồi sau provider 500 qua BFF thật, Cancel trung thực và Retry bằng UUID mới; production server AI-off riêng đạt academic 1/1 + AI-off 1/1, không cấu hình provider và không tạo AI usage. Hosted [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) đạt cả `quality` và `database` cho implementation SHA `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f`.
-- **Gate chưa đạt bên ngoài workspace:** human semantic-grounding reviewer cho 8/8 answerable case; nhà cung cấp/key AI được phê duyệt và privacy/safeguarding approval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT và sign-off. Mọi SHA được promote sau này vẫn phải chạy lại hosted CI và smoke trên đúng deployment target.
-- Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha + bounded AI Tutor / local candidate**, chưa phải school pilot hoặc release candidate bên ngoài.
+- **Ngày 10 — feature freeze:** inventory guard khóa tám tên migration, 17 web BFF route, hai web page entry point, bốn web runtime-library file, hai functional web UI component, 11 Expo route, bốn workspace package và direct dependency inventory; mobile API dùng chung ánh xạ lỗi mất mạng ổn định để retry nhưng vẫn giữ nguyên `AbortError` cho Cancel.
+- **Ngày 8–12:** local hardening gồm quota tại DB mutation boundary, config/accessibility/security checks, migration `002 → current`, backup/restore, runbook release và feature-freeze guard; các gate thiết bị, staging và phê duyệt vẫn ở bên ngoài workspace.
+- **Delta local Ngày 10:** `verify:static` đạt; configuration/freeze đạt 5/5; mobile API client đạt 4/4. Đây là evidence của working tree cho đến khi implementation được commit và có hosted CI riêng.
+- **Baseline regression bất biến gần nhất:** migration reset sạch; 298/298 pgTAP và schema lint sạch; Next production build có 17 BFF route (4 academic, 10 community, 3 AI); eval đạt 24/24 (TAP 25 gồm parent); ba production API integration suite đạt 1/1; Chrome E2E đạt 16/16; production server AI-off đạt academic 1/1 + AI-off 1/1. Hosted [CI run 30398353676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30398353676) đạt `quality` và `database` cho Day 9 SHA `faf3c09ad0d3ef9daeb8a5719c533f1779de5c8f`; không được dùng run này làm provenance cho delta Ngày 10.
+- **Gate chưa đạt bên ngoài workspace:** gateway limit/monitoring trên staging cho GET, invalid JWT và attempt bị chặn trước DB mutation; human semantic-grounding reviewer cho 8/8 answerable case; nhà cung cấp/key AI được phê duyệt và privacy/safeguarding approval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT và sign-off. Mọi SHA được promote sau này vẫn phải chạy lại hosted CI và smoke trên đúng deployment target.
+- Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha + text-only Community Safety + bounded AI Tutor / Day 10 local candidate**, chưa phải school pilot hoặc release candidate bên ngoài.
 - Runbook, known issues và slot sign-off: `docs/release-candidate.md`.
 
 ## 1. Kết luận điều hành
@@ -56,9 +58,9 @@ Nếu giữ nguyên toàn bộ phạm vi gốc, nên đổi mốc Sprint 0 thàn
 
 ### Kết quả phải đạt
 
-- Một web portal tối giản cho School Admin và Teacher.
+- Một web portal tối giản cho School Admin, Teacher và Moderator của extension Community Safety.
 - Một Expo/Android app tối giản cho Student.
-- Hai tenant demo, ba vai trò chính: `admin`, `teacher`, `student`.
+- Hai tenant demo, ba vai trò học thuật `admin`, `teacher`, `student` và vai trò `moderator` chỉ cho extension Community Safety.
 - Luồng học thuật Admin → Teacher → Student chạy xuyên suốt.
 - RLS/RBAC và server authorization chặn mọi truy cập sai tenant hoặc sai vai trò.
 - AI Tutor có citation là tính năng có feature flag, không phải điều kiện để core academics hoạt động.
@@ -98,20 +100,24 @@ Nếu giữ nguyên toàn bộ phạm vi gốc, nên đổi mốc Sprint 0 thàn
 - Không lưu prompt/chat mặc định; chỉ lưu metadata vận hành không chứa nội dung riêng tư.
 - Không provider fallback; khi provider lỗi, trả graceful error.
 
+### P0 extension đã khóa: Community Safety text-only
+
+Cut-line được sửa đổi và khóa ở Ngày 6 để giữ phần Community Safety text-only đã triển khai và đang hiển thị: space theo lớp, message/reaction, report, block/mute/leave, slow mode và Moderator xử lý report trong đúng tenant. Extension này phải đi qua RLS/integration/E2E và UAT Moderator/Safeguarding riêng; nó không làm rộng critical path Academic Alpha. Media upload, direct message, public discovery và moderation tự động vẫn ngoài Sprint 0.
+
 ### Hoãn sang Phase 1+
 
 | Hạng mục | Lý do hoãn |
 |---|---|
 | User invitation/provisioning UI | Pilot dùng identity fixture/seed; tránh service-role trên request path |
 | File submission và user-uploaded knowledge | Cần quarantine, allowlist, malware scan và signed-download policy; text-only đủ chứng minh academic flow |
-| Community realtime, report, block, mute, moderation console | Là một sản phẩm an toàn cộng đồng riêng, cần nhiều role và test |
+| Community ngoài extension text-only đã khóa: media, direct message, public discovery, moderation tự động | Cần media safety pipeline, chính sách bổ sung và device/UAT riêng |
 | Camera OCR/translate và image generation | Phát sinh media pipeline, TTL worker, moderation và device QA |
 | AI memory, study planner, support signals | Privacy và evidence model chưa cần để chứng minh core flow |
 | Profile/CV, jobs/housing/listings | Không nằm trên critical path học thuật |
 | Attendance, gradebook, rubric, timetable | Mở rộng domain academic trước khi core flow ổn định |
 | Push notification | Student có thể thấy bài mới trực tiếp trong Home/Class; chưa cần notification service |
 | Public CMS/news, custom domain | Một landing tĩnh là đủ cho closed beta |
-| Platform Admin/Moderator/Employer/Parent UI | Không cần cho pilot ba vai trò |
+| Platform Admin/Employer/Parent UI | Không cần cho pilot; Moderator chỉ tồn tại trong extension Community Safety đã khóa |
 | CSV import UI | Dùng seed/import script có validation |
 | PostGIS, Redis, outbox publisher, event bus, analytics | Chưa có consumer/tải thực tế để biện minh |
 | Dedicated-cluster data routing abstraction | Thêm khi có tenant thực sự cần tách data plane |
@@ -284,6 +290,16 @@ Quy tắc:
 - [ ] Submission chỉ nhận text đã validate; giới hạn mặc định 20.000 ký tự; file/URL payload bị từ chối.
 - [ ] Core flow có loading, empty, error, retry và permission-denied state.
 
+### Community Safety text-only
+
+- [x] User sai tenant hoặc cùng tenant nhưng không phải member của space không thể đọc, đăng hoặc sửa Community content.
+- [x] Contact/link/OTP/address/identity-like text yêu cầu privacy confirmation; report và moderation audit không chứa message, report detail hoặc moderator note.
+- [x] Report retry không tạo duplicate; Moderator chỉ xem queue đúng tenant; hide/resolve/escalate/dismiss có transition và audit; hidden content rời member view.
+- [ ] Realtime subscription trên staging chỉ nhận event của space/tenant được phép và không nhận event cross-tenant.
+- [ ] Moderator/Safeguarding representative hoàn tất UAT report → queue → action → member-view result.
+
+Nếu một tiêu chí Community chưa đạt, candidate có extension này là **NO-GO**. Chỉ được promote Academic Alpha không Community sau khi extension được gỡ hoặc tắt an toàn và toàn bộ route inventory, build, integration, E2E, accessibility, UAT subset và release evidence bị ảnh hưởng đã chạy lại.
+
 ### Secrets và audit
 
 - [x] Không có service-role/model key trong repository, web bundle, mobile bundle hoặc log.
@@ -368,6 +384,7 @@ Tất cả acceptance mục Tenant/Role, Academic E2E, Secrets/Audit và Release
 - Service-role xuất hiện trên request path.
 - Migration/seed không tái lập được.
 - Academic flow thất bại hoặc ghi dữ liệu sai tenant.
+- Community Safety text-only lộ sai tenant hoặc report/moderation flow thất bại.
 - Android build không cài/chạy được.
 - Không có UAT owner hoặc không có sign-off.
 - Còn Critical/High security/privacy issue.
@@ -393,7 +410,7 @@ Nếu AI là cam kết bắt buộc của pilot, AI gate không đạt đồng n
 
 - Web URL cho Admin/Teacher.
 - Android EAS Preview cài được.
-- Hai tenant demo và tài khoản ba role.
+- Hai tenant demo, tài khoản ba role học thuật và Moderator cho extension Community Safety.
 - Release label ghi rõ `sandbox allowlisted` hoặc `real-user pilot` kèm approval artifact.
 - Repository, lockfile, migration, seed và `.env.example` không chứa secret.
 - Academic E2E evidence.
