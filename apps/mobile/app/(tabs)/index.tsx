@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -10,6 +10,9 @@ import { colors } from "@/lib/theme";
 
 export default function HomeScreen() {
   const { classes, membership, session } = useAppData();
+  if (membership?.role === "moderator") {
+    return <Redirect href="/(tabs)/community" />;
+  }
   const userName =
     typeof session?.user.user_metadata.name === "string"
       ? session.user.user_metadata.name

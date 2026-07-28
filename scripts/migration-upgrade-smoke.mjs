@@ -75,11 +75,72 @@ try {
     "reset",
     "--version",
     "202607280002",
+    "--no-seed",
   ]);
   const container = databaseContainer();
   sql(
     container,
     `
+      insert into auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        created_at,
+        updated_at,
+        confirmation_token,
+        recovery_token,
+        email_change_token_new,
+        email_change
+      )
+      values
+        ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'teacher.a@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Teacher A"}', now(), now(), '', '', '', ''),
+        ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'student.a@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Student A"}', now(), now(), '', '', '', '');
+
+      insert into public.tenants (id, name)
+      values ('a0000000-0000-0000-0000-000000000001', 'Sao Do Campus A');
+
+      insert into public.memberships (
+        tenant_id, user_id, role, display_name, email
+      )
+      values
+        ('a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'teacher', 'Teacher A', 'teacher.a@saodo.test'),
+        ('a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'student', 'Student A', 'student.a@saodo.test');
+
+      insert into public.classes (id, tenant_id, teacher_id, name)
+      values (
+        'a1000000-0000-0000-0000-000000000001',
+        'a0000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000002',
+        'AI Foundations A'
+      );
+
+      insert into public.class_members (tenant_id, class_id, student_id)
+      values (
+        'a0000000-0000-0000-0000-000000000001',
+        'a1000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000003'
+      );
+
+      insert into public.assignments (
+        id, tenant_id, class_id, created_by, title, instructions, status, due_at
+      )
+      values (
+        'a2000000-0000-0000-0000-000000000001',
+        'a0000000-0000-0000-0000-000000000001',
+        'a1000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000002',
+        'Academic Alpha A',
+        'Legacy upgrade fixture.',
+        'published',
+        now() + interval '7 days'
+      );
+
       insert into public.submissions (
         id,
         tenant_id,
@@ -125,6 +186,34 @@ try {
   if (normalized !== "submitted|true|true|true") {
     throw new Error(`Legacy submission was not normalized: ${normalized}`);
   }
+  const communityUpgrade = sql(
+    container,
+    `
+      select concat_ws(
+        '|',
+        ('moderator' = any(enum_range(null::public.member_role)::text[]))::text,
+        (to_regclass('public.community_spaces') is not null)::text,
+        (to_regclass('public.content_reports') is not null)::text,
+        (to_regprocedure('public.list_community_spaces()') is not null)::text,
+        (
+          select count(*) = 1
+          from public.community_spaces
+          where tenant_id = 'a0000000-0000-0000-0000-000000000001'
+            and kind = 'school'
+        )::text,
+        (
+          select count(*) = 1
+          from public.community_spaces
+          where tenant_id = 'a0000000-0000-0000-0000-000000000001'
+            and class_id = 'a1000000-0000-0000-0000-000000000001'
+            and kind = 'class'
+        )::text
+      );
+    `,
+  );
+  if (communityUpgrade !== "true|true|true|true|true|true") {
+    throw new Error(`Community migrations were not applied: ${communityUpgrade}`);
+  }
 
   runPnpm(["db:lint"]);
   runPnpm(["db:reset"]);
@@ -132,7 +221,7 @@ try {
   runPnpm(["db:lint"]);
   upgraded = true;
   process.stdout.write(
-    "Populated migration upgrade 002→current passed; legacy blank review normalized to submitted.\n",
+    "Populated migration upgrade 002 to current passed; academic normalization and community objects verified.\n",
   );
 } finally {
   if (!upgraded) {

@@ -95,7 +95,15 @@ const fingerprintSql = `
     'class_members', (select count(*) from public.class_members),
     'assignments', (select count(*) from public.assignments),
     'submissions', (select count(*) from public.submissions),
-    'audit_logs', (select count(*) from public.audit_logs)
+    'audit_logs', (select count(*) from public.audit_logs),
+    'community_spaces', (select count(*) from public.community_spaces),
+    'space_members', (select count(*) from public.space_members),
+    'community_messages', (select count(*) from public.community_messages),
+    'message_reactions', (select count(*) from public.message_reactions),
+    'content_reports', (select count(*) from public.content_reports),
+    'moderation_actions', (select count(*) from public.moderation_actions),
+    'blocks', (select count(*) from public.blocks),
+    'mutes', (select count(*) from public.mutes)
   )::text;
 `;
 const before = sql(fingerprintSql);
@@ -129,6 +137,14 @@ try {
   sql(`
     truncate table
       public.audit_logs,
+      public.message_reactions,
+      public.moderation_actions,
+      public.content_reports,
+      public.mutes,
+      public.blocks,
+      public.community_messages,
+      public.space_members,
+      public.community_spaces,
       public.submissions,
       public.assignments,
       public.class_members,

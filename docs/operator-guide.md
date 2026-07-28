@@ -16,10 +16,11 @@ Dùng bộ Campus A cho một luồng xuyên suốt. Tất cả tài khoản dù
 | Vai trò | Email | Bề mặt chính |
 |---|---|---|
 | School Admin | `admin.a@saodo.test` | Web |
+| Moderator | `moderator.a@saodo.test` | Web |
 | Teacher | `teacher.a@saodo.test` | Web |
 | Student | `student.a@saodo.test` | Expo mobile |
 
-Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
+Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `moderator.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
 
 ## Luồng cốt lõi
 
@@ -49,6 +50,24 @@ Kết quả mong đợi: bài có trạng thái **Đã công bố**; bài nộp 
 Kết quả mong đợi: ứng dụng hiển thị **Đã nộp**, sau đó **Đã nhận phản hồi** cùng nội dung phản hồi. Nếu gửi lỗi, nội dung vẫn được giữ để thử lại. Mỗi Student chỉ có một bài nộp cho một bài tập.
 
 Student có thể đăng nhập web để đọc lớp, bài tập và trạng thái của mình, nhưng phải dùng mobile để nộp bài. Bài nộp chỉ hỗ trợ văn bản; file, URL và rich text không được hỗ trợ.
+
+### 4. Student sử dụng cộng đồng an toàn
+
+1. Trên mobile, mở tab **Cộng đồng**.
+2. Mở kênh lớp hoặc câu lạc bộ, gửi tin nhắn văn bản, trả lời và chọn **Thích**.
+3. Với tin nhắn của người khác, thử **Báo cáo** hoặc **Chặn**. Có thể tắt trạng thái chú ý bằng **Tắt thông báo** mà vẫn đọc được tin nhắn.
+4. Kênh toàn trường là chỉ đọc đối với Student. Câu lạc bộ cho phép **Rời câu lạc bộ**; kênh trường và lớp không cho rời thủ công.
+
+Kết quả mong đợi: chỉ các kênh đúng tenant và membership xuất hiện; tin nhắn mới cập nhật trực tiếp khi kết nối realtime hoạt động. Nếu nội dung có dấu hiệu chứa số điện thoại, địa chỉ, giấy tờ, tài khoản, OTP hoặc link, ứng dụng yêu cầu kiểm tra và xác nhận trước khi gửi lại. `@AI` bị chặn cục bộ vì AI đang tắt.
+
+### 5. Moderator xử lý báo cáo
+
+1. Mở phiên trình duyệt riêng, đăng nhập bằng Moderator.
+2. Tại **Hàng đợi kiểm duyệt**, dùng **Nhịp đăng bài** để đặt khoảng nghỉ 0–300 giây cho từng kênh nếu cần giảm spam.
+3. Mở báo cáo và xem bằng chứng.
+4. Nhập ghi chú nếu cần rồi chọn **Bỏ qua báo cáo**, **Ẩn nội dung**, **Chuyển cấp xử lý** hoặc **Đánh dấu đã xử lý**.
+
+Kết quả mong đợi: Moderator chỉ thấy kênh và báo cáo thuộc đúng tenant, không thấy lớp, bài tập hoặc bài nộp học thuật. Nhịp đăng mới được PostgreSQL áp dụng cho các lần gửi tiếp theo. Khi chọn **Ẩn nội dung**, tin nhắn biến mất khỏi lượt đọc thông thường nhưng vẫn được giữ làm bằng chứng kiểm duyệt. Audit chỉ chứa định danh và mã hành động, không chứa nội dung tin nhắn, chi tiết báo cáo hoặc ghi chú.
 
 ## Phiên đăng nhập
 

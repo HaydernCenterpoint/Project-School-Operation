@@ -154,8 +154,8 @@ export default function AccessPage() {
           <article>
             <h3>Vai trò theo từng cơ sở</h3>
             <p>
-              Quan hệ thành viên xác định bạn là quản trị viên, giảng viên hay
-              sinh viên trong đúng đơn vị.
+              Quan hệ thành viên xác định bạn là quản trị viên, giảng viên,
+              sinh viên hoặc kiểm duyệt viên trong đúng đơn vị.
             </p>
           </article>
           <article>

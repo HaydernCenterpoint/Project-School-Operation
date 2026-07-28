@@ -27,6 +27,10 @@ export default function RootLayout() {
           name="assignment/[id]"
           options={{ headerBackTitle: "Quay lại", title: "Bài tập" }}
         />
+        <Stack.Screen
+          name="community/[id]"
+          options={{ headerBackTitle: "Quay lại", title: "Cộng đồng" }}
+        />
       </Stack>
     </AppDataProvider>
   );

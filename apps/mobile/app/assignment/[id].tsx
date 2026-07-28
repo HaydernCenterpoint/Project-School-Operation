@@ -15,19 +15,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenState } from "@/components/ScreenState";
-import { academicRequest } from "@/lib/academicApi";
+import { academicRequest, createIdempotencyKey } from "@/lib/academicApi";
 import { useAppData } from "@/lib/AppData";
 import { colors } from "@/lib/theme";
-
-function createIdempotencyKey() {
-  return (
-    globalThis.crypto?.randomUUID?.() ??
-    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
-      const random = (Math.random() * 16) | 0;
-      return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
-    })
-  );
-}
 
 type PendingSubmission = {
   content: string;

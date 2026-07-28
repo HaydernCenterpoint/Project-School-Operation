@@ -1,4 +1,4 @@
-export const roles = ["admin", "teacher", "student"] as const;
+export const roles = ["admin", "moderator", "teacher", "student"] as const;
 
 export type Role = (typeof roles)[number];
 
@@ -90,6 +90,127 @@ export type Submission = {
   feedbackBy: string | null;
 };
 
+export const communitySpaceKinds = ["school", "class", "club"] as const;
+export type CommunitySpaceKind = (typeof communitySpaceKinds)[number];
+
+export const communityReaction = "like" as const;
+export type CommunityReaction = typeof communityReaction;
+
+export const communityReportReasons = [
+  "spam",
+  "harassment",
+  "hate",
+  "dangerous",
+  "misinformation",
+  "other",
+] as const;
+export type CommunityReportReason = (typeof communityReportReasons)[number];
+
+export const communityReportStatuses = [
+  "open",
+  "escalated",
+  "dismissed",
+  "resolved",
+] as const;
+export type CommunityReportStatus =
+  (typeof communityReportStatuses)[number];
+
+export const communityModerationActions = [
+  "dismiss",
+  "hide",
+  "escalate",
+  "resolve",
+] as const;
+export type CommunityModerationAction =
+  (typeof communityModerationActions)[number];
+
+export type CommunitySpace = {
+  id: string;
+  tenantId: string;
+  kind: CommunitySpaceKind;
+  name: string;
+  classId: string | null;
+  slowModeSeconds: number;
+  muted: boolean;
+  canLeave: boolean;
+  canPost: boolean;
+};
+
+export type CommunityAuthor = {
+  id: string;
+  displayName: string;
+  role: Role;
+  blockedByMe: boolean;
+};
+
+export type CommunityReply = {
+  id: string;
+  authorDisplayName: string;
+  text: string;
+};
+
+export type CommunityMessage = {
+  id: string;
+  tenantId: string;
+  spaceId: string;
+  author: CommunityAuthor;
+  text: string;
+  replyTo: CommunityReply | null;
+  reaction: {
+    kind: CommunityReaction;
+    count: number;
+    reactedByMe: boolean;
+  };
+  report: {
+    count: number;
+    reportedByMe: boolean;
+  };
+  hidden: boolean;
+  createdAt: string;
+};
+
+export type CommunityReportActor = {
+  id: string;
+  displayName: string;
+  role: Role;
+};
+
+export type CommunityReportMessage = {
+  id: string;
+  spaceId: string;
+  author: CommunityReportActor;
+  text: string;
+  hidden: boolean;
+  createdAt: string;
+};
+
+export type CommunityReport = {
+  id: string;
+  tenantId: string;
+  message: CommunityReportMessage;
+  reporter: CommunityReportActor;
+  reason: CommunityReportReason;
+  detail: string | null;
+  status: CommunityReportStatus;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+};
+
+export type CommunityMutationState = {
+  active: boolean;
+};
+
+export type CommunityReportCreated = {
+  reportId: string;
+};
+
+export type CommunityModerationResult = {
+  actionId: string;
+  reportId: string;
+  action: CommunityModerationAction;
+};
+
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && roles.includes(value as Role);
 }
@@ -100,5 +221,23 @@ export function isAssignmentStatus(
   return (
     typeof value === "string" &&
     assignmentStatuses.includes(value as AssignmentStatus)
+  );
+}
+
+export function isCommunityReportReason(
+  value: unknown,
+): value is CommunityReportReason {
+  return (
+    typeof value === "string" &&
+    communityReportReasons.includes(value as CommunityReportReason)
+  );
+}
+
+export function isCommunityModerationAction(
+  value: unknown,
+): value is CommunityModerationAction {
+  return (
+    typeof value === "string" &&
+    communityModerationActions.includes(value as CommunityModerationAction)
   );
 }

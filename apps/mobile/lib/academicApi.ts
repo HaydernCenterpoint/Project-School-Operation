@@ -2,6 +2,16 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export const hasAcademicApi = Boolean(apiUrl);
 
+export function createIdempotencyKey() {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+      const random = (Math.random() * 16) | 0;
+      return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+    })
+  );
+}
+
 type ApiErrorBody = {
   error?: {
     code?: string;
@@ -27,6 +37,9 @@ function errorMessage(status: number, code?: string) {
   }
   if (status === 413 || code === "payload_too_large") {
     return "Dữ liệu gửi lên vượt quá giới hạn cho phép.";
+  }
+  if (code === "privacy_confirmation_required") {
+    return "Tin nhắn có thể chứa thông tin riêng tư. Hãy kiểm tra nội dung, xác nhận rồi gửi lại.";
   }
   if (status === 422 || code === "unprocessable") {
     return "Không thể xử lý dữ liệu đã gửi.";
@@ -61,5 +74,6 @@ export async function academicRequest<T>(
     throw new Error(errorMessage(response.status, body?.error?.code));
   }
 
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }

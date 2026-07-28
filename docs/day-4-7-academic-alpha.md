@@ -1,5 +1,7 @@
 # Days 4–7 academic alpha
 
+This document records the delivered text-only academic vertical slice. It does not claim that every Days 4–5 backlog item is complete. The bounded Day 6 Community Safety extension is documented separately in [`day-6-community-safety.md`](day-6-community-safety.md).
+
 ## Delivered flow
 
 From a clean synthetic seed:
@@ -47,31 +49,31 @@ JSON mutation bodies use exact field allowlists. Text submission requires a UUID
 
 ## Evidence
 
-Fresh local evidence collected on 28 July 2026:
+Fresh local evidence collected on 29 July 2026:
 
 | Check | Result |
 |---|---|
 | Frozen dependency install | Pass |
 | ESLint across web/mobile | Pass |
 | TypeScript across contracts/web/mobile | Pass |
-| Next.js production build | Pass; four dynamic academic API surfaces |
+| Next.js route inventory | Pass; production build contains 14 BFF route files: four academic and ten community |
 | Clean Supabase reset/seed | Pass |
-| pgTAP authorization, academic workflow and release hardening | Pass; 2 files, 88 tests (`71 + 17`) |
+| pgTAP authorization, academic workflow, community safety and release hardening | Pass; 3 files, 202/202 tests |
 | Supabase schema lint | Pass; no schema errors |
 | Populated migration `002 → current` | Pass on disposable local database |
 | Local backup/restore smoke | Pass; restored public-data fingerprint matched |
 | Mobile configuration validation | Pass; 2/2 |
-| Accessibility automation | Pass; Chrome AX-tree, Admin/Teacher keyboard and focus flow, 320 px layout and measured CSS page-scale 200% |
+| Accessibility automation | Pass; Chrome AX-tree, Admin/Teacher/Moderator keyboard and focus flow, 320 px layout and measured CSS page-scale 200% |
 | Runtime security scan | Pass; one Hermes `.hbc` runtime binary scanned, no secret or service-role finding |
 | Anon-key validation | Pass; only publishable keys or JWTs with role `anon` are accepted |
 | Database mutation quotas | Pass; membership mutation quota added |
-| Seeded JWT/RLS production API integration on latest hardening tree | Pass; 1/1 twice consecutively against the same database |
-| Production Chrome UI E2E on latest hardening tree | Pass; 14/14 |
-| Expo Android export | Pass |
+| Seeded JWT/RLS production API integration on latest hardening tree | Pass; academic and community suites |
+| Production Chrome UI E2E | Pass; combined academic and Community Safety suite 15/15 |
+| Expo Android export | Pass; fresh Day 6 Android export generated |
 
-The API black-box suite covers class creation, draft rejection, assignment publication, correct and cross-tenant visibility, idempotent replay, changed-payload conflict, duplicate submission conflict, 20,000-character boundaries, unknown URL field rejection, multipart rejection, teacher feedback, rate limiting and non-enumerating inaccessible IDs. The latest local production run passed 1/1 twice consecutively against the same database.
+The academic API black-box suite covers class creation, draft rejection, assignment publication, correct and cross-tenant visibility, idempotent replay, changed-payload conflict, duplicate submission conflict, 20,000-character boundaries, unknown URL field rejection, multipart rejection, teacher feedback, rate limiting and non-enumerating inaccessible IDs. The community suite covers its separate membership, safety and moderation contract. Both production integration suites pass against the seeded local Supabase database.
 
-The browser suite runs against `next build` + `next start` and verifies the POST login form, password-free URL, Admin class form, cleared-session redirect, Teacher assignment form, Student authenticated submission, Teacher feedback, accessibility tree, keyboard/focus behavior and narrow/page-scaled layout. The latest run passed 14/14.
+The browser suite runs against `next build` + `next start` and verifies the POST login form, password-free URL, Admin class form, cleared-session redirect, Teacher assignment form, Student authenticated submission, Teacher feedback, Community report → Moderator queue → hide, accessibility tree, keyboard/focus behavior and narrow/page-scaled layout. The combined academic and Community Safety suite passes 15/15.
 
 At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04× taller; critical Admin/Teacher controls and action text fit. The Teacher document width delta was +18 px. CDP operating-system text scale had no measurable desktop metric effect, so CSS zoom was used only where it produced a useful measurement. This evidence does not claim zero horizontal overflow or a complete WCAG audit.
 
@@ -81,7 +83,7 @@ At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04×
 - Navy frames navigation, cobalt communicates focus/selection, red is reserved for primary actions and yellow is a restrained orbital/keyline accent.
 - Operational screens use open lists and panels rather than dashboard cards, charts or decorative metrics.
 - The portal includes loading, empty, mutation, error and permission states with live-region announcements.
-- Mobile keeps the existing three tabs and uses the stack path `Class → Assignment`.
+- Mobile exposes Today, Classes, Community and Account to academic roles; Moderator sees only Community and Account. Detail flows use the stack paths `Class → Assignment` and `Community → Conversation`.
 - The mobile submission idempotency key is stored before the request and reused on retry.
 
 ## Current limitations
@@ -96,7 +98,8 @@ At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04×
 - No staging/production deployment, UAT sign-off or operational monitoring has been completed.
 - Web accessibility evidence does not replace Android physical-device and TalkBack testing.
 - Database quotas cover membership and academic mutations, but gateway-level limits for GET, invalid JWT and attempts rejected before database mutation remain a staging gate.
-- AI Tutor and all non-academic modules remain disabled. **AI is OFF** for the local hardening candidate.
+- Account provisioning, private file submission, attendance, standalone announcement management beyond the seeded school channel and in-app notification delivery remain incomplete.
+- AI Tutor and non-academic modules other than the bounded Day 6 Community Safety slice remain disabled. **AI is OFF** for the local hardening candidate.
 
 These limitations keep the result labelled **Academic Alpha / local hardening sandbox**, not a production pilot.
 

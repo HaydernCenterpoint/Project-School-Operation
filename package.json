@@ -12,7 +12,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm test:rls",
     "test:rls": "supabase test db",
-    "test:integration": "node --test tests/integration/academic-flow.test.mjs",
+    "test:integration": "node --test tests/integration/academic-flow.test.mjs && node --test tests/integration/community-flow.test.mjs",
     "test:e2e:web": "node --test tests/e2e/academic-ui.test.mjs",
     "test:security": "node --test tests/security/security-check.test.mjs",
     "test:accessibility": "node --test tests/accessibility/color-contrast.test.mjs",

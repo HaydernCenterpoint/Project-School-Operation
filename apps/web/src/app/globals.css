@@ -152,6 +152,27 @@ button { color: inherit; }
 .submission-list form textarea { width: 100%; min-height: 84px; padding: 10px; resize: vertical; border: 1px solid var(--muted); border-radius: 6px; }
 .submission-list form .button { justify-self: start; }
 .student-status { margin-top: 24px; padding: 18px; background: #fff; border-left: 3px solid var(--yellow); }
+.moderation-list { display: grid; gap: 14px; }
+.moderation-list article { padding: 20px; background: var(--mist); border: 1px solid var(--border); border-left: 4px solid var(--red); }
+.moderation-list h3 { margin: 8px 0 0; font-size: 21px; }
+.moderation-list dl { margin: 16px 0; display: flex; flex-wrap: wrap; gap: 16px 30px; }
+.moderation-list dl div { display: grid; gap: 3px; }
+.moderation-list dt { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.moderation-list dd { margin: 0; font-weight: 700; }
+.moderation-list label { margin-top: 16px; display: grid; gap: 7px; font-weight: 700; }
+.moderation-list textarea { width: 100%; min-height: 84px; padding: 10px; resize: vertical; color: var(--ink); background: #fff; border: 1px solid var(--muted); border-radius: 6px; }
+.moderation-evidence { padding: 16px; white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; border-left: 3px solid var(--blue); }
+.moderation-actions { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.slow-mode-list { margin-bottom: 18px; }
+.moderation-list .slow-mode-panel { background: linear-gradient(135deg, #fffdf0, var(--mist)); border-left-color: var(--yellow); }
+.slow-mode-panel .permission-note { margin-top: 8px; }
+.slow-mode-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.slow-mode-control { min-width: 0; padding: 14px; display: grid; gap: 8px; background: #fff; border: 1px solid var(--border); border-top: 3px solid var(--blue); }
+.slow-mode-control > label { margin: 0; overflow-wrap: anywhere; }
+.slow-mode-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.slow-mode-fields select { min-width: 0; min-height: 48px; padding: 0 12px; color: var(--ink); background: #fff; border: 1px solid var(--muted); border-radius: 6px; }
+.slow-mode-fields .button { min-width: 74px; padding-inline: 14px; }
+.status-chip.escalated { color: #674e00; background: #fff3b1; }
 .empty-state { min-height: 160px; grid-column: 1 / -1; padding: 24px; display: grid; place-items: center; align-content: center; text-align: center; color: var(--muted); background: var(--mist); border: 1px dashed #aab8ca; }
 .empty-state.compact { min-height: 180px; }
 .empty-state svg { width: 44px; height: 44px; margin-bottom: 8px; }
@@ -206,6 +227,7 @@ button { color: inherit; }
   .class-cards { grid-template-columns: 1fr; }
   .academic-form { padding: 18px 14px; }
   .assignment-detail { padding: 18px 14px; }
+  .slow-mode-grid { grid-template-columns: 1fr; }
   .submission-heading { align-items: flex-start; flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {

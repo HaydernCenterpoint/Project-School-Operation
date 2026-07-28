@@ -12,6 +12,8 @@ Day 1–3 establishes one tenant-aware foundation:
 
 Out of scope: account invitation UI, assignments, file uploads, AI, community, notifications and dynamic roles.
 
+This is the historical Days 1–3 freeze. The later Day 6 extension adds a dedicated Moderator role and the local Community Safety slice documented in [`day-6-community-safety.md`](day-6-community-safety.md). AI remains OFF.
+
 ## Ownership
 
 | Lane | Paths |
@@ -64,7 +66,7 @@ Day 3 UI may read Supabase directly with the user's JWT while RLS is the source 
 | Student | Enter the correct campus and see enrolled classes | P0 |
 | Release Operator | Reproduce schema, seed, tests and builds without application access to privileged credentials | P0 operational |
 
-P0 is limited to authentication, membership resolution, tenant-safe class reads, reproducible seed/migrations, shared contracts and usable web/mobile shells. P1 contains class mutation and the assignment → submission → feedback vertical slice; it is implemented and evidenced separately in [`day-4-7-academic-alpha.md`](day-4-7-academic-alpha.md). P2 contains invitations/import, files, notifications, community and all AI capabilities. P2 remains deferred; AI is OFF.
+P0 is limited to authentication, membership resolution, tenant-safe class reads, reproducible seed/migrations, shared contracts and usable web/mobile shells. P1 contains class mutation and the assignment → submission → feedback vertical slice; it is implemented and evidenced separately in [`day-4-7-academic-alpha.md`](day-4-7-academic-alpha.md). The Day 6 Community Safety extension delivers the bounded text-only community slice. Invitations/import, files, notifications and all AI capabilities remain deferred; AI is OFF.
 
 ### Ten-flow disposition
 
@@ -75,7 +77,7 @@ P0 is limited to authentication, membership resolution, tenant-safe class reads,
 | 3. Cited AI tutor | Deferred; AI OFF |
 | 4. Student support | Deferred; AI OFF |
 | 5. Camera translation | Deferred |
-| 6. Community safety | Deferred |
+| 6. Community safety | Day 6 local extension; text-only spaces, member controls and human moderation are documented separately |
 | 7. Listings | Deferred |
 | 8. Profile/portfolio | Deferred |
 | 9. Provider outage | Not applicable while AI is OFF; academic surfaces must remain provider-independent |
@@ -95,8 +97,8 @@ P0 is limited to authentication, membership resolution, tenant-safe class reads,
 
 | Item | Acceptance criteria | State |
 |---|---|---|
-| Reproducible local foundation | Clean reset creates both tenants, six accounts and expected memberships/classes | Done |
-| Tenant isolation | Cross-tenant reads return no rows and cross-tenant writes are rejected for all three roles | Done locally |
+| Reproducible local foundation | Clean reset creates both tenants, the original six academic accounts, two Day 6 Moderator accounts and expected memberships/classes/spaces | Done locally; eight synthetic accounts total |
+| Tenant isolation | Cross-tenant reads return no rows and cross-tenant writes are rejected for all three academic roles; Day 6 adds Moderator/community coverage | Done locally |
 | Web/mobile access shells | Correct role/campus/classes render; missing runtime configuration fails closed | Done locally |
 | Hosted verification | Immutable SHA passes quality, database, integration and browser jobs | In progress; release evidence must name the green run |
 | Staging promotion | Named Supabase project, HTTPS web/BFF, fresh tests and accountable owner | Blocked on approved external credentials |
@@ -114,7 +116,7 @@ No additional application service account exists in the Days 1–3 runtime.
 
 ### Success metrics
 
-- 6/6 seeded role-and-campus sign-ins resolve the expected membership.
+- The original 6/6 academic role-and-campus sign-ins resolve the expected membership; the current seed adds two Moderator sign-ins for eight synthetic accounts total.
 - 100% of business tables have RLS enabled and tenant predicates covered by pgTAP.
 - Zero successful cross-tenant reads or writes in the two-tenant test matrix.
 - Clean reset, lint, typecheck, web build, Android export and hosted CI are reproducible from the lockfile.
@@ -170,7 +172,7 @@ Composite tenant foreign keys prevent a Teacher or Student membership from being
 ### Consent and retention policy v1
 
 - The local fixture is synthetic-only. Authentication is not consent, and no real or under-18 data may enter any environment without named privacy/safeguarding approval.
-- Days 1–3 collect only identity metadata needed for membership, tenant/class relationships and audit evidence. AI profiling, advertising, community content, camera media and analytics tracking are absent.
+- Days 1–3 collect only identity metadata needed for membership, tenant/class relationships and audit evidence. Community content is added only by the later Day 6 local extension. AI profiling, advertising, camera media and analytics tracking remain absent.
 - Local data is disposable and may be removed with the documented reset. A shared staging/production retention schedule, deletion owner, backup retention and subject-request process must be approved before pilot data is provisioned.
 - Sessions use Supabase lifecycle controls. Operators end synthetic web sessions by isolating/clearing the browser profile; mobile exposes sign-out.
 - Audit records must not contain passwords, tokens or request bodies. Secrets stay in target environment configuration and never in Git.
@@ -178,4 +180,4 @@ Composite tenant foreign keys prevent a Teacher or Student membership from being
 
 ### Two-tenant security cases
 
-Campus A and Campus B fixtures must cover Admin, Teacher and Student reads; forged tenant/class/member identifiers; cross-tenant class mutation; assignment/submission access after the Day 4 extension; and audit attribution. Database tests are authoritative even when a UI control is hidden.
+Campus A and Campus B fixtures must cover Admin, Teacher and Student reads; forged tenant/class/member identifiers; cross-tenant class mutation; assignment/submission access after the Day 4 extension; and audit attribution. The Day 6 extension adds Moderator academic denial plus community membership, moderation and tenant-isolation cases. Database tests are authoritative even when a UI control is hidden.

@@ -4,8 +4,8 @@
 
 | Field | Current value |
 |---|---|
-| Label | **Academic Alpha / local hardening** |
-| Data | Synthetic tenants and identities only |
+| Label | **Academic Alpha + Day 6 Community Safety / local hardening** |
+| Data | Two synthetic tenants and eight synthetic identities: six academic accounts plus two Moderators |
 | AI | **OFF**; no provider, key, retrieval or AI runtime is part of this candidate |
 | External release decision | **NO-GO** until staging, EAS/device, UAT and sign-off gates are complete |
 
@@ -13,21 +13,22 @@ This document is an operator checklist, not evidence of a staging or production 
 
 ## Evidence ledger
 
-Local evidence recorded on 28 July 2026:
+Local evidence recorded on 29 July 2026:
 
 | Check | Latest result | Boundary |
 |---|---|---|
-| PostgreSQL authorization and academic workflow | Pass; 88 pgTAP checks (`71 + 17`) | Local Supabase only |
-| Populated migration `002 → current` | Pass; legacy blank review normalized and current migrations reapplied | Disposable local database |
-| Backup/restore smoke | Pass; public-data fingerprint matched after restore | Disposable seeded local database |
+| PostgreSQL authorization, academic workflow and community safety | Pass; 202/202 pgTAP checks across three files | Local Supabase only |
+| Populated migration `002 → current` | Pass; legacy academic normalization plus Moderator/community objects verified | Disposable local database |
+| Backup/restore smoke | Pass; fingerprint matched for academic data and all eight community tables | Disposable seeded local database |
 | Lint and TypeScript | Pass | Local workspace |
-| Next.js production build and Expo Android export | Pass | Build/export only; no deployment or installed APK |
+| Next.js route inventory | Pass; production build contains 14 BFF route files: four academic and ten community | Local production build |
+| Next.js production build and Expo Android export | Pass; fresh Day 6 build/export | Build/export only; no deployment or installed APK |
 | Mobile build configuration validation | Pass; 2/2 | Fail-closed configuration tests |
-| Web accessibility automation | Pass; Chrome AX-tree, Admin/Teacher keyboard and focus flow, 320 px layout, and measured CSS page-scale 200% | Glyph measured at 2.00× width and 2.04× height; critical controls and action text fit; Teacher document delta was +18 px |
-| Repository and runtime security checks | Pass; one Hermes `.hbc` runtime binary scanned with no secret or service-role finding | Anon-key validator accepts only a publishable key or a JWT whose role is `anon` |
+| Web accessibility automation | Pass; Chrome AX-tree, Admin/Teacher/Moderator keyboard and focus flow, 320 px critical layouts and measured CSS page-scale 200% | Local automation; not a complete WCAG or TalkBack audit |
+| Repository and runtime security checks | Pass; 572 text files and one Hermes runtime binary scanned | No secret or service-role credential finding |
 | Database mutation quotas | Pass; membership mutation quota added alongside academic mutation limits | Database boundary only |
-| Production API integration on the latest hardening tree | Pass; 1/1 in two consecutive runs against the same database | Local production web/BFF with seeded Supabase |
-| Production Chrome academic E2E on the latest hardening tree | Pass; 14/14 | Local production build; no staging claim |
+| Production API integration on the latest hardening tree | Pass; academic and community suites | Local production web/BFF with seeded Supabase |
+| Production Chrome E2E | Pass; combined academic and Community Safety suite 15/15 | Local production build; no staging claim |
 | Android device critical-flow smoke | Not run | Requires EAS Preview and a physical device |
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
@@ -45,7 +46,7 @@ External promotion requires all of the following:
 - Fresh API integration and Chrome E2E evidence against the promoted build.
 - An EAS Preview APK installed from scratch on a physical Android device.
 - TalkBack, keyboard, focus, error-state and 200% text-scaling checks.
-- UAT by named School Admin, Teacher and Student representatives.
+- UAT by named School Admin, Teacher, Student and Moderator/Safeguarding representatives.
 - Privacy/safeguarding approval before any real or under-18 data is used.
 - Human Lead and independent QA/Security sign-off.
 
@@ -104,8 +105,8 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
 3. **Take and verify a target backup.** Use the Supabase provider backup/PITR procedure for the exact target project. Record backup ID, timestamp, retention and restore owner. A local dump is not sufficient evidence.
 4. **Review migrations.** Confirm the target is at the expected predecessor version. Dry-run the linked migration with the approved Supabase CLI, inspect the SQL, then apply append-only migrations. Never run `db reset` against a shared environment.
 5. **Deploy web/BFF.** Configure the four web variables above in the deployment provider, deploy the immutable SHA, and record the provider deployment/version ID.
-6. **Smoke web/API.** Verify login for all three synthetic roles, cross-tenant denial, class creation, assignment publication, one idempotent submission replay, feedback and rate-limit `429` with `Retry-After`.
-7. **Build EAS Preview.** Configure the preview environment, build the APK, install it from scratch, and run the Student class → assignment → submission → feedback flow.
+6. **Smoke web/API.** Verify login for all four synthetic roles; cross-tenant denial; class creation, assignment publication, one idempotent submission replay and feedback; community post, report and human moderation; and rate-limit `429` with `Retry-After`.
+7. **Build EAS Preview.** Configure the preview environment, build the APK, install it from scratch, and run the Student class → assignment → submission → feedback flow plus Student community post/report/realtime checks.
 8. **Collect signatures.** Attach CI, migration, backup, E2E, device, accessibility and UAT evidence to the sign-off table. No signature may be inferred from a passing command.
 
 ## Rollback runbook
@@ -114,7 +115,7 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
 2. Roll web/BFF back to the previous immutable deployment through the hosting provider.
 3. Do not apply a handwritten down migration. PostgreSQL migrations are append-only; prefer a reviewed forward fix.
 4. If data integrity is at risk, isolate the current database and restore the verified provider backup/PITR point into a new recovery instance first.
-5. Compare tenant, membership, class, assignment, submission and audit counts; rerun cross-tenant checks before directing traffic to the recovered instance.
+5. Compare tenant, membership, class, assignment, submission, community, report, moderation and audit counts; rerun cross-tenant checks before directing traffic to the recovered instance.
 6. Reissue the candidate only after affected tests, device smoke, UAT and QA/Security review have been repeated.
 
 ## Restore runbook
@@ -136,7 +137,7 @@ Do not reuse the local script. The Release Operator must:
 1. Confirm the exact provider project and restore point with a second reviewer.
 2. Freeze writes and preserve the affected database for investigation.
 3. Restore through provider backup/PITR into an isolated recovery project.
-4. Validate schema version, row-count fingerprint, RLS, audit records and the academic critical flow.
+4. Validate schema version, row-count fingerprint, RLS, audit records and the academic/community critical flows.
 5. Switch traffic only after Human Lead and QA/Security approval.
 
 ## Gitleaks provenance
@@ -169,7 +170,7 @@ The quality job checks out full history before scanning. Once this workflow exis
 |---|---|---|---|---|
 | Human Product/Tech Lead | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Independent QA/Security Reviewer | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| School Admin/Teacher UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
+| School Admin/Teacher/Moderator UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Student/mobile UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Privacy/Safeguarding reviewer, if real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |

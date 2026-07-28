@@ -47,6 +47,12 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function textNonce() {
+  return randomUUID()
+    .replaceAll("-", "")
+    .replace(/\d/g, (digit) => String.fromCharCode(103 + Number(digit)));
+}
+
 async function waitForValue(read, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
   let value;
@@ -955,6 +961,256 @@ describe(
           ),
         "reviewed submission and success notice",
         20_000,
+      );
+    });
+
+    test("community report reaches the moderator queue and hidden content leaves member views", async () => {
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "student.a@saodo.test");
+
+      const spaces = await browserApi(page, "/api/community/spaces");
+      assert.equal(spaces.status, 200);
+      const classSpace = spaces.body.spaces.find(
+        (space) => space.kind === "class" && space.canPost,
+      );
+      assert.match(classSpace?.id, /^[0-9a-f-]{36}$/i);
+
+      const communityText = `Community browser E2E ${textNonce()}`;
+      const posted = await browserApi(
+        page,
+        `/api/community/spaces/${classSpace.id}/messages`,
+        {
+          method: "POST",
+          headers: { "Idempotency-Key": randomUUID() },
+          body: {
+            privacyWarningConfirmed: false,
+            replyToId: null,
+            text: communityText,
+          },
+        },
+      );
+      assert.equal(
+        posted.status,
+        201,
+        `Community post failed: ${JSON.stringify(posted.body)}`,
+      );
+      const messageId = posted.body.message.id;
+      assert.match(messageId, /^[0-9a-f-]{36}$/i);
+
+      const reported = await browserApi(
+        page,
+        `/api/community/messages/${messageId}/reports`,
+        {
+          method: "POST",
+          body: {
+            detail: "Browser moderation evidence.",
+            reason: "harassment",
+          },
+        },
+      );
+      assert.equal(
+        reported.status,
+        201,
+        `Community report failed: ${JSON.stringify(reported.body)}`,
+      );
+
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "moderator.a@saodo.test");
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "moderator evidence queue",
+        20_000,
+      );
+      const moderatorNodes = await getAccessibilityTree(page);
+      assertAccessibleNode(moderatorNodes, "button", "Ẩn nội dung");
+
+      await evaluate(page, () =>
+        document.querySelector('a[href="#moderation"]')?.focus(),
+      );
+      let focusedHideAction = false;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await pressTab(page);
+        focusedHideAction = await evaluate(
+          page,
+          () =>
+            document.activeElement?.textContent?.trim() === "Ẩn nội dung",
+        );
+        if (focusedHideAction) break;
+      }
+      assert.equal(focusedHideAction, true);
+      const focusVisible = await evaluate(page, () => {
+        const style = getComputedStyle(document.activeElement);
+        return style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) >= 2;
+      });
+      assert.equal(focusVisible, true);
+
+      await page.send("Emulation.setDeviceMetricsOverride", {
+        width: 320,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      try {
+        const narrowModeration = await evaluate(page, () => {
+          const controls = [
+            ...document.querySelectorAll(
+              ".moderation-list article:first-child textarea, .moderation-list article:first-child .moderation-actions button",
+            ),
+          ];
+          return {
+            controlsFit:
+              controls.length > 0 &&
+              controls.every((control) => {
+                const rectangle = control.getBoundingClientRect();
+                return rectangle.left >= 0 && rectangle.right <= window.innerWidth;
+              }),
+            noDocumentOverflow:
+              document.documentElement.scrollWidth <= window.innerWidth,
+          };
+        });
+        assert.deepEqual(narrowModeration, {
+          controlsFit: true,
+          noDocumentOverflow: true,
+        });
+      } finally {
+        await page.send("Emulation.clearDeviceMetricsOverride");
+      }
+
+      await page.send("Emulation.setDeviceMetricsOverride", {
+        width: 1280,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      const moderationSelectors = [
+        ".moderation-list article:first-child textarea",
+        ".moderation-list article:first-child .moderation-actions button:nth-child(2)",
+      ];
+      const moderationBaseline = await measureTextScaleLayout(
+        page,
+        moderationSelectors,
+        "#moderation h2",
+      );
+      try {
+        await evaluate(page, () => {
+          document.documentElement.style.zoom = "200%";
+          document.documentElement.style.width = "50%";
+        });
+        const moderationScaled = await measureTextScaleLayout(
+          page,
+          moderationSelectors,
+          "#moderation h2",
+        );
+        assert.ok(
+          moderationScaled.copyHeight / moderationBaseline.copyHeight >= 1.75,
+        );
+        assert.equal(moderationScaled.controlsFit, true);
+        assert.equal(moderationScaled.actionContentFits, true);
+      } finally {
+        await evaluate(page, () => {
+          document.documentElement.style.zoom = "";
+          document.documentElement.style.width = "";
+        });
+        await page.send("Emulation.clearDeviceMetricsOverride");
+      }
+
+      await evaluate(page, () => {
+        const originalFetch = window.fetch.bind(window);
+        let failed = false;
+        window.fetch = async (input, init) => {
+          const requestUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
+          const requestMethod = (
+            init?.method ??
+            (input instanceof Request ? input.method : "GET")
+          ).toUpperCase();
+          if (
+            !failed &&
+            requestMethod === "GET" &&
+            requestUrl.includes("/api/community/moderation")
+          ) {
+            failed = true;
+            throw new TypeError("Forced moderation refresh failure.");
+          }
+          return originalFetch(input, init);
+        };
+      });
+
+      const hidden = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
+        );
+        const action = [...(report?.querySelectorAll("button") ?? [])].find(
+          (button) => button.textContent.includes("Ẩn nội dung"),
+        );
+        action?.click();
+        return Boolean(action);
+      }, communityText);
+      assert.equal(hidden, true);
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              document.body.textContent.includes(
+                "Đã ghi nhận quyết định, nhưng chưa thể làm mới hàng đợi.",
+              ) &&
+              document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "moderation success remains explicit when queue refresh fails",
+        20_000,
+      );
+
+      const reloaded = await evaluate(page, () => {
+        const reload = [...document.querySelectorAll("#moderation button")].find(
+          (button) => button.textContent.includes("Tải lại"),
+        );
+        reload?.click();
+        return Boolean(reload);
+      });
+      assert.equal(reloaded, true);
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              !document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "hidden report removed after queue reload",
+        20_000,
+      );
+
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "student.a@saodo.test");
+      const memberMessages = await browserApi(
+        page,
+        `/api/community/spaces/${classSpace.id}/messages`,
+      );
+      assert.equal(memberMessages.status, 200);
+      assert.equal(
+        memberMessages.body.messages.some((message) => message.id === messageId),
+        false,
       );
     });
 
