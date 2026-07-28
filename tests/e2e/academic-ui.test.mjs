@@ -3,12 +3,56 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import http from "node:http";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
 const uiUrl = process.env.ACADEMIC_UI_URL?.replace(/\/$/, "");
+const providerUrl = process.env.AI_PROVIDER_URL;
+const providerKey = process.env.AI_PROVIDER_API_KEY;
 const password = "Password123!";
+const policyVersion = "pilot-2026-07";
+
+function fakeTutorProvider() {
+  if (!providerUrl) return null;
+  const requests = [];
+  const url = new URL(providerUrl);
+  const server = http.createServer(async (request, response) => {
+    let raw = "";
+    for await (const chunk of request) raw += chunk;
+    const body = JSON.parse(raw);
+    const payload = JSON.parse(body.messages.at(-1).content);
+    requests.push({
+      authorization: request.headers.authorization,
+      path: request.url,
+      payload,
+    });
+    const content = JSON.stringify({
+      answer: "Disconnect the solar training panel before inspection.",
+      citationIds: [payload.sources[0]?.id].filter(Boolean),
+    });
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(
+      JSON.stringify({
+        choices: [{ message: { content } }],
+        usage: { prompt_tokens: 40, completion_tokens: 12 },
+      }),
+    );
+  });
+  return {
+    requests,
+    listen: () =>
+      new Promise((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(Number(url.port), url.hostname, resolve);
+      }),
+    close: () =>
+      new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
+  };
+}
 
 function findChrome() {
   const executable = process.platform === "win32" ? ".exe" : "";
@@ -496,8 +540,11 @@ describe(
     let classId;
     let assignmentTitle;
     let assignmentId;
+    let tutorProvider;
 
     before(async () => {
+      tutorProvider = fakeTutorProvider();
+      if (tutorProvider) await tutorProvider.listen();
       runtime = await launchBrowser();
       page = runtime.page;
       await page.send("Page.enable");
@@ -508,19 +555,21 @@ describe(
     });
 
     after(async () => {
-      if (!runtime) return;
-      try {
-        await runtime.browserCdp.send("Browser.close");
-      } catch {
-        runtime.browser.kill();
+      if (runtime) {
+        try {
+          await runtime.browserCdp.send("Browser.close");
+        } catch {
+          runtime.browser.kill();
+        }
+        runtime.page.close();
+        runtime.browserCdp.close();
+        await Promise.race([
+          new Promise((resolve) => runtime.browser.once("exit", resolve)),
+          delay(3_000).then(() => runtime.browser.kill()),
+        ]);
+        await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
       }
-      runtime.page.close();
-      runtime.browserCdp.close();
-      await Promise.race([
-        new Promise((resolve) => runtime.browser.once("exit", resolve)),
-        delay(3_000).then(() => runtime.browser.kill()),
-      ]);
-      await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
+      if (tutorProvider) await tutorProvider.close();
     });
 
     test("login form submits with POST", async () => {
@@ -1333,5 +1382,235 @@ describe(
         `${evidence.mechanism}; glyph ${evidence.widthRatio.toFixed(2)}x wide, ${evidence.heightRatio.toFixed(2)}x high; critical form fits; document overflow ${evidence.documentOverflow}px`,
       );
     });
+
+    test(
+      "student grants Tutor consent and receives a cited class-scoped answer",
+      {
+        skip:
+          providerUrl && providerKey
+            ? false
+            : "Set fake AI provider environment to run Tutor UI E2E.",
+      },
+      async () => {
+        await clearSession(page);
+        await navigate(page, uiUrl);
+        await login(page, "student.a@saodo.test");
+        await waitForDom(
+          page,
+          () => Boolean(document.querySelector("#tutor")),
+          "student Tutor panel",
+          20_000,
+        );
+
+        const revoked = await browserApi(page, "/api/ai/consent", {
+          method: "POST",
+          body: { granted: false, policyVersion },
+        });
+        assert.equal(revoked.status, 200, JSON.stringify(revoked.body));
+        await navigate(page, `${uiUrl}/portal`);
+
+        await waitForDom(
+          page,
+          () =>
+            Boolean(
+              document.querySelector(
+                '.tutor-consent-check input[type="checkbox"]',
+              ),
+            ),
+          "Tutor consent gate",
+          20_000,
+        );
+        const checked = await evaluate(page, () => {
+          const checkbox = document.querySelector(
+            '.tutor-consent-check input[type="checkbox"]',
+          );
+          checkbox?.click();
+          return Boolean(checkbox);
+        });
+        assert.equal(checked, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector(".tutor-consent .button-primary")
+              ?.disabled === false,
+          "enabled Tutor consent action",
+        );
+        const consentSubmitted = await evaluate(page, () => {
+          const button = document.querySelector(
+            ".tutor-consent .button-primary",
+          );
+          button?.click();
+          return Boolean(button);
+        });
+        assert.equal(consentSubmitted, true);
+
+        await waitForDom(
+          page,
+          () => Boolean(document.querySelector("form.tutor-form")),
+          "Tutor question form",
+          20_000,
+        );
+        await fill(
+          page,
+          ".tutor-form select",
+          "a1000000-0000-0000-0000-000000000001",
+        );
+        await fill(
+          page,
+          "#tutor-question",
+          "solar panel inspection",
+        );
+        const submitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(submitted, true);
+
+        try {
+          await waitForDom(
+            page,
+            () =>
+              document
+                .querySelector("#tutor")
+                ?.textContent.includes(
+                  "Disconnect the solar training panel before inspection.",
+                ),
+            "cited Tutor answer",
+            20_000,
+          );
+        } catch (error) {
+          const snapshot = await evaluate(page, () => ({
+            output:
+              document.querySelector(".tutor-output")?.textContent?.trim() ??
+              "",
+            panel: document.querySelector("#tutor")?.textContent?.trim() ?? "",
+          }));
+          throw new Error(
+            `${error.message}; provider requests: ${tutorProvider.requests.length}; Tutor snapshot: ${JSON.stringify(snapshot)}`,
+          );
+        }
+        const tutorEvidence = await evaluate(page, () => ({
+          text: document.querySelector("#tutor")?.textContent ?? "",
+          overflow:
+            document.documentElement.scrollWidth - window.innerWidth,
+        }));
+        assert.match(tutorEvidence.text, /campus-a-solar-guide\.pdf/i);
+        assert.doesNotMatch(tutorEvidence.text, /BENTHIC_B_ONLY/i);
+        assert.ok(tutorEvidence.overflow <= 1);
+
+        const classSwitched = await evaluate(page, () => {
+          const select = document.querySelector(".tutor-form select");
+          const nextOption = [...(select?.options ?? [])].find(
+            (option) => option.value !== select.value,
+          );
+          if (!select || !nextOption) return false;
+          select.value = nextOption.value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          return true;
+        });
+        assert.equal(classSwitched, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector("#tutor-question")?.value === "" &&
+            !document
+              .querySelector(".tutor-output")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ) &&
+            !document
+              .querySelector(".tutor-output")
+              ?.textContent.match(/campus-a-solar-guide\.pdf/i),
+          "Tutor class switch result reset",
+        );
+        const classSwitchReset = await evaluate(page, () => ({
+          answerRemoved: !document
+            .querySelector(".tutor-output")
+            ?.textContent.includes(
+              "Disconnect the solar training panel before inspection.",
+            ),
+          citationRemoved: !document
+            .querySelector(".tutor-output")
+            ?.textContent.match(/campus-a-solar-guide\.pdf/i),
+          question: document.querySelector("#tutor-question")?.value,
+        }));
+        assert.deepEqual(classSwitchReset, {
+          answerRemoved: true,
+          citationRemoved: true,
+          question: "",
+        });
+
+        await evaluate(page, () => {
+          const originalFetch = window.fetch.bind(window);
+          window.fetch = async (input, init) => {
+            const requestUrl =
+              typeof input === "string"
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input.url;
+            const requestMethod = (
+              init?.method ??
+              (input instanceof Request ? input.method : "GET")
+            ).toUpperCase();
+            if (
+              requestMethod === "POST" &&
+              requestUrl.includes("/api/ai/tutor")
+            ) {
+              return new Response(
+                JSON.stringify({
+                  error: {
+                    code: "ai_unavailable",
+                    message: "Tutor is disabled.",
+                  },
+                }),
+                {
+                  headers: { "Content-Type": "application/json" },
+                  status: 503,
+                },
+              );
+            }
+            return originalFetch(input, init);
+          };
+        });
+        await fill(page, "#tutor-question", "forced unavailable state");
+        const unavailableSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(unavailableSubmitted, true);
+        await waitForDom(
+          page,
+          () => {
+            const unavailable = document.querySelector(
+              '.tutor-state-locked[role="status"]',
+            );
+            return Boolean(unavailable && document.activeElement === unavailable);
+          },
+          "focused Tutor unavailable status",
+          20_000,
+        );
+
+        const nodes = await getAccessibilityTree(page);
+        assertAccessibleNode(
+          nodes,
+          "status",
+          "Trợ giảng AI đang tạm dừng. Tính năng này hiện chưa được trường bật.",
+        );
+        assert.ok(tutorProvider.requests.length >= 1);
+        assert.ok(
+          tutorProvider.requests.every(
+            (request) =>
+              request.authorization === `Bearer ${providerKey}` &&
+              request.path?.endsWith("/chat/completions") &&
+              request.payload.sources.every(
+                (source) => !JSON.stringify(source).includes("BENTHIC_B_ONLY"),
+              ),
+          ),
+        );
+      },
+    );
   },
 );

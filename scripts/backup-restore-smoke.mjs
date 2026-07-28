@@ -103,7 +103,12 @@ const fingerprintSql = `
     'content_reports', (select count(*) from public.content_reports),
     'moderation_actions', (select count(*) from public.moderation_actions),
     'blocks', (select count(*) from public.blocks),
-    'mutes', (select count(*) from public.mutes)
+    'mutes', (select count(*) from public.mutes),
+    'ai_tenant_policies', (select count(*) from public.ai_tenant_policies),
+    'ai_consents', (select count(*) from public.ai_consents),
+    'knowledge_documents', (select count(*) from public.knowledge_documents),
+    'knowledge_chunks', (select count(*) from public.knowledge_chunks),
+    'ai_usage_events', (select count(*) from public.ai_usage_events)
   )::text;
 `;
 const before = sql(fingerprintSql);
@@ -133,10 +138,18 @@ try {
   if (!backup.includes('COPY "public"."tenants"')) {
     throw new Error("Local backup does not contain the tenant table.");
   }
+  if (!backup.includes('COPY "public"."knowledge_documents"')) {
+    throw new Error("Local backup does not contain AI knowledge documents.");
+  }
 
   sql(`
     truncate table
       public.audit_logs,
+      public.ai_usage_events,
+      public.knowledge_chunks,
+      public.knowledge_documents,
+      public.ai_consents,
+      public.ai_tenant_policies,
       public.message_reactions,
       public.moderation_actions,
       public.content_reports,

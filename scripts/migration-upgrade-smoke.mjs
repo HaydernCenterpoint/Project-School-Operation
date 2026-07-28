@@ -214,6 +214,55 @@ try {
   if (communityUpgrade !== "true|true|true|true|true|true") {
     throw new Error(`Community migrations were not applied: ${communityUpgrade}`);
   }
+  const aiGatewayUpgrade = sql(
+    container,
+    `
+      select concat_ws(
+        '|',
+        (to_regclass('public.ai_tenant_policies') is not null)::text,
+        (to_regclass('public.ai_consents') is not null)::text,
+        (to_regclass('public.knowledge_documents') is not null)::text,
+        (to_regclass('public.knowledge_chunks') is not null)::text,
+        (to_regclass('public.ai_usage_events') is not null)::text,
+        (
+          to_regprocedure(
+            'public.set_ai_tutor_consent(boolean,text)'
+          ) is not null
+        )::text,
+        (
+          to_regprocedure(
+            'public.ingest_knowledge_document(uuid,uuid,text,text,text,text,jsonb,uuid)'
+          ) is not null
+        )::text,
+        (
+          to_regprocedure(
+            'public.retrieve_tutor_chunks(uuid,text,integer)'
+          ) is not null
+        )::text,
+        (
+          to_regprocedure(
+            'public.reserve_ai_tutor_request(uuid,uuid,integer)'
+          ) is not null
+        )::text,
+        (
+          to_regprocedure(
+            'public.finish_ai_tutor_request(uuid,text,integer,integer,integer,text,text,integer)'
+          ) is not null
+        )::text,
+        (
+          select concat_ws(
+            ',',
+            count(*)::text,
+            count(*) filter (where status <> 'started')::text
+          )
+          from public.ai_usage_events
+        )
+      );
+    `,
+  );
+  if (aiGatewayUpgrade !== "true|true|true|true|true|true|true|true|true|true|0,0") {
+    throw new Error(`AI gateway migration fingerprint failed: ${aiGatewayUpgrade}`);
+  }
 
   runPnpm(["db:lint"]);
   runPnpm(["db:reset"]);
@@ -221,7 +270,7 @@ try {
   runPnpm(["db:lint"]);
   upgraded = true;
   process.stdout.write(
-    "Populated migration upgrade 002 to current passed; academic normalization and community objects verified.\n",
+    "Populated migration upgrade 002 to current passed; academic, community, and AI gateway fingerprints verified.\n",
   );
 } finally {
   if (!upgraded) {

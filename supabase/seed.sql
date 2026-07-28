@@ -160,4 +160,119 @@ values
   ('b0000000-0000-0000-0000-000000000001', 'b3000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000003'),
   ('b0000000-0000-0000-0000-000000000001', 'b3000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000009');
 
+insert into public.ai_tenant_policies (
+  tenant_id,
+  tutor_enabled,
+  daily_request_limit,
+  provider,
+  model,
+  privacy_policy_version,
+  privacy_approved_at
+)
+values
+  (
+    'a0000000-0000-0000-0000-000000000001',
+    true,
+    20,
+    'openai-compatible',
+    'citation-model-v1',
+    'pilot-2026-07',
+    '2026-07-29 00:00:00+00'
+  ),
+  (
+    'b0000000-0000-0000-0000-000000000001',
+    true,
+    20,
+    'openai-compatible',
+    'citation-model-v1',
+    'pilot-2026-07',
+    '2026-07-29 00:00:00+00'
+  );
+
+insert into public.knowledge_documents (
+  id,
+  tenant_id,
+  class_id,
+  title,
+  source_name,
+  mime_type,
+  sha256,
+  status,
+  published,
+  idempotency_key,
+  payload_fingerprint,
+  ingested_by
+)
+values
+  (
+    'a7000000-0000-0000-0000-000000000001',
+    'a0000000-0000-0000-0000-000000000001',
+    'a1000000-0000-0000-0000-000000000001',
+    'Campus A Solar Safety',
+    'campus-a-solar-guide.pdf',
+    'application/pdf',
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    'ready',
+    true,
+    'a7100000-0000-4000-8000-000000000001',
+    'a720000000000000000000000000000000000000000000000000000000000001',
+    '10000000-0000-0000-0000-000000000001'
+  ),
+  (
+    'b7000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
+    'b1000000-0000-0000-0000-000000000001',
+    'Campus B Marine Robotics',
+    'campus-b-marine-handbook.txt',
+    'text/plain',
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    'ready',
+    true,
+    'b7100000-0000-4000-8000-000000000001',
+    'b720000000000000000000000000000000000000000000000000000000000001',
+    '20000000-0000-0000-0000-000000000001'
+  );
+
+insert into public.knowledge_chunks (
+  id,
+  tenant_id,
+  document_id,
+  chunk_index,
+  page_number,
+  content
+)
+values
+  (
+    'a7300000-0000-0000-0000-000000000001',
+    'a0000000-0000-0000-0000-000000000001',
+    'a7000000-0000-0000-0000-000000000001',
+    0,
+    11,
+    'AURORA_A_ONLY: Disconnect the solar training panel before inspection.'
+  ),
+  (
+    'a7300000-0000-0000-0000-000000000002',
+    'a0000000-0000-0000-0000-000000000001',
+    'a7000000-0000-0000-0000-000000000001',
+    1,
+    12,
+    'Campus A learners record panel voltage only with teacher supervision.'
+  ),
+  (
+    'b7300000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
+    'b7000000-0000-0000-0000-000000000001',
+    0,
+    21,
+    'BENTHIC_B_ONLY: Seal the marine robot battery housing before launch.'
+  ),
+  (
+    'b7300000-0000-0000-0000-000000000002',
+    'b0000000-0000-0000-0000-000000000001',
+    'b7000000-0000-0000-0000-000000000001',
+    1,
+    22,
+    'Campus B learners rinse the marine sensor with fresh water after testing.'
+  );
+
 select set_config('app.seed_mode', 'off', false);

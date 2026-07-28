@@ -22,6 +22,19 @@ Dùng bộ Campus A cho một luồng xuyên suốt. Tất cả tài khoản dù
 
 Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `moderator.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
 
+## AI Tutor Day 7 trong bản ứng viên cục bộ
+
+- Runtime AI Tutor **tắt theo mặc định** qua `AI_TUTOR_ENABLED=false`. Không bật bằng khóa thật trong buổi demo.
+- CI cục bộ chỉ dùng nhà cung cấp giả lập tương thích OpenAI trên loopback và các đoạn văn bản seed tổng hợp hoặc đã khử định danh.
+- Chỉ Student thấy Tutor: web hiển thị `AiTutorPanel` trong portal; Expo mở route `/tutor` từ CTA **Trợ giảng AI có nguồn** tại tab **Hôm nay**. Mỗi lần chỉ xử lý một câu hỏi và hiển thị một câu trả lời hoặc trạng thái từ chối cùng citation. Không có hội thoại nhiều lượt, lịch sử, bộ nhớ, công cụ hoặc lưu prompt/câu trả lời.
+- Trước mỗi yêu cầu, hệ thống kiểm tra phiên bản đồng thuận hiện hành, quyền tham gia lớp và hạn mức ngày trong PostgreSQL.
+- Retrieval là tìm kiếm toàn văn theo từ khóa trong PostgreSQL, không phải tìm kiếm ngữ nghĩa/vector và không dùng `pgvector`.
+- Chỉ chấp nhận citation trỏ đến đoạn văn đã retrieval cho đúng tenant/lớp. Khi không đủ bằng chứng hoặc citation không hợp lệ, hệ thống từ chối trả lời.
+- Khóa `AI_PROVIDER_API_KEY` chỉ được đặt ở server. Không đưa khóa vào `NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`, ứng dụng mobile, seed hoặc Git.
+- Không có giao diện upload, đọc PDF lúc runtime, OCR, provider fallback hoặc model registry. Tên tệp `.pdf` trong fixture chỉ là metadata của văn bản đã được chia đoạn sẵn.
+
+Chỉ xem đây là lát cắt kiểm thử cục bộ. Muốn bật với nhà cung cấp bên ngoài phải có nhà cung cấp/khóa được phê duyệt, phê duyệt privacy/safeguarding, staging HTTPS, kiểm thử lỗi/timeout, kiểm thử thiết bị vật lý/TalkBack và UAT có tên.
+
 ## Luồng cốt lõi
 
 ### 1. School Admin tạo lớp
@@ -51,7 +64,20 @@ Kết quả mong đợi: ứng dụng hiển thị **Đã nộp**, sau đó **Đ
 
 Student có thể đăng nhập web để đọc lớp, bài tập và trạng thái của mình, nhưng phải dùng mobile để nộp bài. Bài nộp chỉ hỗ trợ văn bản; file, URL và rich text không được hỗ trợ.
 
-### 4. Student sử dụng cộng đồng an toàn
+### 4. Student dùng Trợ giảng AI một lượt
+
+Ở cấu hình mặc định `AI_TUTOR_ENABLED=false`, web và mobile hiển thị trạng thái Trợ giảng AI đang tạm dừng. Đây là kết quả mong đợi; không thêm khóa nhà cung cấp thật để thay đổi trạng thái trong buổi demo.
+
+Khi chạy cấu hình kiểm thử cục bộ đã được phê duyệt với provider giả lập loopback:
+
+1. Trên web, đăng nhập bằng Student và chọn **Trợ giảng AI**; hoặc trên mobile, mở **Hôm nay → Trợ giảng AI có nguồn → Mở**.
+2. Xem phiên bản chính sách, chọn ô đồng ý rồi chọn **Đồng ý và tiếp tục**.
+3. Chọn lớp được phân quyền, nhập một câu hỏi cụ thể và chọn **Hỏi Trợ giảng AI**.
+4. Kiểm tra câu trả lời và mục **Nguồn đã sử dụng**. Có thể chọn **Rút lại đồng ý** sau khi hoàn tất.
+
+Kết quả mong đợi: câu trả lời có citation gồm tiêu đề, tên nguồn và số trang nếu có. Nếu tài liệu lớp không đủ bằng chứng, giao diện hiển thị trạng thái từ chối thay vì tạo câu trả lời. Giao diện không tạo transcript hoặc lịch sử câu hỏi.
+
+### 5. Student sử dụng cộng đồng an toàn
 
 1. Trên mobile, mở tab **Cộng đồng**.
 2. Mở kênh lớp hoặc câu lạc bộ, gửi tin nhắn văn bản, trả lời và chọn **Thích**.
@@ -60,7 +86,7 @@ Student có thể đăng nhập web để đọc lớp, bài tập và trạng t
 
 Kết quả mong đợi: chỉ các kênh đúng tenant và membership xuất hiện; tin nhắn mới cập nhật trực tiếp khi kết nối realtime hoạt động. Nếu nội dung có dấu hiệu chứa số điện thoại, địa chỉ, giấy tờ, tài khoản, OTP hoặc link, ứng dụng yêu cầu kiểm tra và xác nhận trước khi gửi lại. `@AI` bị chặn cục bộ vì AI đang tắt.
 
-### 5. Moderator xử lý báo cáo
+### 6. Moderator xử lý báo cáo
 
 1. Mở phiên trình duyệt riêng, đăng nhập bằng Moderator.
 2. Tại **Hàng đợi kiểm duyệt**, dùng **Nhịp đăng bài** để đặt khoảng nghỉ 0–300 giây cho từng kênh nếu cần giảm spam.
@@ -77,7 +103,7 @@ Kết quả mong đợi: Moderator chỉ thấy kênh và báo cáo thuộc đú
 
 ## Ranh giới và cổng phát hành
 
-- **AI OFF:** không có nhà cung cấp, khóa, retrieval hoặc runtime AI. Tên lớp seed `AI Foundations A/B` chỉ là dữ liệu tổng hợp, không biểu thị một tính năng AI.
+- **AI OFF theo mặc định:** mã gateway và corpus retrieval tổng hợp của Day 7 có trong bản ứng viên cục bộ, nhưng không có nhà cung cấp hoặc khóa bên ngoài đã được phê duyệt. Tên lớp seed `AI Foundations A/B` không tự bật tính năng AI.
 - Chỉ mô tả bản hiện tại là **Academic Alpha / local hardening**. Chưa có deployment staging/production, UAT, giám sát vận hành hoặc phê duyệt privacy/safeguarding.
 - Không tuyên bố staging cho đến khi có Git SHA bất biến với CI thành công, Supabase staging có tên, web/BFF HTTPS đã deploy, kiểm thử API/E2E mới và đủ chữ ký trong `docs/release-candidate.md`.
 - EAS Preview phải có đủ ba biến mobile trỏ đến URL HTTPS có thể truy cập. Build EAS từ chối cấu hình thiếu và không chấp nhận `localhost`, `127.0.0.1` hoặc `10.0.2.2`.

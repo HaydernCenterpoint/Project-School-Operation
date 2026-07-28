@@ -19,6 +19,22 @@ type ApiErrorBody = {
   };
 };
 
+export class AcademicApiError extends Error {
+  readonly code?: string;
+  readonly status: number;
+
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+  ) {
+    super(message);
+    this.name = "AcademicApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 function errorMessage(status: number, code?: string) {
   if (status === 401 || code === "unauthorized") {
     return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
@@ -60,18 +76,29 @@ export async function academicRequest<T>(
 ): Promise<T> {
   if (!apiUrl) throw new Error("Ứng dụng chưa được cấu hình địa chỉ API.");
 
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (typeof init?.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${apiUrl}${path}`, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-    throw new Error(errorMessage(response.status, body?.error?.code));
+    throw new AcademicApiError(
+      errorMessage(response.status, body?.error?.code),
+      response.status,
+      body?.error?.code,
+    );
   }
 
   if (response.status === 204) return undefined as T;

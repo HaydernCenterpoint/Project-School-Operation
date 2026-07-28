@@ -28,6 +28,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build:web
       - run: pnpm build:mobile
+      - run: pnpm test:mobile-client
       - run: pnpm test:config
       - run: pnpm test:accessibility
       - run: pnpm test:security
@@ -80,6 +81,12 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
           export ACADEMIC_API_URL="http://127.0.0.1:3210"
           export ACADEMIC_UI_URL="$ACADEMIC_API_URL"
+          export AI_TUTOR_ENABLED="true"
+          export AI_PROVIDER_URL="http://127.0.0.1:43210/v1/"
+          export AI_PROVIDER_API_KEY="local-ci-placeholder"
+          export AI_PROVIDER_ID="openai-compatible"
+          export AI_PROVIDER_MODEL="citation-model-v1"
+          export AI_PROVIDER_TIMEOUT_MS="150"
 
           pnpm build:web
           pnpm --filter web exec next start --hostname 127.0.0.1 --port 3210 \

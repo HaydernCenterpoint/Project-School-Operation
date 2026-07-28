@@ -211,6 +211,31 @@ export type CommunityModerationResult = {
   action: CommunityModerationAction;
 };
 
+export const aiTutorStatuses = ["answered", "abstained", "failed"] as const;
+export type AiTutorStatus = (typeof aiTutorStatuses)[number];
+
+export type AiTutorCitation = {
+  id: string;
+  title: string;
+  sourceName: string;
+  pageNumber: number | null;
+};
+
+export type AiTutorResponse = {
+  status: Extract<AiTutorStatus, "answered" | "abstained">;
+  answer: string | null;
+  citations: AiTutorCitation[];
+  dailyRemaining: number;
+};
+
+export type AiTutorConsent = {
+  tutorEnabled: boolean;
+  granted: boolean;
+  policyVersion: string | null;
+  currentPolicyVersion: string;
+  consentRequired: boolean;
+};
+
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && roles.includes(value as Role);
 }
@@ -239,5 +264,29 @@ export function isCommunityModerationAction(
   return (
     typeof value === "string" &&
     communityModerationActions.includes(value as CommunityModerationAction)
+  );
+}
+
+export function isAiTutorStatus(value: unknown): value is AiTutorStatus {
+  return (
+    typeof value === "string" &&
+    aiTutorStatuses.includes(value as AiTutorStatus)
+  );
+}
+
+export function isAiTutorCitation(value: unknown): value is AiTutorCitation {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const citation = value as Record<string, unknown>;
+  return (
+    typeof citation.id === "string" &&
+    citation.id.length > 0 &&
+    typeof citation.title === "string" &&
+    typeof citation.sourceName === "string" &&
+    (citation.pageNumber === null ||
+      (typeof citation.pageNumber === "number" &&
+        Number.isInteger(citation.pageNumber) &&
+        citation.pageNumber > 0))
   );
 }

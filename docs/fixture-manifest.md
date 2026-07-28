@@ -1,6 +1,6 @@
 # Synthetic fixture manifest
 
-This manifest records the local fixtures required by Gate 0. All identities and data are synthetic. **AI is OFF**: no provider, key, retrieval corpus, or AI runtime belongs to this fixture set. Use it only for the local sandbox; it is not approved for real learners or a school pilot.
+This manifest records the local fixtures required by Gate 0. All identities and data are synthetic. The AI Tutor runtime is **OFF by default**, but the Day 7 fixture set includes synthetic, pre-chunked retrieval text for deterministic tenant-isolation tests. It contains no provider credential and is not approved for real learners or a school pilot.
 
 Source of truth: [`supabase/seed.sql`](../supabase/seed.sql). The migrations constrain membership to the fixed `admin`, `moderator`, `teacher`, and `student` roles and enforce tenant-matched academic and community references.
 
@@ -33,3 +33,14 @@ All eight accounts use the seed-only password `Password123!`.
 | Seeded club | Responsible AI Club A: `a3000000-0000-0000-0000-000000000003` | Responsible AI Club B: `b3000000-0000-0000-0000-000000000003` |
 
 Both assignments use the instruction `Complete the tenant-safe academic workflow exercise.` Their due time is calculated when the seed runs as seven days after seeding, so `due_at` is not a stable timestamp. No submission, feedback, community message, report or moderation action is seeded.
+
+## Day 7 AI Tutor fixtures
+
+Both tenant policies use provider ID `openai-compatible`, model `citation-model-v1`, privacy policy version `pilot-2026-07` and a daily limit of 20 requests. The policies are enabled in the database so authorization, consent and quota tests can run, but `.env.example` keeps the effective server runtime off. No Student consent or usage event is seeded.
+
+| Tenant | Document | Source metadata | Seeded chunks |
+|---|---|---|---|
+| Campus A | Campus A Solar Safety: `a7000000-0000-0000-0000-000000000001` | `campus-a-solar-guide.pdf`, `application/pdf` | Two synthetic text chunks on pages 11 and 12 |
+| Campus B | Campus B Marine Robotics: `b7000000-0000-0000-0000-000000000001` | `campus-b-marine-handbook.txt`, `text/plain` | Two synthetic text chunks on pages 21 and 22 |
+
+The source names and MIME types are metadata. No PDF binary is seeded, uploaded or parsed, and no OCR runs in the local application. Retrieval uses the seeded text through PostgreSQL lexical full-text search; it does not use embeddings or `pgvector`.

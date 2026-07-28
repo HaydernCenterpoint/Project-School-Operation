@@ -21,6 +21,7 @@ import {
   getSupabaseBrowserClient,
   hasSupabaseEnvironment,
 } from "@/lib/supabase-browser";
+import { AiTutorPanel } from "@/components/AiTutorPanel";
 import { ModerationQueue } from "@/components/ModerationQueue";
 
 type Notice = { kind: "success" | "error"; message: string } | null;
@@ -46,7 +47,11 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function Icon({ name }: { name: "class" | "assignment" | "user" }) {
+function Icon({
+  name,
+}: {
+  name: "class" | "assignment" | "tutor" | "user";
+}) {
   const path = {
     class: (
       <>
@@ -58,6 +63,12 @@ function Icon({ name }: { name: "class" | "assignment" | "user" }) {
       <>
         <path d="M7 3h10v4H7zM5 5H3v16h18V5h-2" />
         <path d="M7 12h10M7 16h7" />
+      </>
+    ),
+    tutor: (
+      <>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />
+        <path d="M8 8h8M8 12h5" />
       </>
     ),
     user: (
@@ -394,6 +405,12 @@ export default function PortalPage() {
               <span>Bài tập</span>
             </a>
           )}
+          {session?.role === "student" && (
+            <a href="#tutor">
+              <Icon name="tutor" />
+              <span>Trợ giảng AI</span>
+            </a>
+          )}
           {(session?.role === "admin" || session?.role === "moderator") && (
             <a
               href="#moderation"
@@ -549,6 +566,14 @@ export default function PortalPage() {
                     </form>
                   )}
                   </section>
+                )}
+
+                {session.role === "student" && (
+                  <AiTutorPanel
+                    classes={session.classes}
+                    initialClassId={selectedClassId}
+                    token={token}
+                  />
                 )}
 
                 {(session.role === "teacher" ||
