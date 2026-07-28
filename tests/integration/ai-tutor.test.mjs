@@ -1,143 +1,25 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import http from "node:http";
 import test from "node:test";
-
-const apiUrl = process.env.ACADEMIC_API_URL?.replace(/\/$/, "");
-const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
-const anonKey = process.env.SUPABASE_ANON_KEY;
-const providerUrl = process.env.AI_PROVIDER_URL;
-const providerKey = process.env.AI_PROVIDER_API_KEY;
-const missingEnvironment =
-  !apiUrl || !supabaseUrl || !anonKey || !providerUrl || !providerKey;
-const policyVersion = "pilot-2026-07";
-const classA = "a1000000-0000-0000-0000-000000000001";
-const classB = "b1000000-0000-0000-0000-000000000001";
-
-async function signIn(email) {
-  const response = await fetch(
-    `${supabaseUrl}/auth/v1/token?grant_type=password`,
-    {
-      method: "POST",
-      headers: { apikey: anonKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: "Password123!" }),
-    },
-  );
-  const body = await response.json();
-  assert.equal(response.status, 200, `sign-in failed: ${JSON.stringify(body)}`);
-  return body.access_token;
-}
-
-async function api(token, path, init = {}) {
-  const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token}`);
-  if (init.body) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${apiUrl}${path}`, { ...init, headers });
-  return { response, body: await response.json() };
-}
-
-function expectStatus(result, status) {
-  assert.equal(
-    result.response.status,
-    status,
-    `${result.response.status} ${JSON.stringify(result.body)}`,
-  );
-}
-
-function tutor(token, classId, question) {
-  return api(token, "/api/ai/tutor", {
-    method: "POST",
-    body: JSON.stringify({ requestId: randomUUID(), classId, question }),
-  });
-}
-
-async function usage(token) {
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/ai_usage_events?select=status,error_code&order=created_at.asc`,
-    {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-  const body = await response.json();
-  assert.equal(response.status, 200, JSON.stringify(body));
-  return body;
-}
-
-function fakeProvider() {
-  const requests = [];
-  const url = new URL(providerUrl);
-  const server = http.createServer(async (request, response) => {
-    let raw = "";
-    for await (const chunk of request) raw += chunk;
-    const body = JSON.parse(raw);
-    const payload = JSON.parse(body.messages.at(-1).content);
-    requests.push({
-      authorization: request.headers.authorization,
-      path: request.url,
-      body,
-      payload,
-    });
-
-    if (payload.question.includes("provider 500")) {
-      response.writeHead(500, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ error: { message: "fake outage" } }));
-      return;
-    }
-    if (payload.question.includes("delayed timeout")) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    const citationIds = payload.question.includes("invalid citation")
-      ? ["b7300000-0000-0000-0000-000000000001"]
-      : payload.question.includes("too many citations")
-        ? Array.from({ length: 6 }, () => payload.sources[0]?.id).filter(Boolean)
-        : [payload.sources[0]?.id].filter(Boolean);
-    const sourceText = payload.sources
-      .map((source) => source.content)
-      .join("\n");
-    const answer = payload.question.includes("oversized response")
-      ? "x".repeat(70_000)
-      : sourceText.includes("BENTHIC_B_ONLY")
-        ? "Seal the marine robot battery housing before launch."
-        : "Disconnect the solar training panel before inspection.";
-    const content = JSON.stringify({
-      answer,
-      citationIds,
-    });
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(
-      JSON.stringify({
-        choices: [{ message: { content } }],
-        usage: {
-          prompt_tokens: payload.question.includes("oversized metrics")
-            ? 1_000_001
-            : 40,
-          completion_tokens: 12,
-        },
-      }),
-    );
-  });
-  return {
-    requests,
-    listen: () =>
-      new Promise((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(Number(url.port), url.hostname, resolve);
-      }),
-    close: () =>
-      new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
-      ),
-  };
-}
+import {
+  api,
+  chunkA,
+  classA,
+  classB,
+  expectStatus,
+  fakeProvider,
+  missingAiEnvironment,
+  policyVersion,
+  providerKey,
+  signIn,
+  tutor,
+  usage,
+} from "./ai-test-support.mjs";
 
 test(
   "AI Tutor consent, cited RAG isolation, and provider degradation",
   {
-    skip: missingEnvironment
+    skip: missingAiEnvironment
       ? "Set API, Supabase, and fake AI provider environment to run."
       : false,
   },
@@ -207,7 +89,7 @@ test(
       assert.match(answer.body.answer, /Disconnect the solar training panel/i);
       assert.deepEqual(
         answer.body.citations.map((citation) => citation.id),
-        ["a7300000-0000-0000-0000-000000000001"],
+        [chunkA],
       );
       assert.equal(answer.body.citations[0].sourceName, "campus-a-solar-guide.pdf");
       assert.equal(answer.body.citations[0].pageNumber, 11);
@@ -317,6 +199,12 @@ test(
         body: JSON.stringify({ granted: false, policyVersion }),
       });
       expectStatus(finalRevoke, 200);
+      const revokedCitation = await api(
+        studentA,
+        `/api/ai/citations/${chunkA}?classId=${classA}`,
+      );
+      expectStatus(revokedCitation, 404);
+      assert.equal(revokedCitation.body.error.code, "not_found");
       const blockedAgain = await tutor(studentA, classA, "solar inspection");
       expectStatus(blockedAgain, 403);
 

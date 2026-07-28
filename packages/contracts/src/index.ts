@@ -221,6 +221,10 @@ export type AiTutorCitation = {
   pageNumber: number | null;
 };
 
+export type AiTutorCitationDetail = AiTutorCitation & {
+  excerpt: string;
+};
+
 export type AiTutorResponse = {
   status: Extract<AiTutorStatus, "answered" | "abstained">;
   answer: string | null;

@@ -4,16 +4,16 @@
 
 | Field | Current value |
 |---|---|
-| Label | **Academic Alpha + Day 6 Community Safety + bounded Day 7 AI Tutor / local candidate** |
+| Label | **Academic Alpha + Day 6 Community Safety + bounded Day 9 AI Tutor / local candidate** |
 | Data | Two synthetic tenants and eight synthetic identities: six academic accounts plus two Moderators |
-| AI | **OFF by default**; the server-only Tutor gateway and PostgreSQL lexical retrieval slice are present for local validation, with no approved external provider or key |
+| AI | **OFF by default**; the server-only Tutor gateway, lexical retrieval, openable citation detail and fixed 24-case automated evaluation are present for local validation, with no approved external provider or key |
 | External release decision | **NO-GO** until staging, EAS/device, UAT and sign-off gates are complete |
 
 This document is an operator checklist, not evidence of a staging or production release.
 
 ## Evidence ledger
 
-The table below records the last confirmed Day 6 evidence from 29 July 2026. It predates the Day 7 candidate and must not be used as proof that the current tree passes.
+The table below records the last confirmed Day 6 evidence from 29 July 2026. It predates the current Day 9 candidate and must not be used as proof that the current tree passes.
 
 | Check | Latest result | Boundary |
 |---|---|---|
@@ -33,21 +33,20 @@ The table below records the last confirmed Day 6 evidence from 29 July 2026. It 
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
 
-### Current Day 7 local evidence
+### Current Day 9 local evidence
 
 | Check | Exact command | Result |
 |---|---|---|
-| Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 16 BFF route files: four academic, ten community and two AI; config 2/2, contrast 2/2, security canary 1/1 |
+| Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 17 BFF route files: four academic, ten community and three AI |
 | Clean local migration and synthetic seed | `pnpm db:reset` | Pass |
-| PostgreSQL authorization, consent, quota, lexical retrieval and content-free telemetry | `pnpm db:test` | Pass; four files, 286/286 pgTAP checks, including two-session ingest concurrency |
+| PostgreSQL authorization, consent, quota, lexical retrieval, citation detail and content-free telemetry | `pnpm db:test` | Pass; 298/298 pgTAP checks |
 | Database schema lint | `pnpm db:lint` | Pass; clean |
-| Populated migration `002 → current` | `$env:ALLOW_LOCAL_DB_UPGRADE_SMOKE = "1"; pnpm db:upgrade-smoke; Remove-Item Env:ALLOW_LOCAL_DB_UPGRADE_SMOKE` | Pass on the disposable local database |
-| Backup/restore | `$env:ALLOW_LOCAL_DB_RESTORE_SMOKE = "1"; pnpm db:restore-smoke; Remove-Item Env:ALLOW_LOCAL_DB_RESTORE_SMOKE` | Pass; fingerprint includes academic, community and AI tables |
+| Fixed AI safety/resilience manifest | `pnpm test:ai-eval` | Pass; 24/24 cases, TAP 25 including parent; 16 provider calls; 10 terminal usage rows per Student; no `started` row remains; malformed, unknown, foreign-tenant and wrong-class citation requests return canonical 404 |
 | Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
-| Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including Tutor consent, class-switch reset, answer/citation, announced unavailable state, accessibility tree and overflow |
-| Explicit new AI/UI and generated-runtime scan | `pnpm security:check apps/web/src/app/api/ai apps/web/src/components/AiTutorPanel.tsx apps/web/src/lib/ai-gateway.ts apps/mobile/app/tutor.tsx` | Pass; new files included and one runtime binary scanned |
+| Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
+| Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
 
-The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. The generated client bundles contain no configured provider environment name or value. This evidence remains local and does not approve any external provider.
+The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
 
 Chrome's CDP operating-system text-scale override produced no measurable desktop metric change. The automation used CSS page-scale only where it produced a useful measurable result. The +18 px Teacher document delta is recorded explicitly; this evidence does not claim zero horizontal overflow or a complete WCAG audit.
 
@@ -62,6 +61,7 @@ External promotion requires all of the following:
 - Fresh API integration and Chrome E2E evidence against the promoted build.
 - A named, approved external AI provider and server-only key before the Tutor is enabled outside local deterministic tests.
 - Privacy and safeguarding approval for the provider transfer, consent text and policy version.
+- Human semantic-grounding approval for all eight answerable evaluation cases.
 - An EAS Preview APK installed from scratch on a physical Android device.
 - TalkBack, keyboard, focus, error-state and 200% text-scaling checks.
 - UAT by named School Admin, Teacher, Student and Moderator/Safeguarding representatives.
@@ -81,7 +81,7 @@ No value below is a private server credential. Values still belong in the target
 
 The BFF continues to use the caller's Bearer JWT. A Supabase service-role key is neither required nor allowed on a request path.
 
-### Day 7 AI Tutor server only
+### Day 9 AI Tutor server only
 
 Keep `AI_TUTOR_ENABLED=false` unless the external provider, privacy and safeguarding gates have been approved for the target environment.
 
@@ -125,6 +125,8 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
    pnpm db:test
    pnpm db:lint
    ```
+
+   Reproduce `pnpm test:ai-eval`, the integration/E2E suites and `pnpm test:ai-off` through the production-server sequence in `.github/workflows/ci.yml`. The eval requires the AI-on server and loopback fake provider; the AI-off regression requires its separate AI-off server.
 
    Run the migration-upgrade and restore smokes only against the disposable local Supabase project:
 
@@ -191,6 +193,7 @@ The quality job checks out full history before scanning. Once this workflow exis
 | No UAT or privacy/safeguarding approval | Release blocker for any pilot | Product Lead records approvals |
 | Hosted CI/Gitleaks run URL and immutable SHA are not recorded | Release blocker | Repository owner commits, pushes and records the green run |
 | No approved external AI provider/key or privacy/safeguarding approval for provider transfer | AI enablement blocker | Keep `AI_TUTOR_ENABLED=false` until named approvals and staging failure-mode evidence are recorded |
+| Human semantic-grounding review is pending for 8/8 cases | AI enablement blocker | A named reviewer checks all eight answerable cases and records 8/8 decisions; automation is not approval |
 | Accessibility evidence is automated/browser-based and does not include Android TalkBack, a physical-device audit or a complete WCAG audit | Incomplete mobile/accessibility gate | QA completes manual WCAG checks plus TalkBack, swipe-order and 200% text-scaling checks on the EAS Preview |
 | Gateway-level limiting for GET requests, invalid JWTs and attempts rejected before database mutation is absent; monitoring dashboards are also absent | Staging security/operations gate | Configure and test gateway limits and dashboards in staging |
 | Only one active membership per account is supported | Product limitation | Add tenant switching when a validated pilot requires it |
@@ -205,5 +208,6 @@ The quality job checks out full history before scanning. Once this workflow exis
 | School Admin/Teacher/Moderator UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Student/mobile UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
+| AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Hosted CI/Gitleaks | _Pending SHA_ | _Pending run URL_ | _Pending_ | NO-GO |

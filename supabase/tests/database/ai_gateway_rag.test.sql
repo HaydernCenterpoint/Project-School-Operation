@@ -94,7 +94,7 @@ select ok(
 
 select ok(
   (
-    select count(*) = 5
+    select count(*) = 6
     from pg_catalog.pg_proc procedure
     join pg_catalog.pg_namespace namespace
       on namespace.oid = procedure.pronamespace
@@ -103,6 +103,7 @@ select ok(
         'set_ai_tutor_consent',
         'ingest_knowledge_document',
         'retrieve_tutor_chunks',
+        'get_tutor_citation_detail',
         'reserve_ai_tutor_request',
         'finish_ai_tutor_request'
       )
@@ -110,6 +111,20 @@ select ok(
       and procedure.proconfig @> array['search_path=""']
   ),
   'all AI RPCs are SECURITY DEFINER with an empty search path'
+);
+
+select ok(
+  not has_function_privilege(
+    'public',
+    'public.get_tutor_citation_detail(uuid,uuid)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'authenticated',
+    'public.get_tutor_citation_detail(uuid,uuid)',
+    'EXECUTE'
+  ),
+  'citation detail RPC is executable only by authenticated clients'
 );
 
 select ok(
@@ -435,6 +450,299 @@ select is(
   1,
   'consent grant audit contains only state and policy code'
 );
+
+insert into classes (id, tenant_id, teacher_id, name)
+values (
+  'a1900000-0000-0000-0000-000000000001',
+  'a0000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  'Citation boundary class'
+);
+
+insert into class_members (tenant_id, class_id, student_id)
+values (
+  'a0000000-0000-0000-0000-000000000001',
+  'a1900000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000003'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select concat_ws(
+      '|',
+      id::text,
+      title,
+      "sourceName",
+      "pageNumber"::text,
+      content
+    )
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  'a7300000-0000-0000-0000-000000000001|Campus A Solar Safety|campus-a-solar-guide.pdf|11|AURORA_A_ONLY: Disconnect the solar training panel before inspection.',
+  'student opens a citation from a current-consent enrolled class'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'b7300000-0000-0000-0000-000000000001',
+      'b1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'cross-tenant citation detail returns no row'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1900000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'class-scoped citation cannot be opened through a different enrolled class'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000099',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'nonexistent citation detail returns no row'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+delete from class_members
+where class_id = 'a1000000-0000-0000-0000-000000000001'
+  and student_id = '10000000-0000-0000-0000-000000000003';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'unenrolled student receives no citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+insert into class_members (tenant_id, class_id, student_id)
+values (
+  'a0000000-0000-0000-0000-000000000001',
+  'a1000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000003'
+);
+
+update knowledge_documents
+set published = false
+where id = 'a7000000-0000-0000-0000-000000000001';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'unpublished citation detail returns no row'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+update knowledge_documents
+set published = true
+where id = 'a7000000-0000-0000-0000-000000000001';
+
+update ai_consents
+set granted = false,
+    granted_at = null,
+    revoked_at = clock_timestamp(),
+    updated_at = clock_timestamp()
+where tenant_id = 'a0000000-0000-0000-0000-000000000001'
+  and user_id = '10000000-0000-0000-0000-000000000003';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'revoked consent returns no citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+update ai_consents
+set granted = true,
+    granted_at = clock_timestamp(),
+    revoked_at = null,
+    updated_at = clock_timestamp()
+where tenant_id = 'a0000000-0000-0000-0000-000000000001'
+  and user_id = '10000000-0000-0000-0000-000000000003';
+
+update ai_tenant_policies
+set privacy_policy_version = 'citation-policy-test'
+where tenant_id = 'a0000000-0000-0000-0000-000000000001';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'stale consent policy returns no citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+update ai_tenant_policies
+set privacy_policy_version = 'pilot-2026-07',
+    tutor_enabled = false
+where tenant_id = 'a0000000-0000-0000-0000-000000000001';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'disabled tutor policy returns no citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+update ai_tenant_policies
+set tutor_enabled = true,
+    privacy_approved_at = null
+where tenant_id = 'a0000000-0000-0000-0000-000000000001';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'privacy-unapproved policy returns no citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+update ai_tenant_policies
+set privacy_approved_at = '2026-07-29 00:00:00+00'
+where tenant_id = 'a0000000-0000-0000-0000-000000000001';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+
+select is(
+  (
+    select count(*)::integer
+    from get_tutor_citation_detail(
+      'a7300000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001'
+    )
+  ),
+  0,
+  'teacher receives no student citation detail'
+);
+
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+
+delete from class_members
+where class_id = 'a1900000-0000-0000-0000-000000000001';
+
+delete from classes
+where id = 'a1900000-0000-0000-0000-000000000001';
 
 set local role authenticated;
 select set_config(

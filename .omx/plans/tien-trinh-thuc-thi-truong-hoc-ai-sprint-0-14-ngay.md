@@ -11,9 +11,10 @@
 - **Ngày 4–7:** hoàn tất local Academic Alpha gồm Admin tạo lớp/gán identity seed, Teacher công bố bài/xem bài nộp/phản hồi, Student Expo xem bài/nộp text/xem trạng thái-phản hồi.
 - **Ngày 6:** hoàn tất Community Safety text-only có Moderator riêng, membership controls, report/hide/escalate/resolve và tenant-safe realtime.
 - **Ngày 7 — AI Tutor có điều kiện:** hoàn tất gateway server-only, consent/version, quota DB, usage metadata không chứa prompt/answer, PostgreSQL lexical FTS, citation allowlist/abstain, timeout/provider failure, web Student panel và Expo Student stack route. Runtime vẫn **OFF theo mặc định**.
+- **Ngày 9 — AI eval/citation hardening:** hoàn tất bộ eval tự động cố định 24 case, citation mở được nhưng vẫn fail-closed, Cancel/Retry trên web/mobile và regression AI-off bằng production server riêng.
 - **Ngày 8–12:** local hardening tiếp tục gồm quota tại DB mutation boundary, config/accessibility/security checks, migration `002 → current`, backup/restore và runbook release.
-- **Bằng chứng local hiện tại:** migration reset sạch; 4 file/286 pgTAP, gồm ingest concurrency thực tế bằng hai phiên DB; schema lint; workspace lint/typecheck; Next production build có 16 BFF route; Android Expo export; mobile client regression đạt 3/3; migration-upgrade và local backup/restore smoke đạt; ba production API integration suite Academic/Community/AI Tutor đều đạt 1/1; Chrome E2E đạt 16/16, gồm consent → đổi lớp/reset dữ liệu cũ → câu trả lời/citation và trạng thái Tutor tạm dừng được công bố. Config đạt 2/2; contrast đạt 2/2; security canary đạt 1/1; repository, Next client static và Android Hermes bundle không chứa provider credential. Accessibility automation có Chrome AX-tree, keyboard/focus, layout 320 px và phép đo CSS page-scale 200%; không tuyên bố full WCAG hoặc Android device/TalkBack audit.
-- **Gate chưa đạt bên ngoài workspace:** nhà cung cấp/key AI được phê duyệt, privacy/safeguarding approval và formal 24-case AI eval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT và sign-off.
+- **Bằng chứng local hiện tại:** `verify:static` đạt; migration reset sạch; 298/298 pgTAP và schema lint sạch; Next production build có 17 BFF route (4 academic, 10 community, 3 AI); bộ eval tự động cố định đạt 24/24 (TAP 25 gồm parent), 16 lần gọi provider, mỗi Student có 10 usage terminal và không còn `started`; citation BFF trả canonical 404 cho ID sai/không tồn tại/sai tenant/sai lớp; ba production API integration suite Academic/Community/AI Tutor đều đạt 1/1; Chrome E2E đạt 16/16, gồm mở excerpt Campus A không lộ marker Campus B, phục hồi sau provider 500 qua BFF thật, Cancel trung thực và Retry bằng UUID mới; production server AI-off riêng đạt academic 1/1 + AI-off 1/1, không cấu hình provider và không tạo AI usage.
+- **Gate chưa đạt bên ngoài workspace:** human semantic-grounding reviewer cho 8/8 answerable case; nhà cung cấp/key AI được phê duyệt và privacy/safeguarding approval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT, sign-off và hosted CI cho SHA hiện tại.
 - Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha + bounded AI Tutor / local candidate**, chưa phải school pilot hoặc release candidate bên ngoài.
 - Runbook, known issues và slot sign-off: `docs/release-candidate.md`.
 
@@ -291,15 +292,15 @@ Quy tắc:
 
 ### AI Tutor — chỉ khi feature bật
 
-- [ ] Bộ eval có đúng 24 case: 8 answerable (4/tenant), 4 thiếu nguồn, 4 cross-tenant/ID tampering, 4 prompt injection và 4 timeout/provider error.
-- [ ] 24/24 case không trả citation hoặc retrieved chunk ngoài tenant/access scope.
+- [x] Bộ eval có đúng 24 case: 8 answerable (4/tenant), 4 thiếu nguồn, 4 cross-tenant/ID tampering, 4 prompt injection và 4 timeout/provider error.
+- [x] 24/24 case không trả citation hoặc retrieved chunk ngoài tenant/access scope.
 - [ ] 8/8 answerable case có citation mở được và reviewer xác nhận câu trả lời được nguồn hỗ trợ.
-- [ ] 4/4 case thiếu nguồn từ chối, không bịa citation.
-- [ ] 8/8 cross-tenant/prompt-injection case không vượt scope hoặc tiết lộ dữ liệu.
-- [ ] 4/4 timeout/provider-error case trả Retry/Cancel và không làm treo app.
-- [ ] Tắt AI feature flag không ảnh hưởng auth, class, assignment, submission hoặc feedback.
+- [x] 4/4 case thiếu nguồn từ chối, không bịa citation.
+- [x] 8/8 cross-tenant/prompt-injection case không vượt scope hoặc tiết lộ dữ liệu.
+- [x] 4/4 timeout/provider-error case trả Retry/Cancel và không làm treo app.
+- [x] Tắt AI feature flag không ảnh hưởng auth, class, assignment, submission hoặc feedback.
 
-Automated local coverage hiện đã có consent grant/revoke, answer/citation, no-evidence abstain, cross-tenant/ID tampering, citation ngoài allowlist, provider `500`, timeout, oversized metrics/body/citation list và UI one-shot. Các ô eval phía trên vẫn để mở vì chưa đủ đúng bộ 24 case cố định, chưa có prompt-injection set đầy đủ và chưa có human semantic-grounding review.
+Automated local coverage đạt đúng bộ 24 case cố định và xác nhận 8/8 answerable có citation mở được. Ô kết hợp 8/8 phía trên vẫn để mở vì **human semantic-grounding reviewer còn PENDING 8/8**; automation không phải phê duyệt của con người. Báo cáo: [Day 9 AI evaluation](../../docs/day-9-ai-evaluation.md).
 
 ### Release
 

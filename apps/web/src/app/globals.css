@@ -220,11 +220,19 @@ button { color: inherit; }
 .tutor-output-error { border-left-color: var(--danger); }
 .tutor-output-empty { min-height: 228px; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; color: var(--muted); }
 .tutor-output-empty p { margin: 0; }
+.tutor-output-actions { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; }
 .tutor-answer { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.7; }
 .tutor-citations { margin: 0; padding-left: 24px; }
 .tutor-citations li { padding: 12px 4px; border-top: 1px solid var(--border); }
-.tutor-citations li strong, .tutor-citations li span { display: block; }
-.tutor-citations li span { margin-top: 3px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.tutor-citation-trigger { width: 100%; min-height: 52px; padding: 2px 0; display: grid; gap: 3px; color: var(--ink); text-align: left; background: transparent; border: 0; cursor: pointer; }
+.tutor-citation-trigger strong, .tutor-citation-trigger span { display: block; overflow-wrap: anywhere; }
+.tutor-citation-trigger > span { color: var(--muted); font-size: 13px; }
+.tutor-citation-trigger .tutor-citation-action { margin-top: 5px; color: var(--blue); font-weight: 800; }
+.tutor-citation-trigger:hover .tutor-citation-action { color: var(--red); }
+.tutor-citation-trigger:focus-visible { outline: 3px solid var(--yellow); outline-offset: 4px; }
+.tutor-citation-detail { margin-top: 10px; padding: 16px; display: grid; justify-items: start; gap: 12px; background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--yellow); }
+.tutor-citation-detail p { margin: 0; }
+.tutor-citation-detail blockquote { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); font-size: 15px; line-height: 1.65; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 1180px) {

@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AiTutorCitationDetail,
   AiTutorConsent,
   AiTutorResponse,
   ApiClass,
@@ -47,10 +48,20 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
   const [result, setResult] = useState<AiTutorResponse | null>(null);
   const [requestError, setRequestError] = useState("");
   const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
+  const [expandedCitationId, setExpandedCitationId] = useState<string | null>(
+    null,
+  );
+  const [citationDetail, setCitationDetail] =
+    useState<AiTutorCitationDetail | null>(null);
+  const [citationLoading, setCitationLoading] = useState(false);
+  const [citationError, setCitationError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const unavailableState = useRef<HTMLDivElement>(null);
   const contextVersion = useRef(0);
   const consentRequestVersion = useRef(0);
+  const tutorRequestController = useRef<AbortController | null>(null);
+  const citationRequestController = useRef<AbortController | null>(null);
   const classContextKey = classes.map((item) => item.id).join("|");
   const contextClassId = classes.some((item) => item.id === initialClassId)
     ? initialClassId
@@ -85,6 +96,10 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
     const nextContextVersion = contextVersion.current + 1;
     contextVersion.current = nextContextVersion;
     consentRequestVersion.current += 1;
+    tutorRequestController.current?.abort();
+    tutorRequestController.current = null;
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
     queueMicrotask(() => {
       if (contextVersion.current !== nextContextVersion) return;
       setConsent(null);
@@ -99,8 +114,22 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
       setResult(null);
       setRequestError("");
       setDailyRemaining(null);
+      setExpandedCitationId(null);
+      setCitationDetail(null);
+      setCitationLoading(false);
+      setCitationError("");
     });
   }, [classContextKey, contextClassId, token]);
+
+  useEffect(
+    () => () => {
+      contextVersion.current += 1;
+      consentRequestVersion.current += 1;
+      tutorRequestController.current?.abort();
+      citationRequestController.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     queueMicrotask(() => void loadConsent());
@@ -132,10 +161,77 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
       : (classes[0]?.id ?? "");
 
   function resetResult() {
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
     setPhase("idle");
     setResult(null);
     setRequestError("");
     setValidationError("");
+    setExpandedCitationId(null);
+    setCitationDetail(null);
+    setCitationLoading(false);
+    setCitationError("");
+  }
+
+  function closeCitationDetail() {
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
+    setExpandedCitationId(null);
+    setCitationDetail(null);
+    setCitationLoading(false);
+    setCitationError("");
+  }
+
+  async function loadCitationDetail(citationId: string) {
+    const requestContextVersion = contextVersion.current;
+    citationRequestController.current?.abort();
+    const requestController = new AbortController();
+    citationRequestController.current = requestController;
+    setExpandedCitationId(citationId);
+    setCitationDetail(null);
+    setCitationLoading(true);
+    setCitationError("");
+    try {
+      const value = await academicRequest<AiTutorCitationDetail>(
+        `/api/ai/citations/${encodeURIComponent(citationId)}?classId=${encodeURIComponent(effectiveClassId)}`,
+        token,
+        { signal: requestController.signal },
+      );
+      if (
+        requestContextVersion !== contextVersion.current ||
+        citationRequestController.current !== requestController
+      ) {
+        return;
+      }
+      if (value.id !== citationId) {
+        throw new Error("Citation response did not match the request.");
+      }
+      setCitationDetail(value);
+    } catch (error) {
+      if (
+        requestContextVersion !== contextVersion.current ||
+        citationRequestController.current !== requestController ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        return;
+      }
+      setCitationError(
+        "Chưa thể mở trích dẫn này. Hãy thử lại hoặc chọn một nguồn khác.",
+      );
+    } finally {
+      if (citationRequestController.current === requestController) {
+        citationRequestController.current = null;
+        setCitationLoading(false);
+      }
+    }
+  }
+
+  function toggleCitationDetail(citationId: string) {
+    if (expandedCitationId === citationId) {
+      closeCitationDetail();
+      return;
+    }
+    void loadCitationDetail(citationId);
   }
 
   async function updateConsent(granted: boolean) {
@@ -188,6 +284,7 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
 
   async function askTutor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (tutorRequestController.current) return;
     const requestContextVersion = contextVersion.current;
     const trimmedQuestion = question.trim();
     if (!effectiveClassId) {
@@ -206,6 +303,9 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
     setValidationError("");
     setRequestError("");
     setResult(null);
+    closeCitationDetail();
+    const requestController = new AbortController();
+    tutorRequestController.current = requestController;
     setPhase("loading");
     try {
       const value = await academicRequest<AiTutorResponse>(
@@ -218,6 +318,7 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
             classId: effectiveClassId,
             question: trimmedQuestion,
           }),
+          signal: requestController.signal,
         },
       );
       if (requestContextVersion !== contextVersion.current) return;
@@ -226,6 +327,13 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
       setPhase(value.status);
     } catch (error) {
       if (requestContextVersion !== contextVersion.current) return;
+      if (error instanceof Error && error.name === "AbortError") {
+        setRequestError(
+          "Đã hủy chờ câu trả lời. Lượt đã giữ có thể vẫn được tính.",
+        );
+        setPhase("error");
+        return;
+      }
       if (error instanceof AcademicApiError) {
         if (error.code === "consent_required") {
           await loadConsent();
@@ -253,6 +361,10 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
         "Câu hỏi vẫn được giữ để bạn kiểm tra và gửi lại.",
       );
       setPhase("error");
+    } finally {
+      if (tutorRequestController.current === requestController) {
+        tutorRequestController.current = null;
+      }
     }
   }
 
@@ -395,7 +507,7 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
           </div>
 
           <div className="tutor-layout">
-            <form className="tutor-form" onSubmit={askTutor}>
+            <form className="tutor-form" onSubmit={askTutor} ref={formRef}>
               <label className="tutor-field">
                 <span>Lớp học</span>
                 <select
@@ -489,9 +601,16 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
               </div>
             )}
             {phase === "loading" && (
-              <div className="tutor-output-empty" role="status">
+              <div className="tutor-output-empty">
                 <span className="spinner" />
-                <strong>Đang tìm trong tài liệu lớp…</strong>
+                <strong role="status">Đang tìm trong tài liệu lớp…</strong>
+                <button
+                  className="button button-quiet"
+                  onClick={() => tutorRequestController.current?.abort()}
+                  type="button"
+                >
+                  Hủy yêu cầu
+                </button>
               </div>
             )}
             {phase === "answered" && result?.answer && (
@@ -504,13 +623,62 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
                 <ol className="tutor-citations">
                   {result.citations.map((citation) => (
                     <li key={citation.id}>
-                      <strong>{citation.title}</strong>
-                      <span>
-                        {citation.sourceName}
-                        {citation.pageNumber
-                          ? ` · Trang ${citation.pageNumber}`
-                          : ""}
-                      </span>
+                      <button
+                        aria-controls={`tutor-citation-${citation.id}`}
+                        aria-expanded={expandedCitationId === citation.id}
+                        className="tutor-citation-trigger"
+                        onClick={() => toggleCitationDetail(citation.id)}
+                        type="button"
+                      >
+                        <strong>{citation.title}</strong>
+                        <span>
+                          {citation.sourceName}
+                          {citation.pageNumber
+                            ? ` · Trang ${citation.pageNumber}`
+                            : ""}
+                        </span>
+                        <span className="tutor-citation-action">
+                          {expandedCitationId === citation.id
+                            ? "Đóng trích dẫn"
+                            : "Xem trích dẫn"}
+                        </span>
+                      </button>
+                      {expandedCitationId === citation.id && (
+                        <div
+                          className="tutor-citation-detail"
+                          id={`tutor-citation-${citation.id}`}
+                        >
+                          {citationLoading && (
+                            <p role="status">Đang mở trích dẫn…</p>
+                          )}
+                          {citationError && (
+                            <>
+                              <p role="alert">{citationError}</p>
+                              <button
+                                className="tutor-inline-action"
+                                onClick={() =>
+                                  void loadCitationDetail(citation.id)
+                                }
+                                type="button"
+                              >
+                                Thử mở lại
+                              </button>
+                            </>
+                          )}
+                          {citationDetail?.id === citation.id && (
+                            <>
+                              <blockquote>{citationDetail.excerpt}</blockquote>
+                              <button
+                                className="tutor-inline-action"
+                                onClick={closeCitationDetail}
+                                type="button"
+                              >
+                                Đóng trích dẫn
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ol>
@@ -533,6 +701,15 @@ export function AiTutorPanel({ classes, initialClassId, token }: Props) {
                   Chưa thể nhận câu trả lời
                 </h3>
                 <p>{requestError}</p>
+                <div className="tutor-output-actions">
+                  <button
+                    className="button button-primary"
+                    onClick={() => formRef.current?.requestSubmit()}
+                    type="button"
+                  >
+                    Thử lại
+                  </button>
+                </div>
               </div>
             )}
             {phase === "quota" && (

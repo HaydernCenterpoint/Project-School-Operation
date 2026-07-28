@@ -1,13 +1,13 @@
 # Sao Do University Academic Alpha + Community Safety
 
-Days 1–3 foundation, the delivered text-only academic slice, the Day 6 Community Safety extension, the bounded Day 7 AI Tutor gateway and Days 8–12 local release hardening for a tenant-safe school platform:
+Days 1–3 foundation, the delivered text-only academic slice, the Day 6 Community Safety extension, the bounded Day 7 AI Tutor gateway, the Day 9 evaluation/citation hardening and Days 8–12 local release hardening for a tenant-safe school platform:
 
 - Next.js portal for School Admin, Teacher, read-only Student status and a tenant-scoped Moderator queue.
 - Expo app for classes, assignments, text submission, feedback and text-only community spaces.
 - Supabase Auth/Postgres with tenant-scoped RLS and two synthetic tenants.
 - Bearer-JWT BFF backed by atomic PostgreSQL RPCs; no service-role request path.
 - The seed contains eight synthetic accounts: six Admin/Teacher/Student academic accounts and two dedicated Moderator accounts.
-- The Day 7 AI Tutor runtime is **OFF by default**. Students have a one-shot web panel and an Expo `/tutor` screen reached from Today; both use the server-only gateway and PostgreSQL lexical retrieval, with no transcript or history.
+- The AI Tutor runtime is **OFF by default**. Students have a one-shot web panel and an Expo `/tutor` screen reached from Today; both use the server-only gateway and PostgreSQL lexical retrieval, with openable tenant-scoped citations and no transcript or history.
 - The current label is **Academic Alpha / local candidate**, not staging or production.
 
 ## Requirements
@@ -46,6 +46,8 @@ pnpm test:security
 pnpm security:check
 ```
 
+The production-server AI checks run in CI after a clean seed. `pnpm test:ai-eval`, `pnpm test:integration` and `pnpm test:e2e:web` target the AI-on server with the loopback fake provider; `pnpm test:ai-off` targets a separate server with AI disabled and no provider configuration.
+
 The guarded local migration and restore smokes are destructive to the disposable local Supabase database:
 
 ```powershell
@@ -60,7 +62,9 @@ Remove-Item Env:ALLOW_LOCAL_DB_RESTORE_SMOKE
 
 Historical Day 6 evidence was **202/202 pgTAP checks**, two local production-BFF API integration suites and **15/15 local production-build Chrome E2E checks**. Accessibility automation covered Chrome AX-tree, Admin/Teacher and Moderator keyboard/focus flow, 320 px critical layouts and measured CSS page-scale 200%: glyph width 2.00×, height 2.04×, critical controls/action text fit, and Teacher document delta +18 px.
 
-Fresh Day 7 local evidence passes `pnpm verify:static`, a clean database reset, **286/286 pgTAP checks across four files**, schema lint, the populated `002 → current` upgrade, backup/restore including AI tables, all three seeded API integration suites at **1/1 each**, and **16/16 Chrome E2E checks**. The optimized Next.js build contains **16 BFF route files: four academic, ten community and two AI**. The Tutor E2E covers consent, class switching with stale-result reset, a cited answer, an announced unavailable state, accessibility-tree exposure and overflow; the mobile client request regression passes **3/3**.
+Fresh Day 9 local evidence passes `pnpm verify:static`, a clean database reset, **298/298 pgTAP checks**, schema lint, the fixed AI evaluation at **24/24 cases** (TAP 25 including its parent), all three seeded API integration suites at **1/1 each**, and **16/16 Chrome E2E checks**. The optimized Next.js build contains **17 BFF route files: four academic, ten community and three AI**. The Tutor E2E opens the authorized Campus A citation excerpt without exposing the Campus B marker, recovers through the real BFF after a provider 500, checks honest Cancel behavior and retries with a fresh request UUID. API evaluation also checks canonical 404 responses for malformed, unknown, foreign-tenant and wrong-class citation requests. A separate AI-off production server passes academic **1/1** and AI-off **1/1** without provider configuration or AI usage.
+
+The fixed evaluation made 16 provider calls, recorded 10 terminal usage rows per Student and left no usage row in `started`. Human semantic-grounding review remains **PENDING for 8/8 answerable cases**; provider/privacy approval, staging, EAS physical-device/TalkBack, UAT, signatures and hosted CI for the current SHA also remain external gates.
 
 Local CI configures a loopback fake OpenAI-compatible provider and uses only synthetic or de-identified seeded text chunks. The security evidence includes configuration **2/2**, contrast **2/2**, security canary **1/1**, repository/runtime scanning, an explicit scan of the new AI/UI files, and no configured provider environment name or value in generated client bundles. None of this validates an external provider.
 
@@ -75,6 +79,7 @@ Scope, evidence and current limitations are documented in:
 - `docs/day-1-3-foundation.md`
 - `docs/day-4-7-academic-alpha.md`
 - `docs/day-7-ai-gateway-rag.md`
+- [docs/day-9-ai-evaluation.md](docs/day-9-ai-evaluation.md)
 - `docs/day-6-community-safety.md`
 - `docs/fixture-manifest.md`
 - `docs/operator-guide.md`

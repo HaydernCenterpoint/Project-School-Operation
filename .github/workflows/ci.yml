@@ -106,6 +106,34 @@ jobs:
           done
 
           curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null
+          pnpm db:reset
+          pnpm test:ai-eval
+          pnpm db:reset
           pnpm test:integration
           pnpm test:e2e:web
           pnpm security:check /tmp/academic-next.log
+
+          pnpm db:reset
+          export ACADEMIC_API_URL="http://127.0.0.1:3211"
+          export AI_TUTOR_ENABLED="false"
+          unset AI_PROVIDER_URL AI_PROVIDER_API_KEY AI_PROVIDER_ID AI_PROVIDER_MODEL
+          pnpm --filter web exec next start --hostname 127.0.0.1 --port 3211 \
+            > /tmp/academic-ai-off-next.log 2>&1 &
+          off_server_pid=$!
+          trap 'kill "$server_pid" "$off_server_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null; then
+              break
+            fi
+            if ! kill -0 "$off_server_pid" 2>/dev/null; then
+              cat /tmp/academic-ai-off-next.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null
+          node --test tests/integration/academic-flow.test.mjs
+          pnpm test:ai-off
+          pnpm security:check /tmp/academic-ai-off-next.log

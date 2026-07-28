@@ -13,6 +13,8 @@
     "test": "pnpm test:rls",
     "test:rls": "supabase test db",
     "test:integration": "node --test tests/integration/academic-flow.test.mjs && node --test tests/integration/community-flow.test.mjs && node --test tests/integration/ai-tutor.test.mjs",
+    "test:ai-eval": "node --test tests/integration/ai-tutor-eval.test.mjs",
+    "test:ai-off": "node --test tests/integration/ai-off.test.mjs",
     "test:e2e:web": "node --test tests/e2e/academic-ui.test.mjs",
     "test:mobile-client": "node --test tests/mobile/academic-api.test.mjs",
     "test:security": "node --test tests/security/security-check.test.mjs",

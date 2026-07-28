@@ -1,4 +1,5 @@
 import type {
+  AiTutorCitationDetail,
   AiTutorConsent,
   AiTutorResponse,
 } from "@sao-do/contracts";
@@ -56,8 +57,17 @@ export default function TutorScreen() {
   const [result, setResult] = useState<AiTutorResponse | null>(null);
   const [requestError, setRequestError] = useState("");
   const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
+  const [expandedCitationId, setExpandedCitationId] = useState<string | null>(
+    null,
+  );
+  const [citationDetail, setCitationDetail] =
+    useState<AiTutorCitationDetail | null>(null);
+  const [citationLoading, setCitationLoading] = useState(false);
+  const [citationError, setCitationError] = useState("");
   const contextVersion = useRef(0);
   const consentRequestVersion = useRef(0);
+  const tutorRequestController = useRef<AbortController | null>(null);
+  const citationRequestController = useRef<AbortController | null>(null);
   const classContextKey = classes.map((item) => item.id).join("|");
   const contextClassId = classes[0]?.id ?? "";
 
@@ -90,6 +100,10 @@ export default function TutorScreen() {
     const nextContextVersion = contextVersion.current + 1;
     contextVersion.current = nextContextVersion;
     consentRequestVersion.current += 1;
+    tutorRequestController.current?.abort();
+    tutorRequestController.current = null;
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
     queueMicrotask(() => {
       if (contextVersion.current !== nextContextVersion) return;
       setConsent(null);
@@ -105,6 +119,10 @@ export default function TutorScreen() {
       setResult(null);
       setRequestError("");
       setDailyRemaining(null);
+      setExpandedCitationId(null);
+      setCitationDetail(null);
+      setCitationLoading(false);
+      setCitationError("");
     });
   }, [
     classContextKey,
@@ -113,6 +131,16 @@ export default function TutorScreen() {
     session?.user.id,
     token,
   ]);
+
+  useEffect(
+    () => () => {
+      contextVersion.current += 1;
+      consentRequestVersion.current += 1;
+      tutorRequestController.current?.abort();
+      citationRequestController.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     queueMicrotask(() => void loadConsent());
@@ -159,10 +187,77 @@ export default function TutorScreen() {
   const busy = phase === "loading";
 
   function resetResult() {
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
     setPhase("idle");
     setResult(null);
     setRequestError("");
     setValidationError("");
+    setExpandedCitationId(null);
+    setCitationDetail(null);
+    setCitationLoading(false);
+    setCitationError("");
+  }
+
+  function closeCitationDetail() {
+    citationRequestController.current?.abort();
+    citationRequestController.current = null;
+    setExpandedCitationId(null);
+    setCitationDetail(null);
+    setCitationLoading(false);
+    setCitationError("");
+  }
+
+  async function loadCitationDetail(citationId: string) {
+    const requestContextVersion = contextVersion.current;
+    citationRequestController.current?.abort();
+    const requestController = new AbortController();
+    citationRequestController.current = requestController;
+    setExpandedCitationId(citationId);
+    setCitationDetail(null);
+    setCitationLoading(true);
+    setCitationError("");
+    try {
+      const value = await academicRequest<AiTutorCitationDetail>(
+        `/api/ai/citations/${encodeURIComponent(citationId)}?classId=${encodeURIComponent(effectiveClassId)}`,
+        token,
+        { signal: requestController.signal },
+      );
+      if (
+        requestContextVersion !== contextVersion.current ||
+        citationRequestController.current !== requestController
+      ) {
+        return;
+      }
+      if (value.id !== citationId) {
+        throw new Error("Citation response did not match the request.");
+      }
+      setCitationDetail(value);
+    } catch (error) {
+      if (
+        requestContextVersion !== contextVersion.current ||
+        citationRequestController.current !== requestController ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        return;
+      }
+      setCitationError(
+        "Chưa thể mở trích dẫn này. Hãy thử lại hoặc chọn một nguồn khác.",
+      );
+    } finally {
+      if (citationRequestController.current === requestController) {
+        citationRequestController.current = null;
+        setCitationLoading(false);
+      }
+    }
+  }
+
+  function toggleCitationDetail(citationId: string) {
+    if (expandedCitationId === citationId) {
+      closeCitationDetail();
+      return;
+    }
+    void loadCitationDetail(citationId);
   }
 
   async function updateConsent(granted: boolean) {
@@ -214,6 +309,7 @@ export default function TutorScreen() {
   }
 
   async function askTutor() {
+    if (tutorRequestController.current) return;
     const requestContextVersion = contextVersion.current;
     const trimmedQuestion = question.trim();
     if (!effectiveClassId) {
@@ -232,6 +328,9 @@ export default function TutorScreen() {
     setValidationError("");
     setRequestError("");
     setResult(null);
+    closeCitationDetail();
+    const requestController = new AbortController();
+    tutorRequestController.current = requestController;
     setClassSelectorOpen(false);
     setPhase("loading");
     try {
@@ -245,6 +344,7 @@ export default function TutorScreen() {
             classId: effectiveClassId,
             question: trimmedQuestion,
           }),
+          signal: requestController.signal,
         },
       );
       if (requestContextVersion !== contextVersion.current) return;
@@ -253,6 +353,13 @@ export default function TutorScreen() {
       setPhase(value.status);
     } catch (error) {
       if (requestContextVersion !== contextVersion.current) return;
+      if (error instanceof Error && error.name === "AbortError") {
+        setRequestError(
+          "Đã hủy chờ câu trả lời. Lượt đã giữ có thể vẫn được tính.",
+        );
+        setPhase("error");
+        return;
+      }
       if (error instanceof AcademicApiError) {
         if (error.code === "consent_required") {
           await loadConsent();
@@ -283,6 +390,10 @@ export default function TutorScreen() {
         "Câu hỏi vẫn được giữ để bạn kiểm tra và gửi lại.",
       );
       setPhase("error");
+    } finally {
+      if (tutorRequestController.current === requestController) {
+        tutorRequestController.current = null;
+      }
     }
   }
 
@@ -597,6 +708,11 @@ export default function TutorScreen() {
                     <Text maxFontSizeMultiplier={2} style={styles.outputTitle}>
                       Đang tìm trong tài liệu lớp…
                     </Text>
+                    <SecondaryAction
+                      disabled={false}
+                      label="Hủy yêu cầu"
+                      onPress={() => tutorRequestController.current?.abort()}
+                    />
                   </>
                 )}
                 {phase === "answered" && result?.answer && (
@@ -613,21 +729,97 @@ export default function TutorScreen() {
                     <View style={styles.citations}>
                       {result.citations.map((citation, index) => (
                         <View key={citation.id} style={styles.citationRow}>
-                          <Text
-                            maxFontSizeMultiplier={2}
-                            style={styles.citationTitle}
+                          <Pressable
+                            accessibilityLabel={`${expandedCitationId === citation.id ? "Đóng" : "Xem"} trích dẫn ${index + 1}: ${citation.title}, ${citation.sourceName}${citation.pageNumber ? `, trang ${citation.pageNumber}` : ""}`}
+                            accessibilityRole="button"
+                            accessibilityState={{
+                              expanded: expandedCitationId === citation.id,
+                            }}
+                            onPress={() => toggleCitationDetail(citation.id)}
+                            style={({ pressed }) => [
+                              styles.citationTrigger,
+                              pressed && styles.pressed,
+                            ]}
                           >
-                            {index + 1}. {citation.title}
-                          </Text>
-                          <Text
-                            maxFontSizeMultiplier={2}
-                            style={styles.sourceMeta}
-                          >
-                            {citation.sourceName}
-                            {citation.pageNumber
-                              ? ` · Trang ${citation.pageNumber}`
-                              : ""}
-                          </Text>
+                            <Text
+                              maxFontSizeMultiplier={2}
+                              style={styles.citationTitle}
+                            >
+                              {index + 1}. {citation.title}
+                            </Text>
+                            <Text
+                              maxFontSizeMultiplier={2}
+                              style={styles.sourceMeta}
+                            >
+                              {citation.sourceName}
+                              {citation.pageNumber
+                                ? ` · Trang ${citation.pageNumber}`
+                                : ""}
+                            </Text>
+                            <Text
+                              maxFontSizeMultiplier={2}
+                              style={styles.citationAction}
+                            >
+                              {expandedCitationId === citation.id
+                                ? "Đóng trích dẫn"
+                                : "Xem trích dẫn"}
+                            </Text>
+                          </Pressable>
+                          {expandedCitationId === citation.id && (
+                            <View style={styles.citationDetail}>
+                              {citationLoading && (
+                                <View
+                                  accessibilityLiveRegion="polite"
+                                  style={styles.citationLoading}
+                                >
+                                  <ActivityIndicator
+                                    color={colors.blue}
+                                    size="small"
+                                  />
+                                  <Text
+                                    maxFontSizeMultiplier={2}
+                                    style={styles.stateCopy}
+                                  >
+                                    Đang mở trích dẫn…
+                                  </Text>
+                                </View>
+                              )}
+                              {!!citationError && (
+                                <>
+                                  <Text
+                                    accessibilityLiveRegion="polite"
+                                    maxFontSizeMultiplier={2}
+                                    style={styles.error}
+                                  >
+                                    {citationError}
+                                  </Text>
+                                  <SecondaryAction
+                                    disabled={false}
+                                    label="Thử mở lại"
+                                    onPress={() =>
+                                      void loadCitationDetail(citation.id)
+                                    }
+                                  />
+                                </>
+                              )}
+                              {citationDetail?.id === citation.id && (
+                                <>
+                                  <Text
+                                    selectable
+                                    maxFontSizeMultiplier={2}
+                                    style={styles.citationExcerpt}
+                                  >
+                                    {citationDetail.excerpt}
+                                  </Text>
+                                  <SecondaryAction
+                                    disabled={false}
+                                    label="Đóng trích dẫn"
+                                    onPress={closeCitationDetail}
+                                  />
+                                </>
+                              )}
+                            </View>
+                          )}
                         </View>
                       ))}
                     </View>
@@ -652,6 +844,11 @@ export default function TutorScreen() {
                     <Text maxFontSizeMultiplier={2} style={styles.stateCopy}>
                       {requestError}
                     </Text>
+                    <SecondaryAction
+                      disabled={false}
+                      label="Thử lại"
+                      onPress={() => void askTutor()}
+                    />
                   </>
                 )}
                 {phase === "quota" && (
@@ -1061,8 +1258,12 @@ const styles = StyleSheet.create({
   citationRow: {
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    gap: 3,
     paddingVertical: 12,
+  },
+  citationTrigger: {
+    gap: 3,
+    minHeight: 52,
+    paddingVertical: 2,
   },
   citationTitle: {
     color: colors.ink,
@@ -1074,6 +1275,35 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
+  },
+  citationAction: {
+    color: colors.blue,
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 19,
+    marginTop: 5,
+  },
+  citationDetail: {
+    alignItems: "flex-start",
+    backgroundColor: colors.paper,
+    borderColor: colors.border,
+    borderLeftColor: colors.yellow,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    gap: 10,
+    marginTop: 10,
+    padding: 14,
+    width: "100%",
+  },
+  citationLoading: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 9,
+  },
+  citationExcerpt: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 24,
   },
   pressed: {
     opacity: 0.82,

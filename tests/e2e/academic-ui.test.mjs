@@ -17,6 +17,7 @@ const policyVersion = "pilot-2026-07";
 function fakeTutorProvider() {
   if (!providerUrl) return null;
   const requests = [];
+  const failedQuestions = new Set();
   const url = new URL(providerUrl);
   const server = http.createServer(async (request, response) => {
     let raw = "";
@@ -28,6 +29,15 @@ function fakeTutorProvider() {
       path: request.url,
       payload,
     });
+    if (
+      payload.question === 'solar OR "ui provider 500"' &&
+      !failedQuestions.has(payload.question)
+    ) {
+      failedQuestions.add(payload.question);
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: { message: "fake outage" } }));
+      return;
+    }
     const content = JSON.stringify({
       answer: "Disconnect the solar training panel before inspection.",
       citationIds: [payload.sources[0]?.id].filter(Boolean),
@@ -1498,6 +1508,212 @@ describe(
         assert.match(tutorEvidence.text, /campus-a-solar-guide\.pdf/i);
         assert.doesNotMatch(tutorEvidence.text, /BENTHIC_B_ONLY/i);
         assert.ok(tutorEvidence.overflow <= 1);
+
+        const citationOpened = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-citations button")].find(
+            (button) => button.textContent?.includes("Xem trích dẫn"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(citationOpened, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector(".tutor-citation-detail blockquote")
+              ?.textContent?.trim() ===
+            "AURORA_A_ONLY: Disconnect the solar training panel before inspection.",
+          "authorized Campus A Tutor citation excerpt",
+          20_000,
+        );
+        const citationEvidence = await evaluate(page, () => ({
+          excerpt:
+            document
+              .querySelector(".tutor-citation-detail blockquote")
+              ?.textContent?.trim() ?? "",
+          foreignSourceVisible:
+            document
+              .querySelector(".tutor-citation-detail")
+              ?.textContent.includes("BENTHIC_B_ONLY") ?? false,
+          expanded:
+            document
+              .querySelector(".tutor-citations button")
+              ?.getAttribute("aria-expanded"),
+        }));
+        assert.deepEqual(citationEvidence, {
+          excerpt:
+            "AURORA_A_ONLY: Disconnect the solar training panel before inspection.",
+          foreignSourceVisible: false,
+          expanded: "true",
+        });
+
+        const providerErrorQuestion = 'solar OR "ui provider 500"';
+        await fill(page, "#tutor-question", providerErrorQuestion);
+        const providerErrorSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(providerErrorSubmitted, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-error")
+              ?.textContent.includes("Chưa thể nhận câu trả lời") &&
+            [...document.querySelectorAll(".tutor-output-error button")].some(
+              (button) => button.textContent?.includes("Thử lại"),
+            ),
+          "provider failure exits loading with retry",
+          5_000,
+        );
+        assert.equal(
+          await evaluate(
+            page,
+            () => document.querySelector("#tutor-question")?.value,
+          ),
+          providerErrorQuestion,
+        );
+        const providerRetried = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output-error button")].find(
+            (button) => button.textContent?.includes("Thử lại"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(providerRetried, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-answered")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ),
+          "Tutor answer after provider retry",
+          20_000,
+        );
+
+        await evaluate(page, () => {
+          const originalFetch = window.fetch.bind(window);
+          window.__tutorRequestIds = [];
+          window.__tutorRequestCount = 0;
+          window.fetch = async (input, init) => {
+            const requestUrl =
+              typeof input === "string"
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input.url;
+            const requestMethod = (
+              init?.method ??
+              (input instanceof Request ? input.method : "GET")
+            ).toUpperCase();
+            if (
+              requestMethod === "POST" &&
+              requestUrl.includes("/api/ai/tutor") &&
+              typeof init?.body === "string"
+            ) {
+              window.__tutorRequestIds.push(JSON.parse(init.body).requestId);
+              window.__tutorRequestCount += 1;
+              if (window.__tutorRequestCount === 1) {
+                return new Promise((_, reject) => {
+                  const abort = () =>
+                    reject(
+                      new DOMException(
+                        "The operation was aborted.",
+                        "AbortError",
+                      ),
+                    );
+                  if (init.signal?.aborted) {
+                    abort();
+                    return;
+                  }
+                  init.signal?.addEventListener("abort", abort, {
+                    once: true,
+                  });
+                });
+              }
+            }
+            return originalFetch(input, init);
+          };
+        });
+        const cancelRetryQuestion = 'solar OR "cancel retry"';
+        await fill(page, "#tutor-question", cancelRetryQuestion);
+        const cancelRequestSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(cancelRequestSubmitted, true);
+
+        await waitForDom(
+          page,
+          () =>
+            [...document.querySelectorAll(".tutor-output button")].some(
+              (button) => button.textContent?.includes("Hủy yêu cầu"),
+            ),
+          "cancellable Tutor loading state",
+          5_000,
+        );
+        const cancelled = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output button")].find(
+            (button) => button.textContent?.includes("Hủy yêu cầu"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(cancelled, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-error")
+              ?.textContent.includes(
+                "Đã hủy chờ câu trả lời. Lượt đã giữ có thể vẫn được tính.",
+              ) &&
+            [...document.querySelectorAll(".tutor-output-error button")].some(
+              (button) => button.textContent?.includes("Thử lại"),
+            ),
+          "truthful cancellable Tutor error with retry",
+          5_000,
+        );
+        assert.equal(
+          await evaluate(
+            page,
+            () => document.querySelector("#tutor-question")?.value,
+          ),
+          cancelRetryQuestion,
+        );
+
+        const retried = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output-error button")].find(
+            (button) => button.textContent?.includes("Thử lại"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(retried, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-answered")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ),
+          "Tutor answer after retry",
+          20_000,
+        );
+        const retryEvidence = await evaluate(page, () => ({
+          question: document.querySelector("#tutor-question")?.value ?? "",
+          requestIds: window.__tutorRequestIds ?? [],
+        }));
+        assert.equal(retryEvidence.question, cancelRetryQuestion);
+        assert.equal(retryEvidence.requestIds.length, 2);
+        assert.match(retryEvidence.requestIds[0], /^[0-9a-f-]{36}$/i);
+        assert.match(retryEvidence.requestIds[1], /^[0-9a-f-]{36}$/i);
+        assert.notEqual(retryEvidence.requestIds[0], retryEvidence.requestIds[1]);
 
         const classSwitched = await evaluate(page, () => {
           const select = document.querySelector(".tutor-form select");
