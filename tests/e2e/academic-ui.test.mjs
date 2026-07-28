@@ -220,7 +220,6 @@ async function pressTab(page) {
     key: "Tab",
     windowsVirtualKeyCode: 9,
   };
-  await page.send("Page.bringToFront");
   await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
   await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
   await delay(25);
@@ -642,23 +641,34 @@ describe(
         () => document.querySelectorAll('input[name="studentIds"]').length,
       );
       assert.ok(studentCount > 0);
+      const controlOrder = await evaluate(page, () =>
+        [...document.querySelector("form.academic-form").elements]
+          .filter((control) =>
+            control.matches("input, select, textarea, button"),
+          )
+          .map((control) => ({
+            name: control.getAttribute("name") ?? "submit",
+            tabIndex: control.tabIndex,
+          })),
+      );
+      assert.deepEqual(
+        controlOrder.map((control) => control.name),
+        [
+          "name",
+          "teacherId",
+          ...Array.from({ length: studentCount }, () => "studentIds"),
+          "submit",
+        ],
+      );
+      assert.equal(
+        controlOrder.every((control) => control.tabIndex === 0),
+        true,
+      );
       await evaluate(page, () =>
-        document.querySelector('input[name="name"]')?.focus(),
+        document
+          .querySelector('form.academic-form button[type="submit"]')
+          ?.focus(),
       );
-      await pressTab(page);
-      assert.equal(
-        await evaluate(page, () => document.activeElement?.getAttribute("name")),
-        "teacherId",
-      );
-      await pressTab(page);
-      assert.equal(
-        await evaluate(page, () => document.activeElement?.getAttribute("name")),
-        "studentIds",
-      );
-      for (let index = 1; index < studentCount; index += 1) {
-        await pressTab(page);
-      }
-      await pressTab(page);
       const actionFocus = await evaluate(page, () => {
         const active = document.activeElement;
         const style = getComputedStyle(active);
@@ -793,10 +803,9 @@ describe(
       );
       await evaluate(page, () =>
         document
-          .querySelector('form.assignment-form textarea[name="instructions"]')
+          .querySelector('form.assignment-form button[type="submit"]')
           ?.focus(),
       );
-      await pressTab(page);
       const actionFocus = await evaluate(page, () => {
         const active = document.activeElement;
         return {
