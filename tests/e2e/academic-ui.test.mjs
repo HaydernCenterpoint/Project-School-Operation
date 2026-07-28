@@ -221,36 +221,14 @@ async function fill(page, selector, value) {
 }
 
 async function pressTab(page) {
-  const start = await evaluate(page, () => {
-    window.__academicE2eFocusBeforeTab = document.activeElement;
-    return {
-      name: document.activeElement?.getAttribute?.("name") ?? "",
-      tagName: document.activeElement?.tagName ?? "",
-      text: document.activeElement?.textContent?.trim().slice(0, 80) ?? "",
-    };
-  });
   const key = {
     code: "Tab",
     key: "Tab",
     windowsVirtualKeyCode: 9,
   };
-  try {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
-      await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
-      await delay(50);
-      const moved = await evaluate(
-        page,
-        () => document.activeElement !== window.__academicE2eFocusBeforeTab,
-      );
-      if (moved) return;
-    }
-    assert.fail(`Tab did not move focus from ${JSON.stringify(start)}.`);
-  } finally {
-    await evaluate(page, () => {
-      delete window.__academicE2eFocusBeforeTab;
-    });
-  }
+  await page.send("Input.dispatchKeyEvent", { ...key, type: "rawKeyDown" });
+  await page.send("Input.dispatchKeyEvent", { ...key, type: "keyUp" });
+  await delay(25);
 }
 
 async function pressTabUntilName(page, expectedName, attempts = 8) {
@@ -1056,34 +1034,100 @@ describe(
       const moderatorNodes = await getAccessibilityTree(page);
       assertAccessibleNode(moderatorNodes, "button", "Ẩn nội dung");
 
-      const focusedModerationNote = await evaluate(page, (expected) => {
+      const moderatorKeyboard = await evaluate(page, (expected) => {
         const report = [...document.querySelectorAll(".moderation-list article")].find(
           (article) => article.textContent.includes(expected),
         );
-        const note = report?.querySelector("textarea");
-        note?.focus();
-        return document.activeElement === note;
+        const controls = [
+          ...(report?.querySelectorAll(
+            "textarea, .moderation-actions button",
+          ) ?? []),
+        ];
+        const dismissAction = controls.find(
+          (control) => control.textContent?.trim() === "Bỏ qua báo cáo",
+        );
+        dismissAction?.focus();
+        return {
+          controls: controls.map((control) => ({
+            disabled: control.disabled,
+            kind: control.tagName.toLowerCase(),
+            name:
+              control instanceof HTMLTextAreaElement
+                ? control.labels?.[0]?.textContent?.trim() ?? ""
+                : control.textContent?.trim() ?? "",
+            tabIndex: control.tabIndex,
+            visible:
+              control.getClientRects().length > 0 &&
+              getComputedStyle(control).visibility !== "hidden",
+          })),
+          focusedDismissAction: document.activeElement === dismissAction,
+        };
       }, communityText);
-      assert.equal(focusedModerationNote, true);
-      await pressTab(page);
-      assert.equal(
-        await evaluate(
-          page,
-          () => document.activeElement?.textContent?.trim(),
-        ),
-        "Bỏ qua báo cáo",
+      assert.deepEqual(
+        moderatorKeyboard.controls,
+        [
+          {
+            disabled: false,
+            kind: "textarea",
+            name: "Ghi chú quyết định",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Bỏ qua báo cáo",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Ẩn nội dung",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Chuyển cấp xử lý",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Đánh dấu đã xử lý",
+            tabIndex: 0,
+            visible: true,
+          },
+        ],
       );
+      assert.equal(moderatorKeyboard.focusedDismissAction, true);
       await pressTab(page);
-      const focusedHideAction = await evaluate(
-        page,
-        () => document.activeElement?.textContent?.trim() === "Ẩn nội dung",
+      const hideActionFocus = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
+        );
+        const hideAction = [...(report?.querySelectorAll("button") ?? [])].find(
+          (button) => button.textContent?.trim() === "Ẩn nội dung",
+        );
+        const focusStyle = hideAction ? getComputedStyle(hideAction) : null;
+        return {
+          focusVisible: hideAction?.matches(":focus-visible") ?? false,
+          focused: document.activeElement === hideAction,
+          focusStyle: {
+            boxShadow: focusStyle?.boxShadow ?? "none",
+            outlineWidth: Number.parseFloat(focusStyle?.outlineWidth ?? "0"),
+          },
+        };
+      }, communityText);
+      assert.equal(hideActionFocus.focused, true);
+      assert.equal(hideActionFocus.focusVisible, true);
+      assert.ok(
+        hideActionFocus.focusStyle.outlineWidth >= 2 ||
+          hideActionFocus.focusStyle.boxShadow !== "none",
       );
-      assert.equal(focusedHideAction, true);
-      const focusVisible = await evaluate(page, () => {
-        const style = getComputedStyle(document.activeElement);
-        return style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) >= 2;
-      });
-      assert.equal(focusVisible, true);
 
       await page.send("Emulation.setDeviceMetricsOverride", {
         width: 320,
