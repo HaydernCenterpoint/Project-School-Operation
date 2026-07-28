@@ -1034,19 +1034,28 @@ describe(
       const moderatorNodes = await getAccessibilityTree(page);
       assertAccessibleNode(moderatorNodes, "button", "Ẩn nội dung");
 
-      await evaluate(page, () =>
-        document.querySelector('a[href="#moderation"]')?.focus(),
-      );
-      let focusedHideAction = false;
-      for (let attempt = 0; attempt < 20; attempt += 1) {
-        await pressTab(page);
-        focusedHideAction = await evaluate(
-          page,
-          () =>
-            document.activeElement?.textContent?.trim() === "Ẩn nội dung",
+      const focusedModerationNote = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
         );
-        if (focusedHideAction) break;
-      }
+        const note = report?.querySelector("textarea");
+        note?.focus();
+        return document.activeElement === note;
+      }, communityText);
+      assert.equal(focusedModerationNote, true);
+      await pressTab(page);
+      assert.equal(
+        await evaluate(
+          page,
+          () => document.activeElement?.textContent?.trim(),
+        ),
+        "Bỏ qua báo cáo",
+      );
+      await pressTab(page);
+      const focusedHideAction = await evaluate(
+        page,
+        () => document.activeElement?.textContent?.trim() === "Ẩn nội dung",
+      );
       assert.equal(focusedHideAction, true);
       const focusVisible = await evaluate(page, () => {
         const style = getComputedStyle(document.activeElement);
