@@ -42,7 +42,7 @@ The local migration and restore scripts deliberately refuse to run without `ALLO
 | Shared mobile API client states | `pnpm test:mobile-client` | Pass; 4/4 including stable offline error mapping and preserved `AbortError` cancellation |
 | Supabase reset/Auth lifecycle | Hosted `reset_local_db` sequence | Pass; reset retries once with debug, polls the non-session Auth settings route, then uses at most three fail-closed synthetic sign-in probes without logging tokens |
 
-The immutable application/config/test candidate is `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020`. Hosted [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) passed both jobs for that exact SHA. The database job then passed two additional same-SHA reruns, providing three consecutive lifecycle executions. This release-ledger update is documentation-only and does not redefine the code candidate.
+The validated application/config/test baseline is `973e1048952638692a265191edc2a0ab0f1dc914`. Hosted [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) passed both jobs for that exact SHA. The database job then passed one additional same-SHA rerun, providing two consecutive lifecycle executions. This release-ledger update is documentation-only and does not redefine the code baseline.
 
 ### Full regression evidence for the same implementation SHA
 
@@ -55,9 +55,11 @@ The immutable application/config/test candidate is `4da3ee6c3f7f5fe2e9ac70bb8d5b
 | Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
 | Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
 | Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
-| Hosted CI for the immutable local candidate | [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) | Pass for SHA `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020`; `quality` 1m37s and three consecutive `database` executions: [9m06s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90430684752), [9m14s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90432411990) and [8m43s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020/job/90434096577) |
+| Hosted CI for the validated local baseline | [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) | Pass for SHA `973e1048952638692a265191edc2a0ab0f1dc914`; `quality` 1m35s and two consecutive `database` executions: [8m42s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676/job/90444435491) and [8m29s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676/job/90445891577) |
 
 The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
+
+Post-freeze delta from `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020` to the validated baseline consists of two documentation commits (`9d1e71d`, `0b962ae`), one bounded CI readiness change (`a1056c0`) and one UTC-rollover pgTAP correction (`973e104`). No application route, mobile runtime, migration, package or dependency inventory changed. Exact-SHA CI reran all local regression evidence; EAS/device, UAT and QA/Security recertification remain external and `NO-GO`.
 
 Chrome's CDP operating-system text-scale override produced no measurable desktop metric change. The automation used CSS page-scale only where it produced a useful measurable result. The +18 px Teacher document delta is recorded explicitly; this evidence does not claim zero horizontal overflow or a complete WCAG audit.
 
@@ -252,4 +254,4 @@ Complete every row against one immutable staging candidate, using synthetic acco
 | Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Hosted CI/Gitleaks | `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020` | [CI run 30405760020](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30405760020) | 29 July 2026 | PASS |
+| Hosted CI/Gitleaks | `973e1048952638692a265191edc2a0ab0f1dc914` | [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) | 29 July 2026 | PASS |
