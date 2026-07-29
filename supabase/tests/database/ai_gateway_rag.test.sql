@@ -1519,8 +1519,16 @@ select is(
       92
     )
   ),
-  0,
-  'stale recovery keeps the expired request counted against daily quota'
+  case
+    when (
+      select (created_at at time zone 'UTC')::date =
+        (clock_timestamp() at time zone 'UTC')::date
+      from ai_usage_events
+      where request_id = 'b7500000-0000-4000-8000-000000000090'
+    ) then 0
+    else 1
+  end,
+  'stale recovery preserves UTC-day quota accounting'
 );
 
 reset role;
@@ -1578,16 +1586,31 @@ select throws_ok(
   'expired request ID cannot be replayed'
 );
 
-select throws_ok(
-  $$select * from reserve_ai_tutor_request(
-    'b7500000-0000-4000-8000-000000000093',
-    'b1000000-0000-0000-0000-000000000001',
-    93
-  )$$,
-  'P0001',
-  'ai_daily_quota_exceeded',
-  'stale recovery does not free a consumed quota slot'
-);
+select case
+  when (
+    select (created_at at time zone 'UTC')::date =
+      (clock_timestamp() at time zone 'UTC')::date
+    from ai_usage_events
+    where request_id = 'b7500000-0000-4000-8000-000000000090'
+  ) then throws_ok(
+    $$select * from reserve_ai_tutor_request(
+      'b7500000-0000-4000-8000-000000000093',
+      'b1000000-0000-0000-0000-000000000001',
+      93
+    )$$,
+    'P0001',
+    'ai_daily_quota_exceeded',
+    'same-day stale recovery does not free a consumed quota slot'
+  )
+  else lives_ok(
+    $$select * from reserve_ai_tutor_request(
+      'b7500000-0000-4000-8000-000000000093',
+      'b1000000-0000-0000-0000-000000000001',
+      93
+    )$$,
+    'previous-day stale usage does not consume a current UTC-day quota slot'
+  )
+end;
 
 reset role;
 
