@@ -1,5 +1,7 @@
 # Days 4–7 academic alpha
 
+This document records the delivered text-only academic vertical slice. It does not claim that every Days 4–5 backlog item is complete. The bounded Day 6 Community Safety extension is documented separately in [`day-6-community-safety.md`](day-6-community-safety.md). The bounded Day 7 gateway is documented in [`day-7-ai-gateway-rag.md`](day-7-ai-gateway-rag.md).
+
 ## Delivered flow
 
 From a clean synthetic seed:
@@ -13,6 +15,14 @@ From a clean synthetic seed:
 7. The Student sees `submitted` or `reviewed` status and the feedback.
 
 File and URL submission are intentionally unsupported.
+
+## Bounded Day 7 extension
+
+Day 7 adds a student-only, one-shot AI Tutor BFF and consent API. Its runtime feature flag is **OFF by default**. When explicitly enabled for deterministic local testing, the gateway uses one server-only OpenAI-compatible provider configuration and tenant/class-scoped PostgreSQL lexical full-text retrieval over synthetic or de-identified seeded chunks. The Student web portal renders `AiTutorPanel`; Expo exposes the `/tutor` stack screen from the Student Today CTA.
+
+The database enforces current consent/version, class enrollment and an atomic daily quota. The gateway enforces a provider timeout and accepts citations only when every cited ID belongs to the retrieved allowlist; otherwise it abstains. It stores consent plus content-free usage metadata, not prompts, answers or chat history.
+
+This slice has no provider fallback, tools, memory, upload UI, runtime PDF parsing, OCR, embeddings, `pgvector` or model registry. Core academic and Community Safety workflows remain provider-independent.
 
 ## Trust boundaries
 
@@ -47,31 +57,45 @@ JSON mutation bodies use exact field allowlists. Text submission requires a UUID
 
 ## Evidence
 
-Fresh local evidence collected on 28 July 2026:
+The table below is the last confirmed Day 6 evidence collected on 29 July 2026. It predates the Day 7 candidate and does not establish that the current tree passes.
 
 | Check | Result |
 |---|---|
 | Frozen dependency install | Pass |
 | ESLint across web/mobile | Pass |
 | TypeScript across contracts/web/mobile | Pass |
-| Next.js production build | Pass; four dynamic academic API surfaces |
+| Next.js route inventory | Pass; production build contains 14 BFF route files: four academic and ten community |
 | Clean Supabase reset/seed | Pass |
-| pgTAP authorization, academic workflow and release hardening | Pass; 2 files, 88 tests (`71 + 17`) |
+| pgTAP authorization, academic workflow, community safety and release hardening | Pass; 3 files, 202/202 tests |
 | Supabase schema lint | Pass; no schema errors |
 | Populated migration `002 → current` | Pass on disposable local database |
 | Local backup/restore smoke | Pass; restored public-data fingerprint matched |
 | Mobile configuration validation | Pass; 2/2 |
-| Accessibility automation | Pass; Chrome AX-tree, Admin/Teacher keyboard and focus flow, 320 px layout and measured CSS page-scale 200% |
+| Accessibility automation | Pass; Chrome AX-tree, Admin/Teacher/Moderator keyboard and focus flow, 320 px layout and measured CSS page-scale 200% |
 | Runtime security scan | Pass; one Hermes `.hbc` runtime binary scanned, no secret or service-role finding |
 | Anon-key validation | Pass; only publishable keys or JWTs with role `anon` are accepted |
 | Database mutation quotas | Pass; membership mutation quota added |
-| Seeded JWT/RLS production API integration on latest hardening tree | Pass; 1/1 twice consecutively against the same database |
-| Production Chrome UI E2E on latest hardening tree | Pass; 14/14 |
-| Expo Android export | Pass |
+| Seeded JWT/RLS production API integration on latest hardening tree | Pass; academic and community suites |
+| Production Chrome UI E2E | Pass; combined academic and Community Safety suite 15/15 |
+| Expo Android export | Pass; fresh Day 6 Android export generated |
 
-The API black-box suite covers class creation, draft rejection, assignment publication, correct and cross-tenant visibility, idempotent replay, changed-payload conflict, duplicate submission conflict, 20,000-character boundaries, unknown URL field rejection, multipart rejection, teacher feedback, rate limiting and non-enumerating inaccessible IDs. The latest local production run passed 1/1 twice consecutively against the same database.
+### Current Day 7 local evidence
 
-The browser suite runs against `next build` + `next start` and verifies the POST login form, password-free URL, Admin class form, cleared-session redirect, Teacher assignment form, Student authenticated submission, Teacher feedback, accessibility tree, keyboard/focus behavior and narrow/page-scaled layout. The latest run passed 14/14.
+| Check | Exact command | Result |
+|---|---|---|
+| Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 16 BFF route files: four academic, ten community and two AI; config 2/2, contrast 2/2, security canary 1/1 |
+| Clean local migration and synthetic seed | `pnpm db:reset` | Pass |
+| PostgreSQL authorization, consent, quota, lexical retrieval and content-free telemetry | `pnpm db:test` | Pass; four files, 286/286 pgTAP checks, including two-session ingest concurrency |
+| Database schema lint | `pnpm db:lint` | Pass; clean |
+| Populated migration `002 → current` | `$env:ALLOW_LOCAL_DB_UPGRADE_SMOKE = "1"; pnpm db:upgrade-smoke; Remove-Item Env:ALLOW_LOCAL_DB_UPGRADE_SMOKE` | Pass on the disposable local database |
+| Backup/restore | `$env:ALLOW_LOCAL_DB_RESTORE_SMOKE = "1"; pnpm db:restore-smoke; Remove-Item Env:ALLOW_LOCAL_DB_RESTORE_SMOKE` | Pass; fingerprint includes the AI tables |
+| Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
+| Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including Tutor consent, class-switch reset, answer/citation, announced unavailable state, accessibility tree and overflow |
+| Explicit new AI/UI and generated-runtime scan | `pnpm security:check apps/web/src/app/api/ai apps/web/src/components/AiTutorPanel.tsx apps/web/src/lib/ai-gateway.ts apps/mobile/app/tutor.tsx` | Pass |
+
+The current academic API black-box suite covers class creation, draft rejection, assignment publication, correct and cross-tenant visibility, idempotent replay, changed-payload conflict, duplicate submission conflict, 20,000-character boundaries, unknown URL field rejection, multipart rejection, teacher feedback, rate limiting and non-enumerating inaccessible IDs. The community suite covers its separate membership, safety and moderation contract. The AI Tutor suite covers current consent/version, cited tenant isolation, abstention, provider failure/timeout and content-free usage records. All three local integration suites pass 1/1 against the seeded local Supabase database and production BFF.
+
+The current browser suite runs against `next build` + `next start` and verifies the earlier academic and Community Safety flows plus Student Tutor consent, class-switch stale-result reset, a cited answer, an announced unavailable state, accessibility-tree exposure and overflow. It passes 16/16. The historical Day 6 result remains 15/15 without the Tutor check.
 
 At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04× taller; critical Admin/Teacher controls and action text fit. The Teacher document width delta was +18 px. CDP operating-system text scale had no measurable desktop metric effect, so CSS zoom was used only where it produced a useful measurement. This evidence does not claim zero horizontal overflow or a complete WCAG audit.
 
@@ -81,7 +105,8 @@ At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04×
 - Navy frames navigation, cobalt communicates focus/selection, red is reserved for primary actions and yellow is a restrained orbital/keyline accent.
 - Operational screens use open lists and panels rather than dashboard cards, charts or decorative metrics.
 - The portal includes loading, empty, mutation, error and permission states with live-region announcements.
-- Mobile keeps the existing three tabs and uses the stack path `Class → Assignment`.
+- Mobile exposes Today, Classes, Community and Account to academic roles; Moderator sees only Community and Account. Detail flows use the stack paths `Class → Assignment`, `Community → Conversation` and, for Students, `Today → Tutor`.
+- The web portal renders the one-shot `AiTutorPanel` only for Students. Both Tutor surfaces expose consent/revocation, class selection, answer/citation, abstention, quota and unavailable states without a transcript.
 - The mobile submission idempotency key is stored before the request and reused on retry.
 
 ## Current limitations
@@ -96,7 +121,9 @@ At automated CSS page-scale 200%, the measured glyph was 2.00× wider and 2.04×
 - No staging/production deployment, UAT sign-off or operational monitoring has been completed.
 - Web accessibility evidence does not replace Android physical-device and TalkBack testing.
 - Database quotas cover membership and academic mutations, but gateway-level limits for GET, invalid JWT and attempts rejected before database mutation remain a staging gate.
-- AI Tutor and all non-academic modules remain disabled. **AI is OFF** for the local hardening candidate.
+- Account provisioning, private file submission, attendance, standalone announcement management beyond the seeded school channel and in-app notification delivery remain incomplete.
+- The Day 7 AI Tutor runtime remains **OFF by default**. Its local gateway/retrieval slice has no approved external provider or key, staging evidence, privacy/safeguarding approval, physical-device/TalkBack evidence or UAT.
+- The Tutor is one-shot on web and Expo; there is no multi-turn transcript, prompt persistence, provider fallback, tools, memory, upload/runtime parsing, OCR, vector retrieval or model registry.
 
 These limitations keep the result labelled **Academic Alpha / local hardening sandbox**, not a production pilot.
 

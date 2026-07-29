@@ -28,6 +28,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build:web
       - run: pnpm build:mobile
+      - run: pnpm test:mobile-client
       - run: pnpm test:config
       - run: pnpm test:accessibility
       - run: pnpm test:security
@@ -80,6 +81,73 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
           export ACADEMIC_API_URL="http://127.0.0.1:3210"
           export ACADEMIC_UI_URL="$ACADEMIC_API_URL"
+          export AI_TUTOR_ENABLED="true"
+          export AI_PROVIDER_URL="http://127.0.0.1:43210/v1/"
+          export AI_PROVIDER_API_KEY="local-ci-placeholder"
+          export AI_PROVIDER_ID="openai-compatible"
+          export AI_PROVIDER_MODEL="citation-model-v1"
+          export AI_PROVIDER_TIMEOUT_MS="150"
+
+          reset_local_db() {
+            pnpm db:reset
+
+            auth_settings_status=""
+            for attempt in {1..60}; do
+              auth_settings_status="$(
+                curl --silent --output /dev/null --write-out '%{http_code}' \
+                  --connect-timeout 1 --max-time 2 \
+                  --header "apikey: $SUPABASE_ANON_KEY" \
+                  "$SUPABASE_URL/auth/v1/settings" || true
+              )"
+
+              case "$auth_settings_status" in
+                200)
+                  break
+                  ;;
+                000|5??)
+                  sleep 1
+                  ;;
+                *)
+                  echo "Supabase Auth settings probe failed with HTTP ${auth_settings_status:-unknown}."
+                  return 1
+                  ;;
+              esac
+            done
+
+            if [ "$auth_settings_status" != "200" ]; then
+              echo "Supabase Auth settings did not become ready after reset (last HTTP ${auth_settings_status:-unknown})."
+              return 1
+            fi
+
+            auth_sign_in_status=""
+            for attempt in {1..3}; do
+              auth_sign_in_status="$(
+                curl --silent --output /dev/null --write-out '%{http_code}' \
+                  --connect-timeout 1 --max-time 2 \
+                  --request POST \
+                  --header "apikey: $SUPABASE_ANON_KEY" \
+                  --header "Content-Type: application/json" \
+                  --data '{"email":"student.a@saodo.test","password":"Password123!"}' \
+                  "$SUPABASE_URL/auth/v1/token?grant_type=password" || true
+              )"
+
+              case "$auth_sign_in_status" in
+                200)
+                  return 0
+                  ;;
+                000|5??)
+                  sleep 1
+                  ;;
+                *)
+                  echo "Supabase Auth sign-in probe failed with HTTP ${auth_sign_in_status:-unknown}."
+                  return 1
+                  ;;
+              esac
+            done
+
+            echo "Supabase Auth sign-in did not become ready after reset (last HTTP ${auth_sign_in_status:-unknown})."
+            return 1
+          }
 
           pnpm build:web
           pnpm --filter web exec next start --hostname 127.0.0.1 --port 3210 \
@@ -99,6 +167,34 @@ jobs:
           done
 
           curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null
+          reset_local_db
+          pnpm test:ai-eval
+          reset_local_db
           pnpm test:integration
           pnpm test:e2e:web
           pnpm security:check /tmp/academic-next.log
+
+          reset_local_db
+          export ACADEMIC_API_URL="http://127.0.0.1:3211"
+          export AI_TUTOR_ENABLED="false"
+          unset AI_PROVIDER_URL AI_PROVIDER_API_KEY AI_PROVIDER_ID AI_PROVIDER_MODEL
+          pnpm --filter web exec next start --hostname 127.0.0.1 --port 3211 \
+            > /tmp/academic-ai-off-next.log 2>&1 &
+          off_server_pid=$!
+          trap 'kill "$server_pid" "$off_server_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null; then
+              break
+            fi
+            if ! kill -0 "$off_server_pid" 2>/dev/null; then
+              cat /tmp/academic-ai-off-next.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          curl --silent --fail "$ACADEMIC_API_URL/" > /dev/null
+          node --test tests/integration/academic-flow.test.mjs
+          pnpm test:ai-off
+          pnpm security:check /tmp/academic-ai-off-next.log

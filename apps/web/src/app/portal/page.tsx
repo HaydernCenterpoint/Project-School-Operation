@@ -21,6 +21,8 @@ import {
   getSupabaseBrowserClient,
   hasSupabaseEnvironment,
 } from "@/lib/supabase-browser";
+import { AiTutorPanel } from "@/components/AiTutorPanel";
+import { ModerationQueue } from "@/components/ModerationQueue";
 
 type Notice = { kind: "success" | "error"; message: string } | null;
 type AssignmentResponse = { assignments: Assignment[] };
@@ -28,6 +30,7 @@ type SubmissionResponse = { submissions: Submission[] };
 
 const roleLabels = {
   admin: "Quản trị viên",
+  moderator: "Kiểm duyệt viên",
   teacher: "Giảng viên",
   student: "Sinh viên",
 } as const;
@@ -44,7 +47,11 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function Icon({ name }: { name: "class" | "assignment" | "user" }) {
+function Icon({
+  name,
+}: {
+  name: "class" | "assignment" | "tutor" | "user";
+}) {
   const path = {
     class: (
       <>
@@ -56,6 +63,12 @@ function Icon({ name }: { name: "class" | "assignment" | "user" }) {
       <>
         <path d="M7 3h10v4H7zM5 5H3v16h18V5h-2" />
         <path d="M7 12h10M7 16h7" />
+      </>
+    ),
+    tutor: (
+      <>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />
+        <path d="M8 8h8M8 12h5" />
       </>
     ),
     user: (
@@ -380,14 +393,34 @@ export default function PortalPage() {
           <strong>{session?.tenant.name ?? "Đại học Sao Đỏ"}</strong>
         </Link>
         <nav aria-label="Điều hướng portal">
-          <a href="#classes" className="active" aria-current="page">
-            <Icon name="class" />
-            <span>Lớp học</span>
-          </a>
-          {session?.role !== "admin" && (
+          {session?.role !== "moderator" && (
+            <a href="#classes" className="active" aria-current="page">
+              <Icon name="class" />
+              <span>Lớp học</span>
+            </a>
+          )}
+          {(session?.role === "teacher" || session?.role === "student") && (
             <a href="#assignments">
               <Icon name="assignment" />
               <span>Bài tập</span>
+            </a>
+          )}
+          {session?.role === "student" && (
+            <a href="#tutor">
+              <Icon name="tutor" />
+              <span>Trợ giảng AI</span>
+            </a>
+          )}
+          {(session?.role === "admin" || session?.role === "moderator") && (
+            <a
+              href="#moderation"
+              className={session.role === "moderator" ? "active" : undefined}
+              aria-current={
+                session.role === "moderator" ? "page" : undefined
+              }
+            >
+              <Icon name="assignment" />
+              <span>Kiểm duyệt</span>
             </a>
           )}
         </nav>
@@ -411,7 +444,11 @@ export default function PortalPage() {
         <main className="portal-content">
           <div className="page-heading">
             <div>
-              <h1>Không gian học thuật</h1>
+              <h1>
+                {session?.role === "moderator"
+                  ? "Kiểm duyệt cộng đồng"
+                  : "Không gian học thuật"}
+              </h1>
               {session && (
                 <p>
                   Xin chào {session.user.displayName}. Bạn đang truy cập với vai trò{" "}
@@ -446,7 +483,8 @@ export default function PortalPage() {
           ) : (
             session && (
               <>
-                <section className="academic-section" id="classes">
+                {session.role !== "moderator" && (
+                  <section className="academic-section" id="classes">
                   <div className="section-heading">
                     <div>
                       <h2>Lớp học</h2>
@@ -527,9 +565,19 @@ export default function PortalPage() {
                       )}
                     </form>
                   )}
-                </section>
+                  </section>
+                )}
 
-                {session.role !== "admin" && (
+                {session.role === "student" && (
+                  <AiTutorPanel
+                    classes={session.classes}
+                    initialClassId={selectedClassId}
+                    token={token}
+                  />
+                )}
+
+                {(session.role === "teacher" ||
+                  session.role === "student") && (
                   <section className="academic-section" id="assignments">
                     <div className="section-heading">
                       <div>
@@ -662,6 +710,11 @@ export default function PortalPage() {
                       </div>
                     </div>
                   </section>
+                )}
+
+                {(session.role === "admin" ||
+                  session.role === "moderator") && (
+                  <ModerationQueue token={token} />
                 )}
               </>
             )

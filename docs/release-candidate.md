@@ -4,33 +4,62 @@
 
 | Field | Current value |
 |---|---|
-| Label | **Academic Alpha / local hardening** |
-| Data | Synthetic tenants and identities only |
-| AI | **OFF**; no provider, key, retrieval or AI runtime is part of this candidate |
+| Label | **Academic Alpha + text-only Community Safety + bounded AI Tutor / Day 10 local candidate** |
+| Data | Two synthetic tenants and eight synthetic identities: six academic accounts plus two Moderators |
+| AI | **OFF by default**; the server-only Tutor gateway, lexical retrieval, openable citation detail and fixed 24-case automated evaluation are present for local validation, with no approved external provider or key |
 | External release decision | **NO-GO** until staging, EAS/device, UAT and sign-off gates are complete |
 
 This document is an operator checklist, not evidence of a staging or production release.
 
 ## Evidence ledger
 
-Local evidence recorded on 28 July 2026:
+The table below records the last confirmed Day 6 evidence from 29 July 2026. It predates the current Day 10 candidate and must not be used as proof that the current tree passes.
 
 | Check | Latest result | Boundary |
 |---|---|---|
-| PostgreSQL authorization and academic workflow | Pass; 88 pgTAP checks (`71 + 17`) | Local Supabase only |
-| Populated migration `002 → current` | Pass; legacy blank review normalized and current migrations reapplied | Disposable local database |
-| Backup/restore smoke | Pass; public-data fingerprint matched after restore | Disposable seeded local database |
+| PostgreSQL authorization, academic workflow and community safety | Pass; 202/202 pgTAP checks across three files | Local Supabase only |
+| Populated migration `002 → current` | Pass; legacy academic normalization plus Moderator/community objects verified | Disposable local database |
+| Backup/restore smoke | Pass; fingerprint matched for academic data and all eight community tables | Disposable seeded local database |
 | Lint and TypeScript | Pass | Local workspace |
-| Next.js production build and Expo Android export | Pass | Build/export only; no deployment or installed APK |
+| Next.js route inventory | Pass; production build contains 14 BFF route files: four academic and ten community | Local production build |
+| Next.js production build and Expo Android export | Pass; fresh Day 6 build/export | Build/export only; no deployment or installed APK |
 | Mobile build configuration validation | Pass; 2/2 | Fail-closed configuration tests |
-| Web accessibility automation | Pass; Chrome AX-tree, Admin/Teacher keyboard and focus flow, 320 px layout, and measured CSS page-scale 200% | Glyph measured at 2.00× width and 2.04× height; critical controls and action text fit; Teacher document delta was +18 px |
-| Repository and runtime security checks | Pass; one Hermes `.hbc` runtime binary scanned with no secret or service-role finding | Anon-key validator accepts only a publishable key or a JWT whose role is `anon` |
+| Web accessibility automation | Pass; Chrome AX-tree, Admin/Teacher/Moderator keyboard and focus flow, 320 px critical layouts and measured CSS page-scale 200% | Local automation; not a complete WCAG or TalkBack audit |
+| Repository and runtime security checks | Pass; 572 text files and one Hermes runtime binary scanned | No secret or service-role credential finding |
 | Database mutation quotas | Pass; membership mutation quota added alongside academic mutation limits | Database boundary only |
-| Production API integration on the latest hardening tree | Pass; 1/1 in two consecutive runs against the same database | Local production web/BFF with seeded Supabase |
-| Production Chrome academic E2E on the latest hardening tree | Pass; 14/14 | Local production build; no staging claim |
+| Production API integration on the latest hardening tree | Pass; academic and community suites | Local production web/BFF with seeded Supabase |
+| Production Chrome E2E | Pass; combined academic and Community Safety suite 15/15 | Local production build; no staging claim |
 | Android device critical-flow smoke | Not run | Requires EAS Preview and a physical device |
 
 The local migration and restore scripts deliberately refuse to run without `ALLOW_LOCAL_DB_UPGRADE_SMOKE=1` or `ALLOW_LOCAL_DB_RESTORE_SMOKE=1`. They are not production restore tools.
+
+### Current local candidate evidence
+
+| Check | Exact command or artifact | Result |
+|---|---|---|
+| Workspace lint/typecheck, optimized web build, Expo Android export, configuration, contrast, security canary and repository/runtime scan | `pnpm verify:static` | Pass; 17 BFF route files: four academic, ten community and three AI |
+| Day 10 inventory guard | `pnpm test:config` | Pass; 5/5 including eight migration filenames, 17 web BFF routes, two web page entry points, four web runtime-library files, two functional web UI components, 11 Expo route files, four workspace package manifests and their declared dependency inventories |
+| Shared mobile API client states | `pnpm test:mobile-client` | Pass; 4/4 including stable offline error mapping and preserved `AbortError` cancellation |
+| Supabase reset/Auth lifecycle | Hosted `reset_local_db` sequence | Pass; reset retries once with debug, polls the non-session Auth settings route, then uses at most three fail-closed synthetic sign-in probes without logging tokens |
+
+The validated application/config/test baseline is `973e1048952638692a265191edc2a0ab0f1dc914`. Hosted [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) passed both jobs for that exact SHA. The database job then passed one additional same-SHA rerun, providing two consecutive lifecycle executions. This release-ledger update is documentation-only and does not redefine the code baseline.
+
+### Full regression evidence for the same implementation SHA
+
+| Check | Exact command or artifact | Result |
+|---|---|---|
+| Clean local migration and synthetic seed | `pnpm db:reset` | Pass |
+| PostgreSQL authorization, consent, quota, lexical retrieval, citation detail and content-free telemetry | `pnpm db:test` | Pass; 298/298 pgTAP checks |
+| Database schema lint | `pnpm db:lint` | Pass; clean |
+| Fixed AI safety/resilience manifest | `pnpm test:ai-eval` | Pass; 24/24 cases, TAP 25 including parent; 16 provider calls; 10 terminal usage rows per Student; no `started` row remains; malformed, unknown, foreign-tenant and wrong-class citation requests return canonical 404 |
+| Seeded local API integration with the loopback fake provider | `pnpm test:integration` | Pass; academic 1/1, community 1/1 and AI Tutor 1/1 |
+| Local Chrome UI E2E | `pnpm test:e2e:web` | Pass; 16/16 including authorized `AURORA_A_ONLY` citation detail with no `BENTHIC_B_ONLY`, recovery through the real BFF after a provider 500, deterministic Cancel, honest copy and Retry with a fresh request UUID |
+| Separate AI-off production server | `node --test tests/integration/academic-flow.test.mjs` then `pnpm test:ai-off` | Pass; academic 1/1 and AI-off 1/1 with no provider configuration or AI usage |
+| Hosted CI for the validated local baseline | [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) | Pass for SHA `973e1048952638692a265191edc2a0ab0f1dc914`; `quality` 1m35s and two consecutive `database` executions: [8m42s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676/job/90444435491) and [8m29s](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676/job/90445891577) |
+
+The CI-only provider is an OpenAI-compatible fake server on loopback. The corpus contains synthetic or de-identified seeded text chunks. This evidence remains local and does not approve any external provider. The automated answerable cases prove scoped retrieval and openable citations, not human semantic grounding: **8/8 human reviews remain PENDING**. See [Day 9 AI evaluation](day-9-ai-evaluation.md).
+
+Post-freeze delta from `4da3ee6c3f7f5fe2e9ac70bb8d5be4e6b7dc9020` to the validated baseline consists of two documentation commits (`9d1e71d`, `0b962ae`), one bounded CI readiness change (`a1056c0`) and one UTC-rollover pgTAP correction (`973e104`). No application route, mobile runtime, migration, package or dependency inventory changed. Exact-SHA CI reran all local regression evidence; EAS/device, UAT and QA/Security recertification remain external and `NO-GO`.
 
 Chrome's CDP operating-system text-scale override produced no measurable desktop metric change. The automation used CSS page-scale only where it produced a useful measurable result. The +18 px Teacher document delta is recorded explicitly; this evidence does not claim zero horizontal overflow or a complete WCAG audit.
 
@@ -38,14 +67,30 @@ Chrome's CDP operating-system text-scale override produced no measurable desktop
 
 The current tree may be used for local demonstrations with synthetic data. It must not be described as staging-ready, production-ready or approved for real learners.
 
+### Day 10 feature freeze
+
+The frozen local candidate contains the Academic Alpha critical flow, the already-exposed text-only Community Safety extension and the conditional AI Tutor, which remains **OFF by default**. `tests/config/release-freeze.test.mjs` guards the current inventory of:
+
+- eight ordered SQL migration filenames;
+- 17 web BFF route files: four academic, ten community and three AI;
+- two web page entry points, four web runtime-library files and two functional web UI components;
+- 11 Expo route files; and
+- four workspace package manifests and their declared direct dependencies.
+
+Synthetic seed data and the loopback fake provider are permitted only in deterministic tests; the production-BFF integration suites exercise seeded Supabase instead of an application fallback. The automated guard detects inventory changes, while migration contents and runtime behavior remain protected by migration replay, pgTAP, integration and E2E evidence. After this freeze, a guarded file, route, package or direct dependency may change only to close a release-blocking Critical/High or P0/P1 finding; the inventory test and every affected evidence suite must then be reviewed, updated when intentional and rerun.
+
 External promotion requires all of the following:
 
 - A committed immutable Git SHA and a successful hosted CI run for that SHA.
 - A named staging Supabase project and HTTPS web/BFF deployment.
 - Fresh API integration and Chrome E2E evidence against the promoted build.
+- Tested gateway limits and monitoring evidence in staging for GET requests, invalid JWTs and attempts rejected before a database mutation.
+- A named, approved external AI provider and server-only key before the Tutor is enabled outside local deterministic tests.
+- Privacy and safeguarding approval for the provider transfer, consent text and policy version.
+- Human semantic-grounding approval for all eight answerable evaluation cases.
 - An EAS Preview APK installed from scratch on a physical Android device.
 - TalkBack, keyboard, focus, error-state and 200% text-scaling checks.
-- UAT by named School Admin, Teacher and Student representatives.
+- UAT by named School Admin, Teacher, Student and Moderator/Safeguarding representatives.
 - Privacy/safeguarding approval before any real or under-18 data is used.
 - Human Lead and independent QA/Security sign-off.
 
@@ -61,6 +106,19 @@ No value below is a private server credential. Values still belong in the target
 - `SUPABASE_ANON_KEY`
 
 The BFF continues to use the caller's Bearer JWT. A Supabase service-role key is neither required nor allowed on a request path.
+
+### Day 9 AI Tutor server only
+
+Keep `AI_TUTOR_ENABLED=false` unless the external provider, privacy and safeguarding gates have been approved for the target environment.
+
+- `AI_TUTOR_ENABLED`
+- `AI_PROVIDER_URL`
+- `AI_PROVIDER_API_KEY`
+- `AI_PROVIDER_ID`
+- `AI_PROVIDER_MODEL`
+- `AI_PROVIDER_TIMEOUT_MS` — optional; may shorten, but not exceed, the 8,000 ms gateway cap.
+
+These values belong only in the server runtime. Never create `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` AI credentials, and never add an AI key to an EAS build. External provider URLs must use HTTPS; HTTP is accepted only for loopback local testing.
 
 ### EAS Preview
 
@@ -78,7 +136,7 @@ eas env:create --environment preview --name EXPO_PUBLIC_API_URL --value "<https-
 eas build --platform android --profile preview
 ```
 
-Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an AI key: AI remains OFF.
+Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an AI key: the mobile client never receives it.
 
 ## Deployment runbook
 
@@ -94,6 +152,8 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
    pnpm db:lint
    ```
 
+   Reproduce `pnpm test:ai-eval`, the integration/E2E suites and `pnpm test:ai-off` through the production-server sequence in `.github/workflows/ci.yml`. The eval requires the AI-on server and loopback fake provider; the AI-off regression requires its separate AI-off server.
+
    Run the migration-upgrade and restore smokes only against the disposable local Supabase project:
 
    ```text
@@ -103,9 +163,9 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
 
 3. **Take and verify a target backup.** Use the Supabase provider backup/PITR procedure for the exact target project. Record backup ID, timestamp, retention and restore owner. A local dump is not sufficient evidence.
 4. **Review migrations.** Confirm the target is at the expected predecessor version. Dry-run the linked migration with the approved Supabase CLI, inspect the SQL, then apply append-only migrations. Never run `db reset` against a shared environment.
-5. **Deploy web/BFF.** Configure the four web variables above in the deployment provider, deploy the immutable SHA, and record the provider deployment/version ID.
-6. **Smoke web/API.** Verify login for all three synthetic roles, cross-tenant denial, class creation, assignment publication, one idempotent submission replay, feedback and rate-limit `429` with `Retry-After`.
-7. **Build EAS Preview.** Configure the preview environment, build the APK, install it from scratch, and run the Student class → assignment → submission → feedback flow.
+5. **Deploy web/BFF.** Configure the four Supabase web variables above in the deployment provider, deploy the immutable SHA, and record the provider deployment/version ID. Keep the AI Tutor off unless its separate provider, privacy and safeguarding approvals are attached.
+6. **Smoke web/API.** Verify login for all four synthetic roles; cross-tenant denial; class creation, assignment publication, one idempotent submission replay and feedback; community post, report and human moderation; and rate-limit `429` with `Retry-After`.
+7. **Build EAS Preview.** Configure the preview environment, build the APK, install it from scratch, and run the Student class → assignment → submission → feedback flow plus Student community post/report/realtime checks.
 8. **Collect signatures.** Attach CI, migration, backup, E2E, device, accessibility and UAT evidence to the sign-off table. No signature may be inferred from a passing command.
 
 ## Rollback runbook
@@ -114,7 +174,7 @@ Do not use `127.0.0.1`, `localhost` or `10.0.2.2` in an EAS build. Do not add an
 2. Roll web/BFF back to the previous immutable deployment through the hosting provider.
 3. Do not apply a handwritten down migration. PostgreSQL migrations are append-only; prefer a reviewed forward fix.
 4. If data integrity is at risk, isolate the current database and restore the verified provider backup/PITR point into a new recovery instance first.
-5. Compare tenant, membership, class, assignment, submission and audit counts; rerun cross-tenant checks before directing traffic to the recovered instance.
+5. Compare tenant, membership, class, assignment, submission, community, report, moderation and audit counts; rerun cross-tenant checks before directing traffic to the recovered instance.
 6. Reissue the candidate only after affected tests, device smoke, UAT and QA/Security review have been repeated.
 
 ## Restore runbook
@@ -136,7 +196,7 @@ Do not reuse the local script. The Release Operator must:
 1. Confirm the exact provider project and restore point with a second reviewer.
 2. Freeze writes and preserve the affected database for investigation.
 3. Restore through provider backup/PITR into an isolated recovery project.
-4. Validate schema version, row-count fingerprint, RLS, audit records and the academic critical flow.
+4. Validate schema version, row-count fingerprint, RLS, audit records and the academic/community critical flows.
 5. Switch traffic only after Human Lead and QA/Security approval.
 
 ## Gitleaks provenance
@@ -148,7 +208,26 @@ CI downloads Gitleaks `v8.30.1` from the upstream GitHub release, verifies archi
 gitleaks git --redact --no-banner
 ```
 
-The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. This provenance becomes release evidence only when the hosted CI run URL and immutable Git SHA are recorded below.
+The quality job checks out full history before scanning. Once this workflow exists on the repository default branch, it can be started with `workflow_dispatch`. The current local candidate provenance is recorded below; a later promoted SHA must have its own fresh hosted run.
+
+## External evidence packet (Day 13–14)
+
+Complete every row against one immutable staging candidate, using synthetic accounts only. Record timestamps in UTC. A command result without a named owner, reviewer and durable artifact remains `NO-GO`.
+
+| Gate | Owner | Target, build or SHA | UTC timestamp | Exact probe or scenario and expected result | Observed result | Evidence URL or artifact | Reviewer | Decision |
+|---|---|---|---|---|---|---|---|---|
+| Candidate freeze and staging deploy | _Unassigned_ | _Pending_ | _Pending_ | Hosted CI passes for the promoted SHA; immutable web/BFF deployment IDs and HTTPS origins are recorded | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Target migration and synthetic pilot seed | _Unassigned_ | _Pending_ | _Pending_ | Expected predecessor and append-only migration list are verified and applied; the synthetic seed manifest contains no real or under-18 learner data | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Target backup and isolated restore | _Unassigned_ | _Pending_ | _Pending_ | Provider backup/PITR ID, retention and restore owner are recorded; isolated restore matches schema, row-count fingerprint and RLS checks | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Promoted API integration and Chrome E2E | _Unassigned_ | _Pending_ | _Pending_ | Fresh integration and browser suites run against the recorded HTTPS origins and promoted SHA; critical flows and cross-tenant denial pass | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Gateway limits and monitoring | _Unassigned_ | _Pending_ | _Pending_ | Bursts of authenticated GET, invalid-JWT and pre-mutation requests are limited before database work; `429` includes `Retry-After`; dashboard captures request, rejection, latency and error signals | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| EAS Preview and Android accessibility | _Unassigned_ | _Pending_ | _Pending_ | Fresh APK install records build URL, device model and Android version; Student critical flow, TalkBack labels/swipe order, 200% text scaling and error states pass | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Admin, Teacher and Moderator UAT | _Unassigned_ | _Pending_ | _Pending_ | Login, tenant isolation, class/assignment, feedback, community report and human moderation scenarios match the acceptance criteria | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Student/mobile UAT | _Unassigned_ | _Pending_ | _Pending_ | Login, class → assignment → idempotent submission → feedback plus community post/report/realtime scenarios match the acceptance criteria | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| AI mode decision | _Unassigned_ | _Pending_ | _Pending_ | Record `OFF` with fresh AI-off regression, or `ON` only with approved provider, privacy/safeguarding, consent policy, 8/8 semantic review and staging failure-mode evidence | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Rollback rehearsal | _Unassigned_ | _Pending_ | _Pending_ | Previous immutable web/BFF deployment is restored and critical flows pass; isolated PITR is rehearsed only as a separate database-recovery drill or when data-integrity risk requires it | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Post-freeze recertification | _Unassigned_ | _Pending_ | _Pending_ | Record no post-D12 changes, or list every changed code/config/migration item and rerun affected regression, full academic E2E, affected UAT, EAS build when mobile changed and QA/Security review | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
+| Production smoke and final handover | _Unassigned_ | _Pending_ | _Pending_ | Production deployment IDs and synthetic-role smoke are recorded; report/runbook, Admin/Teacher guidance, UAT decisions, blocker owners and QA/Security Go/No-Go all reference the exact promoted SHA | _Pending_ | _Pending_ | _Unassigned_ | NO-GO |
 
 ## Known issues
 
@@ -157,7 +236,8 @@ The quality job checks out full history before scanning. Once this workflow exis
 | No staging or production deployment | Release blocker | Release Operator records deployment IDs and smoke evidence |
 | No EAS Preview install or physical-device/TalkBack evidence | Release blocker | Mobile QA records build URL, device and checklist |
 | No UAT or privacy/safeguarding approval | Release blocker for any pilot | Product Lead records approvals |
-| Hosted CI/Gitleaks run URL and immutable SHA are not recorded | Release blocker | Repository owner commits, pushes and records the green run |
+| No approved external AI provider/key or privacy/safeguarding approval for provider transfer | AI enablement blocker | Keep `AI_TUTOR_ENABLED=false` until named approvals and staging failure-mode evidence are recorded |
+| Human semantic-grounding review is pending for 8/8 cases | AI enablement blocker | A named reviewer checks all eight answerable cases and records 8/8 decisions; automation is not approval |
 | Accessibility evidence is automated/browser-based and does not include Android TalkBack, a physical-device audit or a complete WCAG audit | Incomplete mobile/accessibility gate | QA completes manual WCAG checks plus TalkBack, swipe-order and 200% text-scaling checks on the EAS Preview |
 | Gateway-level limiting for GET requests, invalid JWTs and attempts rejected before database mutation is absent; monitoring dashboards are also absent | Staging security/operations gate | Configure and test gateway limits and dashboards in staging |
 | Only one active membership per account is supported | Product limitation | Add tenant switching when a validated pilot requires it |
@@ -169,8 +249,9 @@ The quality job checks out full history before scanning. Once this workflow exis
 |---|---|---|---|---|
 | Human Product/Tech Lead | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Independent QA/Security Reviewer | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| School Admin/Teacher UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
+| School Admin/Teacher/Moderator UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Student/mobile UAT representative | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Privacy/Safeguarding reviewer, if real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
+| Privacy/Safeguarding reviewer, for AI provider transfer or real users | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
+| AI semantic-grounding reviewer, 8/8 answerable cases | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
 | Release Operator | _Unassigned_ | _Pending_ | _Pending_ | NO-GO |
-| Hosted CI/Gitleaks | _Pending SHA_ | _Pending run URL_ | _Pending_ | NO-GO |
+| Hosted CI/Gitleaks | `973e1048952638692a265191edc2a0ab0f1dc914` | [CI run 30410225676](https://github.com/HaydernCenterpoint/sao-do-school-ai/actions/runs/30410225676) | 29 July 2026 | PASS |

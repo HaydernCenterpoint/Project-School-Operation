@@ -23,7 +23,8 @@ function Label({
 }
 
 export default function TabLayout() {
-  const { isAuthorized, loading } = useAppData();
+  const { isAuthorized, loading, membership } = useAppData();
+  const isModerator = membership?.role === "moderator";
 
   if (loading) {
     return <ScreenState busy message="Đang tải dữ liệu trường học…" />;
@@ -52,6 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          href: isModerator ? null : undefined,
           tabBarAccessibilityLabel: "Hôm nay",
           tabBarIcon: ({ color }) => (
             <Text
@@ -70,6 +72,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="classes"
         options={{
+          href: isModerator ? null : undefined,
           tabBarAccessibilityLabel: "Lớp học",
           tabBarIcon: ({ color }) => (
             <Text
@@ -83,6 +86,24 @@ export default function TabLayout() {
           ),
           tabBarLabel: ({ color }) => <Label color={color}>Lớp học</Label>,
           title: "Lớp học",
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          tabBarAccessibilityLabel: "Cộng đồng",
+          tabBarIcon: ({ color }) => (
+            <Text
+              accessible={false}
+              importantForAccessibility="no"
+              maxFontSizeMultiplier={2}
+              style={{ color, fontSize: 15, fontWeight: "900" }}
+            >
+              CĐ
+            </Text>
+          ),
+          tabBarLabel: ({ color }) => <Label color={color}>Cộng đồng</Label>,
+          title: "Cộng đồng",
         }}
       />
       <Tabs.Screen

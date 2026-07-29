@@ -40,6 +40,25 @@ test("security scanner rejects text and Hermes runtime canaries", () => {
     assert.equal(keyResult.status, 1);
     assert.match(keyResult.stderr, /OpenAI key/);
 
+    const publicAiKeyCanary = join(directory, "public-ai-key.txt");
+    const webPublicAiKey = ["NEXT", "PUBLIC", "AI", "PROVIDER", "API", "KEY"].join(
+      "_",
+    );
+    const mobilePublicAiToken = [
+      "EXPO",
+      "PUBLIC",
+      "LLM",
+      "ACCESS",
+      "TOKEN",
+    ].join("_");
+    writeFileSync(
+      publicAiKeyCanary,
+      `${webPublicAiKey}=placeholder\n${mobilePublicAiToken}=placeholder\n`,
+    );
+    const publicAiKeyResult = runScanner(publicAiKeyCanary);
+    assert.equal(publicAiKeyResult.status, 1);
+    assert.match(publicAiKeyResult.stderr, /public AI credential/);
+
     const jwtCanary = join(directory, "jwt.txt");
     writeFileSync(jwtCanary, `${serviceRoleJwt()}\n`);
     const jwtResult = runScanner(jwtCanary);

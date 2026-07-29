@@ -3,12 +3,66 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import http from "node:http";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
 const uiUrl = process.env.ACADEMIC_UI_URL?.replace(/\/$/, "");
+const providerUrl = process.env.AI_PROVIDER_URL;
+const providerKey = process.env.AI_PROVIDER_API_KEY;
 const password = "Password123!";
+const policyVersion = "pilot-2026-07";
+
+function fakeTutorProvider() {
+  if (!providerUrl) return null;
+  const requests = [];
+  const failedQuestions = new Set();
+  const url = new URL(providerUrl);
+  const server = http.createServer(async (request, response) => {
+    let raw = "";
+    for await (const chunk of request) raw += chunk;
+    const body = JSON.parse(raw);
+    const payload = JSON.parse(body.messages.at(-1).content);
+    requests.push({
+      authorization: request.headers.authorization,
+      path: request.url,
+      payload,
+    });
+    if (
+      payload.question === 'solar OR "ui provider 500"' &&
+      !failedQuestions.has(payload.question)
+    ) {
+      failedQuestions.add(payload.question);
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: { message: "fake outage" } }));
+      return;
+    }
+    const content = JSON.stringify({
+      answer: "Disconnect the solar training panel before inspection.",
+      citationIds: [payload.sources[0]?.id].filter(Boolean),
+    });
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(
+      JSON.stringify({
+        choices: [{ message: { content } }],
+        usage: { prompt_tokens: 40, completion_tokens: 12 },
+      }),
+    );
+  });
+  return {
+    requests,
+    listen: () =>
+      new Promise((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(Number(url.port), url.hostname, resolve);
+      }),
+    close: () =>
+      new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
+  };
+}
 
 function findChrome() {
   const executable = process.platform === "win32" ? ".exe" : "";
@@ -45,6 +99,12 @@ function findChrome() {
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function textNonce() {
+  return randomUUID()
+    .replaceAll("-", "")
+    .replace(/\d/g, (digit) => String.fromCharCode(103 + Number(digit)));
 }
 
 async function waitForValue(read, description, timeout = 15_000) {
@@ -490,8 +550,11 @@ describe(
     let classId;
     let assignmentTitle;
     let assignmentId;
+    let tutorProvider;
 
     before(async () => {
+      tutorProvider = fakeTutorProvider();
+      if (tutorProvider) await tutorProvider.listen();
       runtime = await launchBrowser();
       page = runtime.page;
       await page.send("Page.enable");
@@ -502,19 +565,21 @@ describe(
     });
 
     after(async () => {
-      if (!runtime) return;
-      try {
-        await runtime.browserCdp.send("Browser.close");
-      } catch {
-        runtime.browser.kill();
+      if (runtime) {
+        try {
+          await runtime.browserCdp.send("Browser.close");
+        } catch {
+          runtime.browser.kill();
+        }
+        runtime.page.close();
+        runtime.browserCdp.close();
+        await Promise.race([
+          new Promise((resolve) => runtime.browser.once("exit", resolve)),
+          delay(3_000).then(() => runtime.browser.kill()),
+        ]);
+        await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
       }
-      runtime.page.close();
-      runtime.browserCdp.close();
-      await Promise.race([
-        new Promise((resolve) => runtime.browser.once("exit", resolve)),
-        delay(3_000).then(() => runtime.browser.kill()),
-      ]);
-      await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
+      if (tutorProvider) await tutorProvider.close();
     });
 
     test("login form submits with POST", async () => {
@@ -958,6 +1023,318 @@ describe(
       );
     });
 
+    test("community report reaches the moderator queue and hidden content leaves member views", async () => {
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "student.a@saodo.test");
+
+      const spaces = await browserApi(page, "/api/community/spaces");
+      assert.equal(spaces.status, 200);
+      const classSpace = spaces.body.spaces.find(
+        (space) => space.kind === "class" && space.canPost,
+      );
+      assert.match(classSpace?.id, /^[0-9a-f-]{36}$/i);
+
+      const communityText = `Community browser E2E ${textNonce()}`;
+      const posted = await browserApi(
+        page,
+        `/api/community/spaces/${classSpace.id}/messages`,
+        {
+          method: "POST",
+          headers: { "Idempotency-Key": randomUUID() },
+          body: {
+            privacyWarningConfirmed: false,
+            replyToId: null,
+            text: communityText,
+          },
+        },
+      );
+      assert.equal(
+        posted.status,
+        201,
+        `Community post failed: ${JSON.stringify(posted.body)}`,
+      );
+      const messageId = posted.body.message.id;
+      assert.match(messageId, /^[0-9a-f-]{36}$/i);
+
+      const reported = await browserApi(
+        page,
+        `/api/community/messages/${messageId}/reports`,
+        {
+          method: "POST",
+          body: {
+            detail: "Browser moderation evidence.",
+            reason: "harassment",
+          },
+        },
+      );
+      assert.equal(
+        reported.status,
+        201,
+        `Community report failed: ${JSON.stringify(reported.body)}`,
+      );
+
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "moderator.a@saodo.test");
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "moderator evidence queue",
+        20_000,
+      );
+      const moderatorNodes = await getAccessibilityTree(page);
+      assertAccessibleNode(moderatorNodes, "button", "Ẩn nội dung");
+
+      const moderatorKeyboard = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
+        );
+        const controls = [
+          ...(report?.querySelectorAll(
+            "textarea, .moderation-actions button",
+          ) ?? []),
+        ];
+        const dismissAction = controls.find(
+          (control) => control.textContent?.trim() === "Bỏ qua báo cáo",
+        );
+        dismissAction?.focus();
+        return {
+          controls: controls.map((control) => ({
+            disabled: control.disabled,
+            kind: control.tagName.toLowerCase(),
+            name:
+              control instanceof HTMLTextAreaElement
+                ? control.labels?.[0]?.textContent?.trim() ?? ""
+                : control.textContent?.trim() ?? "",
+            tabIndex: control.tabIndex,
+            visible:
+              control.getClientRects().length > 0 &&
+              getComputedStyle(control).visibility !== "hidden",
+          })),
+          focusedDismissAction: document.activeElement === dismissAction,
+        };
+      }, communityText);
+      assert.deepEqual(
+        moderatorKeyboard.controls,
+        [
+          {
+            disabled: false,
+            kind: "textarea",
+            name: "Ghi chú quyết định",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Bỏ qua báo cáo",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Ẩn nội dung",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Chuyển cấp xử lý",
+            tabIndex: 0,
+            visible: true,
+          },
+          {
+            disabled: false,
+            kind: "button",
+            name: "Đánh dấu đã xử lý",
+            tabIndex: 0,
+            visible: true,
+          },
+        ],
+      );
+      assert.equal(moderatorKeyboard.focusedDismissAction, true);
+      const focusedHideAction = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
+        );
+        const hideAction = [...(report?.querySelectorAll("button") ?? [])].find(
+          (button) => button.textContent?.trim() === "Ẩn nội dung",
+        );
+        hideAction?.focus();
+        return document.activeElement === hideAction;
+      }, communityText);
+      assert.equal(focusedHideAction, true);
+
+      await page.send("Emulation.setDeviceMetricsOverride", {
+        width: 320,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      try {
+        const narrowModeration = await evaluate(page, () => {
+          const controls = [
+            ...document.querySelectorAll(
+              ".moderation-list article:first-child textarea, .moderation-list article:first-child .moderation-actions button",
+            ),
+          ];
+          return {
+            controlsFit:
+              controls.length > 0 &&
+              controls.every((control) => {
+                const rectangle = control.getBoundingClientRect();
+                return rectangle.left >= 0 && rectangle.right <= window.innerWidth;
+              }),
+            noDocumentOverflow:
+              document.documentElement.scrollWidth <= window.innerWidth,
+          };
+        });
+        assert.deepEqual(narrowModeration, {
+          controlsFit: true,
+          noDocumentOverflow: true,
+        });
+      } finally {
+        await page.send("Emulation.clearDeviceMetricsOverride");
+      }
+
+      await page.send("Emulation.setDeviceMetricsOverride", {
+        width: 1280,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      const moderationSelectors = [
+        ".moderation-list article:first-child textarea",
+        ".moderation-list article:first-child .moderation-actions button:nth-child(2)",
+      ];
+      const moderationBaseline = await measureTextScaleLayout(
+        page,
+        moderationSelectors,
+        "#moderation h2",
+      );
+      try {
+        await evaluate(page, () => {
+          document.documentElement.style.zoom = "200%";
+          document.documentElement.style.width = "50%";
+        });
+        const moderationScaled = await measureTextScaleLayout(
+          page,
+          moderationSelectors,
+          "#moderation h2",
+        );
+        assert.ok(
+          moderationScaled.copyHeight / moderationBaseline.copyHeight >= 1.75,
+        );
+        assert.equal(moderationScaled.controlsFit, true);
+        assert.equal(moderationScaled.actionContentFits, true);
+      } finally {
+        await evaluate(page, () => {
+          document.documentElement.style.zoom = "";
+          document.documentElement.style.width = "";
+        });
+        await page.send("Emulation.clearDeviceMetricsOverride");
+      }
+
+      await evaluate(page, () => {
+        const originalFetch = window.fetch.bind(window);
+        let failed = false;
+        window.fetch = async (input, init) => {
+          const requestUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
+          const requestMethod = (
+            init?.method ??
+            (input instanceof Request ? input.method : "GET")
+          ).toUpperCase();
+          if (
+            !failed &&
+            requestMethod === "GET" &&
+            requestUrl.includes("/api/community/moderation")
+          ) {
+            failed = true;
+            throw new TypeError("Forced moderation refresh failure.");
+          }
+          return originalFetch(input, init);
+        };
+      });
+
+      const hidden = await evaluate(page, (expected) => {
+        const report = [...document.querySelectorAll(".moderation-list article")].find(
+          (article) => article.textContent.includes(expected),
+        );
+        const action = [...(report?.querySelectorAll("button") ?? [])].find(
+          (button) => button.textContent.includes("Ẩn nội dung"),
+        );
+        action?.click();
+        return Boolean(action);
+      }, communityText);
+      assert.equal(hidden, true);
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              document.body.textContent.includes(
+                "Đã ghi nhận quyết định, nhưng chưa thể làm mới hàng đợi.",
+              ) &&
+              document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "moderation success remains explicit when queue refresh fails",
+        20_000,
+      );
+
+      const reloaded = await evaluate(page, () => {
+        const reload = [...document.querySelectorAll("#moderation button")].find(
+          (button) => button.textContent.includes("Tải lại"),
+        );
+        reload?.click();
+        return Boolean(reload);
+      });
+      assert.equal(reloaded, true);
+      await waitForValue(
+        () =>
+          evaluate(
+            page,
+            (expected) =>
+              !document
+                .querySelector("#moderation")
+                ?.textContent.includes(expected),
+            communityText,
+          ),
+        "hidden report removed after queue reload",
+        20_000,
+      );
+
+      await clearSession(page);
+      await navigate(page, uiUrl);
+      await login(page, "student.a@saodo.test");
+      const memberMessages = await browserApi(
+        page,
+        `/api/community/spaces/${classSpace.id}/messages`,
+      );
+      assert.equal(memberMessages.status, 200);
+      assert.equal(
+        memberMessages.body.messages.some((message) => message.id === messageId),
+        false,
+      );
+    });
+
     test("admin critical form remains usable at measured 200% text scale", async (context) => {
       await clearSession(page);
       await navigate(page, uiUrl);
@@ -1015,5 +1392,441 @@ describe(
         `${evidence.mechanism}; glyph ${evidence.widthRatio.toFixed(2)}x wide, ${evidence.heightRatio.toFixed(2)}x high; critical form fits; document overflow ${evidence.documentOverflow}px`,
       );
     });
+
+    test(
+      "student grants Tutor consent and receives a cited class-scoped answer",
+      {
+        skip:
+          providerUrl && providerKey
+            ? false
+            : "Set fake AI provider environment to run Tutor UI E2E.",
+      },
+      async () => {
+        await clearSession(page);
+        await navigate(page, uiUrl);
+        await login(page, "student.a@saodo.test");
+        await waitForDom(
+          page,
+          () => Boolean(document.querySelector("#tutor")),
+          "student Tutor panel",
+          20_000,
+        );
+
+        const revoked = await browserApi(page, "/api/ai/consent", {
+          method: "POST",
+          body: { granted: false, policyVersion },
+        });
+        assert.equal(revoked.status, 200, JSON.stringify(revoked.body));
+        await navigate(page, `${uiUrl}/portal`);
+
+        await waitForDom(
+          page,
+          () =>
+            Boolean(
+              document.querySelector(
+                '.tutor-consent-check input[type="checkbox"]',
+              ),
+            ),
+          "Tutor consent gate",
+          20_000,
+        );
+        const checked = await evaluate(page, () => {
+          const checkbox = document.querySelector(
+            '.tutor-consent-check input[type="checkbox"]',
+          );
+          checkbox?.click();
+          return Boolean(checkbox);
+        });
+        assert.equal(checked, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector(".tutor-consent .button-primary")
+              ?.disabled === false,
+          "enabled Tutor consent action",
+        );
+        const consentSubmitted = await evaluate(page, () => {
+          const button = document.querySelector(
+            ".tutor-consent .button-primary",
+          );
+          button?.click();
+          return Boolean(button);
+        });
+        assert.equal(consentSubmitted, true);
+
+        await waitForDom(
+          page,
+          () => Boolean(document.querySelector("form.tutor-form")),
+          "Tutor question form",
+          20_000,
+        );
+        await fill(
+          page,
+          ".tutor-form select",
+          "a1000000-0000-0000-0000-000000000001",
+        );
+        await fill(
+          page,
+          "#tutor-question",
+          "solar panel inspection",
+        );
+        const submitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(submitted, true);
+
+        try {
+          await waitForDom(
+            page,
+            () =>
+              document
+                .querySelector("#tutor")
+                ?.textContent.includes(
+                  "Disconnect the solar training panel before inspection.",
+                ),
+            "cited Tutor answer",
+            20_000,
+          );
+        } catch (error) {
+          const snapshot = await evaluate(page, () => ({
+            output:
+              document.querySelector(".tutor-output")?.textContent?.trim() ??
+              "",
+            panel: document.querySelector("#tutor")?.textContent?.trim() ?? "",
+          }));
+          throw new Error(
+            `${error.message}; provider requests: ${tutorProvider.requests.length}; Tutor snapshot: ${JSON.stringify(snapshot)}`,
+          );
+        }
+        const tutorEvidence = await evaluate(page, () => ({
+          text: document.querySelector("#tutor")?.textContent ?? "",
+          overflow:
+            document.documentElement.scrollWidth - window.innerWidth,
+        }));
+        assert.match(tutorEvidence.text, /campus-a-solar-guide\.pdf/i);
+        assert.doesNotMatch(tutorEvidence.text, /BENTHIC_B_ONLY/i);
+        assert.ok(tutorEvidence.overflow <= 1);
+
+        const citationOpened = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-citations button")].find(
+            (button) => button.textContent?.includes("Xem trích dẫn"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(citationOpened, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector(".tutor-citation-detail blockquote")
+              ?.textContent?.trim() ===
+            "AURORA_A_ONLY: Disconnect the solar training panel before inspection.",
+          "authorized Campus A Tutor citation excerpt",
+          20_000,
+        );
+        const citationEvidence = await evaluate(page, () => ({
+          excerpt:
+            document
+              .querySelector(".tutor-citation-detail blockquote")
+              ?.textContent?.trim() ?? "",
+          foreignSourceVisible:
+            document
+              .querySelector(".tutor-citation-detail")
+              ?.textContent.includes("BENTHIC_B_ONLY") ?? false,
+          expanded:
+            document
+              .querySelector(".tutor-citations button")
+              ?.getAttribute("aria-expanded"),
+        }));
+        assert.deepEqual(citationEvidence, {
+          excerpt:
+            "AURORA_A_ONLY: Disconnect the solar training panel before inspection.",
+          foreignSourceVisible: false,
+          expanded: "true",
+        });
+
+        const providerErrorQuestion = 'solar OR "ui provider 500"';
+        await fill(page, "#tutor-question", providerErrorQuestion);
+        const providerErrorSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(providerErrorSubmitted, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-error")
+              ?.textContent.includes("Chưa thể nhận câu trả lời") &&
+            [...document.querySelectorAll(".tutor-output-error button")].some(
+              (button) => button.textContent?.includes("Thử lại"),
+            ),
+          "provider failure exits loading with retry",
+          5_000,
+        );
+        assert.equal(
+          await evaluate(
+            page,
+            () => document.querySelector("#tutor-question")?.value,
+          ),
+          providerErrorQuestion,
+        );
+        const providerRetried = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output-error button")].find(
+            (button) => button.textContent?.includes("Thử lại"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(providerRetried, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-answered")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ),
+          "Tutor answer after provider retry",
+          20_000,
+        );
+
+        await evaluate(page, () => {
+          const originalFetch = window.fetch.bind(window);
+          window.__tutorRequestIds = [];
+          window.__tutorRequestCount = 0;
+          window.fetch = async (input, init) => {
+            const requestUrl =
+              typeof input === "string"
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input.url;
+            const requestMethod = (
+              init?.method ??
+              (input instanceof Request ? input.method : "GET")
+            ).toUpperCase();
+            if (
+              requestMethod === "POST" &&
+              requestUrl.includes("/api/ai/tutor") &&
+              typeof init?.body === "string"
+            ) {
+              window.__tutorRequestIds.push(JSON.parse(init.body).requestId);
+              window.__tutorRequestCount += 1;
+              if (window.__tutorRequestCount === 1) {
+                return new Promise((_, reject) => {
+                  const abort = () =>
+                    reject(
+                      new DOMException(
+                        "The operation was aborted.",
+                        "AbortError",
+                      ),
+                    );
+                  if (init.signal?.aborted) {
+                    abort();
+                    return;
+                  }
+                  init.signal?.addEventListener("abort", abort, {
+                    once: true,
+                  });
+                });
+              }
+            }
+            return originalFetch(input, init);
+          };
+        });
+        const cancelRetryQuestion = 'solar OR "cancel retry"';
+        await fill(page, "#tutor-question", cancelRetryQuestion);
+        const cancelRequestSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(cancelRequestSubmitted, true);
+
+        await waitForDom(
+          page,
+          () =>
+            [...document.querySelectorAll(".tutor-output button")].some(
+              (button) => button.textContent?.includes("Hủy yêu cầu"),
+            ),
+          "cancellable Tutor loading state",
+          5_000,
+        );
+        const cancelled = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output button")].find(
+            (button) => button.textContent?.includes("Hủy yêu cầu"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(cancelled, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-error")
+              ?.textContent.includes(
+                "Đã hủy chờ câu trả lời. Lượt đã giữ có thể vẫn được tính.",
+              ) &&
+            [...document.querySelectorAll(".tutor-output-error button")].some(
+              (button) => button.textContent?.includes("Thử lại"),
+            ),
+          "truthful cancellable Tutor error with retry",
+          5_000,
+        );
+        assert.equal(
+          await evaluate(
+            page,
+            () => document.querySelector("#tutor-question")?.value,
+          ),
+          cancelRetryQuestion,
+        );
+
+        const retried = await evaluate(page, () => {
+          const action = [...document.querySelectorAll(".tutor-output-error button")].find(
+            (button) => button.textContent?.includes("Thử lại"),
+          );
+          action?.click();
+          return Boolean(action);
+        });
+        assert.equal(retried, true);
+        await waitForDom(
+          page,
+          () =>
+            document
+              .querySelector(".tutor-output-answered")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ),
+          "Tutor answer after retry",
+          20_000,
+        );
+        const retryEvidence = await evaluate(page, () => ({
+          question: document.querySelector("#tutor-question")?.value ?? "",
+          requestIds: window.__tutorRequestIds ?? [],
+        }));
+        assert.equal(retryEvidence.question, cancelRetryQuestion);
+        assert.equal(retryEvidence.requestIds.length, 2);
+        assert.match(retryEvidence.requestIds[0], /^[0-9a-f-]{36}$/i);
+        assert.match(retryEvidence.requestIds[1], /^[0-9a-f-]{36}$/i);
+        assert.notEqual(retryEvidence.requestIds[0], retryEvidence.requestIds[1]);
+
+        const classSwitched = await evaluate(page, () => {
+          const select = document.querySelector(".tutor-form select");
+          const nextOption = [...(select?.options ?? [])].find(
+            (option) => option.value !== select.value,
+          );
+          if (!select || !nextOption) return false;
+          select.value = nextOption.value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          return true;
+        });
+        assert.equal(classSwitched, true);
+        await waitForDom(
+          page,
+          () =>
+            document.querySelector("#tutor-question")?.value === "" &&
+            !document
+              .querySelector(".tutor-output")
+              ?.textContent.includes(
+                "Disconnect the solar training panel before inspection.",
+              ) &&
+            !document
+              .querySelector(".tutor-output")
+              ?.textContent.match(/campus-a-solar-guide\.pdf/i),
+          "Tutor class switch result reset",
+        );
+        const classSwitchReset = await evaluate(page, () => ({
+          answerRemoved: !document
+            .querySelector(".tutor-output")
+            ?.textContent.includes(
+              "Disconnect the solar training panel before inspection.",
+            ),
+          citationRemoved: !document
+            .querySelector(".tutor-output")
+            ?.textContent.match(/campus-a-solar-guide\.pdf/i),
+          question: document.querySelector("#tutor-question")?.value,
+        }));
+        assert.deepEqual(classSwitchReset, {
+          answerRemoved: true,
+          citationRemoved: true,
+          question: "",
+        });
+
+        await evaluate(page, () => {
+          const originalFetch = window.fetch.bind(window);
+          window.fetch = async (input, init) => {
+            const requestUrl =
+              typeof input === "string"
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input.url;
+            const requestMethod = (
+              init?.method ??
+              (input instanceof Request ? input.method : "GET")
+            ).toUpperCase();
+            if (
+              requestMethod === "POST" &&
+              requestUrl.includes("/api/ai/tutor")
+            ) {
+              return new Response(
+                JSON.stringify({
+                  error: {
+                    code: "ai_unavailable",
+                    message: "Tutor is disabled.",
+                  },
+                }),
+                {
+                  headers: { "Content-Type": "application/json" },
+                  status: 503,
+                },
+              );
+            }
+            return originalFetch(input, init);
+          };
+        });
+        await fill(page, "#tutor-question", "forced unavailable state");
+        const unavailableSubmitted = await evaluate(page, () => {
+          const form = document.querySelector("form.tutor-form");
+          form?.requestSubmit();
+          return Boolean(form);
+        });
+        assert.equal(unavailableSubmitted, true);
+        await waitForDom(
+          page,
+          () => {
+            const unavailable = document.querySelector(
+              '.tutor-state-locked[role="status"]',
+            );
+            return Boolean(unavailable && document.activeElement === unavailable);
+          },
+          "focused Tutor unavailable status",
+          20_000,
+        );
+
+        const nodes = await getAccessibilityTree(page);
+        assertAccessibleNode(
+          nodes,
+          "status",
+          "Trợ giảng AI đang tạm dừng. Tính năng này hiện chưa được trường bật.",
+        );
+        assert.ok(tutorProvider.requests.length >= 1);
+        assert.ok(
+          tutorProvider.requests.every(
+            (request) =>
+              request.authorization === `Bearer ${providerKey}` &&
+              request.path?.endsWith("/chat/completions") &&
+              request.payload.sources.every(
+                (source) => !JSON.stringify(source).includes("BENTHIC_B_ONLY"),
+              ),
+          ),
+        );
+      },
+    );
   },
 );
