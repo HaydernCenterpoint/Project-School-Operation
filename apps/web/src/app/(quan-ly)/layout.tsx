@@ -14,14 +14,15 @@ import "@/components/admin/admin.css";
 
 const roleLabels: Record<StaffRole, string> = { admin: "Quản trị viên", staff: "Cán bộ phòng ban", teacher: "Giảng viên" };
 
+/** One shell for teachers, staff and admins: class work and student records side by side. */
 function navFor(role: StaffRole): NavGroup[] {
   const manage = role !== "teacher";
   return [{
     label: "",
     items: [
-      { href: "/quan-tri", label: manage ? "Sinh viên" : "Sinh viên lớp tôi", icon: "users", exact: true, mobile: true },
-      ...(manage ? [{ href: "/quan-tri/nhap" as Route, label: "Nhập từ tệp", short: "Nhập", icon: "file" as const, mobile: true }] : []),
       ...(role !== "staff" ? [{ href: "/portal" as Route, label: "Lớp học & bài tập", short: "Lớp học", icon: "class" as const, mobile: true }] : []),
+      { href: "/quan-tri", label: manage ? "Sinh viên" : "Sinh viên lớp tôi", short: "Sinh viên", icon: "users", exact: true, mobile: true },
+      ...(manage ? [{ href: "/quan-tri/nhap" as Route, label: "Nhập từ tệp", short: "Nhập", icon: "file" as const, mobile: true }] : []),
     ],
   }];
 }

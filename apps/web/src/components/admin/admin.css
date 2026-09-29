@@ -63,6 +63,56 @@
   .ad-push { margin-left: 0; }
 }
 
+/* ---------- classes & assignments (/portal) ---------- */
+.lp-notice { margin-bottom: 14px; }
+.lp-classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.lp-class { position: relative; padding: 16px; display: grid; gap: 4px; text-align: left; color: var(--ink); background: var(--mist); border: 2px solid transparent; border-radius: var(--r-card); cursor: pointer; transition: transform 260ms var(--ad-spring), border-color var(--fast) var(--ease), box-shadow 260ms var(--ease); }
+.lp-class:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.lp-class.is-selected { background: var(--paper); border-color: var(--c, var(--red)); box-shadow: var(--shadow-md); }
+.lp-class strong { font-size: 1.02rem; }
+.lp-class small { color: var(--muted); }
+.lp-class-mark { width: 40px; height: 40px; margin-bottom: 6px; display: grid; place-items: center; color: #fff; background: var(--c, var(--red)); border-radius: 12px; transition: transform 300ms var(--ad-spring); }
+.lp-class-mark svg { width: 20px; height: 20px; }
+.lp-class:hover .lp-class-mark, .lp-class.is-selected .lp-class-mark { transform: rotate(-8deg) scale(1.08); }
+
+.lp-form { margin-bottom: 18px; padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; background: var(--mist); border-radius: var(--r-panel); }
+.lp-form .form-heading, .lp-form .lp-wide, .lp-form .lp-members, .lp-form .pt-form-actions, .lp-form > .notice { grid-column: 1 / -1; }
+.lp-form .form-heading h3 { margin: 0; font-size: 1.1rem; }
+.lp-form .form-heading p { margin: 2px 0 0; }
+.lp-members { margin: 0; padding: 0; border: 0; }
+.lp-members legend { margin-bottom: 8px; font-weight: 600; font-size: 15px; }
+.lp-members > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.lp-members label { padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-control); cursor: pointer; transition: border-color var(--fast) var(--ease); }
+.lp-members label:has(input:checked) { border-color: var(--red); }
+.lp-members input { width: 18px; height: 18px; accent-color: var(--red); }
+.lp-members span { display: grid; }
+.lp-members small { color: var(--muted); font-size: 12px; }
+
+.lp-assignments { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); gap: 14px; }
+.lp-list { display: grid; align-content: start; gap: 8px; }
+.lp-list > button { padding: 14px; display: grid; gap: 6px; text-align: left; color: var(--ink); background: var(--mist); border: 2px solid transparent; border-radius: var(--r-panel); cursor: pointer; transition: transform 240ms var(--ad-spring), border-color var(--fast) var(--ease), background-color var(--fast) var(--ease); }
+.lp-list > button:hover { transform: translateX(3px); }
+.lp-list > button.is-selected { background: var(--paper); border-color: var(--red); }
+.lp-list small { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12.5px; }
+.lp-list small svg { width: 14px; height: 14px; }
+.lp-detail { min-width: 0; padding: 18px; background: var(--mist); border-radius: var(--r-panel); }
+.lp-detail h3 { margin: 10px 0 2px; font-size: 1.3rem; }
+.lp-instructions { margin-top: 14px; padding: 14px; white-space: pre-wrap; background: var(--paper); border-radius: var(--r-panel); }
+.lp-submissions { margin-top: 18px; }
+.lp-submissions h4 { margin: 0 0 10px; }
+.lp-submissions article { margin-top: 10px; padding: 14px; display: grid; gap: 8px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-panel); }
+.lp-submissions header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.lp-content { margin: 0; max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.section-loading { margin: 0 0 12px; color: var(--blue); font-weight: 700; }
+.chip.draft { white-space: nowrap; }
+
+@media (max-width: 960px) {
+  .lp-assignments, .lp-form { grid-template-columns: minmax(0, 1fr); }
+}
+
+.lp-classes > .lp-class, .lp-list > button, .lp-submissions article { animation: ad-rise .45s var(--ad-out) both; animation-delay: calc(var(--i, 0) * 40ms + 100ms); }
+.lp-detail-body { animation: ad-rise .35s var(--ad-out) both; }
+
 /* ---------- motion ---------- */
 @keyframes ad-rise { from { opacity: 0; transform: translateY(14px); } }
 @keyframes ad-row { from { opacity: 0; transform: translateX(-10px); } }
