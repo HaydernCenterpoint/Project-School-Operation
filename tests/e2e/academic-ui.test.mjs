@@ -168,8 +168,8 @@ async function navigate(page, url) {
   );
 }
 
-async function waitForDom(page, fn, description, timeout) {
-  return waitForValue(() => evaluate(page, fn), description, timeout);
+async function waitForDom(page, fn, description, timeout, ...args) {
+  return waitForValue(() => evaluate(page, fn, ...args), description, timeout);
 }
 
 async function waitForStableDom(
@@ -421,13 +421,18 @@ async function login(page, email) {
     return true;
   });
   assert.equal(submitted, true, "Login form not found.");
+  const student = email.startsWith("student");
   await waitForDom(
     page,
-    () =>
-      location.pathname === "/portal" &&
-      document.body.textContent.includes("Xin chào"),
-    `portal session for ${email}`,
+    (isStudent) =>
+      isStudent
+        ? location.pathname === "/student" &&
+          Boolean(document.querySelector(".dash-frame"))
+        : location.pathname === "/portal" &&
+          document.body.textContent.includes("Xin chào"),
+    `${student ? "student" : "portal"} session for ${email}`,
     20_000,
+    student,
   );
 }
 
@@ -498,7 +503,7 @@ describe(
       await page.send("Runtime.enable");
       await page.send("Network.enable");
       await page.send("Accessibility.enable");
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
     });
 
     after(async () => {
@@ -570,6 +575,14 @@ describe(
       assert.equal(
         await evaluate(
           page,
+          () => document.activeElement?.getAttribute("aria-label"),
+        ),
+        "Hiện mật khẩu",
+      );
+      await pressTab(page);
+      assert.equal(
+        await evaluate(
+          page,
           () => document.activeElement?.getAttribute("type"),
         ),
         "submit",
@@ -578,7 +591,7 @@ describe(
 
     test("login controls expose stable accessible names and roles", async () => {
       const nodes = await getAccessibilityTree(page);
-      assertAccessibleNode(nodes, "textbox", "Email");
+      assertAccessibleNode(nodes, "textbox", "Mã sinh viên hoặc email");
       assertAccessibleNode(nodes, "textbox", "Mật khẩu");
       assertAccessibleNode(nodes, "button", "Đăng nhập");
     });
@@ -590,7 +603,7 @@ describe(
         deviceScaleFactor: 1,
         mobile: false,
       });
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       const layout = await evaluate(page, () => {
         const controls = [
           ...document.querySelectorAll(
@@ -611,7 +624,7 @@ describe(
         noDocumentOverflow: true,
       });
       await page.send("Emulation.clearDeviceMetricsOverride");
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
     });
 
     test("admin login keeps the password out of the URL", async () => {
@@ -728,7 +741,9 @@ describe(
       await navigate(page, `${uiUrl}/portal`);
       await waitForDom(
         page,
-        () => location.pathname === "/" && location.hash === "#dang-nhap",
+        () =>
+          location.pathname === "/login" &&
+          new URLSearchParams(location.search).get("next") === "/portal",
         "portal redirect after session clear",
         20_000,
       );
@@ -869,7 +884,7 @@ describe(
 
     test("assigned student submits text through the authenticated BFF", async () => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "student.a@saodo.test");
       const submitted = await browserApi(page, "/api/submissions", {
         method: "POST",
@@ -889,7 +904,7 @@ describe(
 
     test("teacher sends feedback through the portal form", async () => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "teacher.a@saodo.test");
       await waitForValue(
         () =>
@@ -958,9 +973,127 @@ describe(
       );
     });
 
+    test("student sees teacher feedback on the web dashboard and assignment", async () => {
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/login`);
+      await login(page, "student.a@saodo.test");
+      await waitForDom(
+        page,
+        () => document.body.textContent.includes("Teacher browser E2E feedback."),
+        "feedback on student dashboard",
+        20_000,
+      );
+      await navigate(page, `${uiUrl}/student/assignments/${assignmentId}`);
+      await waitForDom(
+        page,
+        () =>
+          document.body.textContent.includes("Phản hồi của giảng viên") &&
+          !document.querySelector('textarea[name="content"]'),
+        "read-only submitted assignment with feedback",
+        20_000,
+      );
+    });
+
+    test("student submits through the web form exactly once", async () => {
+      const draftTitle = `E2E web submit ${randomUUID().slice(0, 8)}`;
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/login`);
+      await login(page, "teacher.a@saodo.test");
+      const created = await browserApi(page, "/api/assignments", {
+        method: "POST",
+        body: {
+          classId,
+          title: draftTitle,
+          instructions: "Web form submission.",
+          status: "published",
+          dueAt: null,
+        },
+      });
+      assert.equal(created.status, 201);
+      const webAssignmentId = created.body.assignment.id;
+
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/login`);
+      await login(page, "student.a@saodo.test");
+      await navigate(page, `${uiUrl}/student/assignments/${webAssignmentId}`);
+      await waitForDom(
+        page,
+        () => Boolean(document.querySelector('textarea[name="content"]')),
+        "student submission form",
+        20_000,
+      );
+      await fill(page, 'textarea[name="content"]', "Bài làm qua giao diện web.");
+      // First submit asks for confirmation, second confirms.
+      for (const label of ["Nộp bài", "Xác nhận nộp bài"]) {
+        await waitForDom(
+          page,
+          (expected) =>
+            document.querySelector('.submit-form button[type="submit"]')?.textContent.trim() === expected,
+          `submit button "${label}"`,
+          20_000,
+          label,
+        );
+        await evaluate(page, () => document.querySelector(".submit-form").requestSubmit());
+      }
+      await waitForDom(
+        page,
+        () => document.body.textContent.includes("Đang chờ giảng viên nhận xét"),
+        "submitted state",
+        20_000,
+      );
+      const mine = await browserApi(page, `/api/submissions?assignmentId=${webAssignmentId}`);
+      assert.equal(mine.body.submissions.length, 1);
+    });
+
+    test("student is sent from the legacy portal to the student dashboard", async () => {
+      await navigate(page, `${uiUrl}/portal`);
+      await waitForDom(
+        page,
+        () => location.pathname === "/student",
+        "student redirect from portal",
+        20_000,
+      );
+    });
+
+    test("disabled AI is reported without breaking academics", async () => {
+      const usage = await browserApi(page, "/api/ai/usage");
+      assert.equal(usage.status, 200);
+      if (usage.body.enabled) return;
+      const chat = await browserApi(page, "/api/ai/chat", {
+        method: "POST",
+        headers: { "Idempotency-Key": randomUUID() },
+        body: { conversationId: null, mode: "explain", content: "Xin chào", assignmentId: null },
+      });
+      assert.equal(chat.status, 503);
+      assert.equal(chat.body.error.code, "ai_disabled");
+      const classes = await browserApi(page, "/api/classes");
+      assert.equal(classes.status, 200);
+    });
+
+    test("guest demo is labelled and has no API access", async () => {
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/guest`);
+      await waitForDom(
+        page,
+        () =>
+          document.body.textContent.includes("Chế độ khách") &&
+          document.body.textContent.includes("Nội dung minh họa"),
+        "labelled guest demo",
+        20_000,
+      );
+      const statuses = await evaluate(page, async () =>
+        Promise.all(
+          ["/api/classes", "/api/submissions", "/api/ai/usage", "/api/ai/conversations"].map(
+            async (path) => (await fetch(path)).status,
+          ),
+        ),
+      );
+      assert.deepEqual(statuses, [401, 401, 401, 401]);
+    });
+
     test("admin critical form remains usable at measured 200% text scale", async (context) => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "admin.a@saodo.test");
       const evidence = await assertTextScaleLayout(
         page,
@@ -978,7 +1111,7 @@ describe(
 
     test("teacher critical form remains usable at measured 200% text scale", async (context) => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "teacher.a@saodo.test");
       await waitForValue(
         () =>
