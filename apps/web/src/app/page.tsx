@@ -1,240 +1,341 @@
-"use client";
-
-import { FormEvent, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
-import {
-  getSupabaseBrowserClient,
-  hasSupabaseEnvironment,
-} from "@/lib/supabase-browser";
+import { Icon } from "@/components/Icon";
+import { FacultyRail, type Faculty } from "@/components/landing/FacultyRail";
+import { FallingPetals } from "@/components/landing/FallingPetals";
+import { phuongFonts } from "@/components/landing/fonts";
+import { SceneArrival, SceneCurtain } from "@/components/landing/SceneTransition";
+import { LandingMotion } from "@/components/landing/LandingMotion";
+import { PhuongDivider, PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
+import { aiConfig } from "@/lib/ai-provider";
+import "./landing.css";
 
-export default function AccessPage() {
-  const main = useRef<HTMLElement>(null);
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+// Facts and photos come from the school's official website (saodo.edu.vn),
+// collected 26/09/2026. See docs/design/nguon-anh-truong.md.
 
-  useGSAP(
-    () => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+const stats = [
+  { value: "1969", label: "Năm khởi đầu truyền thống đào tạo" },
+  { value: "2010", label: "Năm trở thành trường đại học" },
+  { value: "Gần 27 ha", label: "Hai cơ sở tại Hải Phòng" },
+  { value: "988 m²", label: "Thư viện với hơn 4.000 đầu sách" },
+];
 
-      gsap.registerPlugin(ScrollTrigger);
-      gsap.from(".hero-copy > *", {
-        y: 28,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.08,
-        ease: "power3.out",
-      });
+const milestones = [
+  { when: "1969", text: "Thành lập cơ sở đào tạo, khởi đầu truyền thống của trường." },
+  { when: "24/03/2010", text: "Nâng cấp thành Trường Đại học Sao Đỏ theo Quyết định 376/QĐ-TTg." },
+  { when: "05/09/2026", text: "Khai giảng năm học 2026-2027 tại hội trường nhà trường." },
+  { when: "18/09/2026", text: "Thành lập Phân hiệu tại thành phố Hà Nội, trên cơ sở Trường Cao đẳng Kinh tế Công nghiệp Hà Nội." },
+];
 
-      const words = gsap.utils.toArray<HTMLElement>(".reveal-word");
-      gsap.fromTo(
-        words,
-        { opacity: 0.12 },
-        {
-          opacity: 1,
-          stagger: 0.06,
-          scrollTrigger: {
-            trigger: ".manifesto",
-            start: "top 75%",
-            end: "bottom 48%",
-            scrub: true,
-          },
-        },
-      );
+const faculties: Faculty[] = [
+  { name: "Khoa Cơ khí", src: "/truong/khoa-co-khi.jpg", width: 1276, height: 956 },
+  { name: "Khoa Công nghệ thông tin", src: "/truong/khoa-cntt.jpg", width: 1500, height: 1000 },
+  { name: "Khoa Điện", src: "/truong/khoa-dien.jpg", width: 945, height: 567 },
+  { name: "Khoa Ô tô", src: "/truong/khoa-o-to.jpg", width: 600, height: 360 },
+  { name: "Khoa Kinh tế", src: "/truong/khoa-kinh-te.jpg", width: 1488, height: 893 },
+  { name: "Khoa Du lịch và Ngoại ngữ", src: "/truong/khoa-du-lich-ngoai-ngu.jpg", width: 1464, height: 878 },
+  { name: "Khoa May và Thời trang", src: "/truong/khoa-may-thoi-trang.jpg", width: 1300, height: 976 },
+];
 
-      ScrollTrigger.create({
-        trigger: ".pinned-story",
-        start: "top 18%",
-        end: "bottom 78%",
-        pin: ".pinned-heading",
-        pinSpacing: false,
-      });
-    },
-    { scope: main },
-  );
+const events = [
+  { src: "/truong/su-kien-doanh-nghiep.jpg", alt: "Chương trình Doanh nghiệp đồng hành cùng sinh viên năm 2025" },
+  { src: "/truong/su-kien-trao-thuong.jpg", alt: "Lễ trao thưởng sinh viên năm 2025" },
+  { src: "/truong/su-kien-thanh-lich.jpg", alt: "Đêm chung kết Sinh viên thanh lịch năm 2025" },
+];
 
-  async function signIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!hasSupabaseEnvironment) return;
+const external = { target: "_blank", rel: "noopener noreferrer" } as const;
 
-    const form = new FormData(event.currentTarget);
-    setLoading(true);
-    setError("");
-
-    const { error: authError } = await getSupabaseBrowserClient().auth.signInWithPassword({
-      email: String(form.get("email")),
-      password: String(form.get("password")),
-    });
-
-    setLoading(false);
-    if (authError) {
-      setError("Không thể đăng nhập. Vui lòng kiểm tra email và mật khẩu.");
-      return;
-    }
-    router.push("/portal");
-  }
-
-  const revealCopy =
-    "Một cổng truy cập rõ ràng giúp mỗi thành viên đăng nhập đúng vai trò, thuộc đúng cơ sở và nhìn thấy đúng lớp học được phép truy cập.";
+export default function WelcomePage() {
+  const aiAvailable = aiConfig() !== null;
 
   return (
-    <main ref={main} className="access-page">
-      <header className="access-nav">
-        <Link href="/" className="brand-lockup" aria-label="Đại học Sao Đỏ">
-          <Image src="/sao-do-logo.png" alt="" width={58} height={58} priority />
-          <span>Đại học Sao Đỏ</span>
+    <div className={`sd ${phuongFonts}`}>
+      <LandingMotion />
+      <SceneArrival />
+      <SceneCurtain to="/login" />
+      <FallingPetals />
+      <header className="sd-nav">
+        <Link href="/" className="sd-brand" aria-label="Trường Đại học Sao Đỏ, trang chủ">
+          <Image src="/sao-do-logo.png" alt="" width={40} height={43} priority />
+          <span>
+            <strong>Đại học Sao Đỏ</strong>
+            <small>Saodo University</small>
+          </span>
         </Link>
-        <a href="#dang-nhap" className="text-link">
+        <nav aria-label="Điều hướng chính">
+          <a href="#gioi-thieu">Giới thiệu</a>
+          <a href="#dao-tao">Đào tạo</a>
+          <a href="#doi-song">Đời sống</a>
+          <a href="#lien-he">Liên hệ</a>
+        </nav>
+        <Link className="sd-btn sd-btn-primary sd-btn-sm" href="/login">
           Đăng nhập
-        </a>
+        </Link>
       </header>
 
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Không gian học tập số</p>
-          <h1>Tri thức chuyển động, cộng đồng cùng tiến.</h1>
-          <p className="hero-lead">
-            Một lối vào duy nhất cho tài khoản, vai trò thành viên và lớp học
-            tại Đại học Sao Đỏ.
-          </p>
-          <div className="hero-actions">
-            <a className="button button-primary" href="#dang-nhap">
-              Vào hệ thống
-            </a>
-            <a className="button button-quiet" href="#cach-van-hanh">
-              Khám phá cách vận hành
+      <main id="noi-dung">
+        <section className="sd-hero" aria-labelledby="hero-title">
+          <div className="sd-hero-copy">
+            <p className="sd-kicker sd-rise">
+              <PhuongFlower size={20} /> Trường đại học công lập thuộc Bộ Công Thương
+            </p>
+            <h1 id="hero-title" className="sd-rise sd-rise-2">
+              Toàn diện. Sáng tạo. <em>Thích ứng.</em>
+            </h1>
+            <p className="sd-city sd-rise sd-rise-3">Giữa lòng Hải Phòng, Thành phố Hoa Phượng Đỏ</p>
+            <p className="sd-lead sd-rise sd-rise-3">
+              Đào tạo đa ngành gắn với thực tiễn, trên nền truyền thống bắt đầu từ năm 1969.
+            </p>
+            <div className="sd-actions sd-rise sd-rise-4">
+              <a className="sd-btn sd-btn-primary" href="#gioi-thieu">
+                Khám phá trường <Icon name="arrow" />
+              </a>
+              <Link className="sd-btn sd-btn-ghost" href="/login">
+                Đăng nhập
+              </Link>
+            </div>
+          </div>
+          <div className="sd-hero-art sd-rise sd-rise-2">
+            <PhuongTree className="sd-tree" />
+            <figure className="sd-hero-photo">
+              <div className="sd-hero-frame">
+                <Image
+                  src="/truong/nha-b1.jpg"
+                  alt="Tòa nhà B1 của Trường Đại học Sao Đỏ dưới trời xanh"
+                  width={1500}
+                  height={1076}
+                  sizes="(max-width: 1023px) 70vw, 32vw"
+                  priority
+                />
+              </div>
+              <figcaption>Nhà B1, cơ sở 1</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section className="sd-stats" aria-label="Trường Đại học Sao Đỏ qua các con số">
+          <dl>
+            {stats.map((item) => (
+              <div key={item.label} data-reveal>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p>Số liệu do nhà trường công bố.</p>
+        </section>
+
+        <section className="sd-section sd-history" id="gioi-thieu" aria-labelledby="history-title">
+          <figure className="sd-history-photo" data-reveal>
+            <Image
+              src="/truong/khai-giang-hoi-truong.jpg"
+              alt="Hội trường chật kín sinh viên trong lễ khai giảng năm học 2026-2027"
+              width={1264}
+              height={770}
+              sizes="(max-width: 1023px) 100vw, 45vw"
+            />
+            <figcaption>Lễ khai giảng năm học 2026-2027</figcaption>
+          </figure>
+          <div>
+            <p className="sd-eyebrow" data-reveal><PhuongFlower size={16} /> Giới thiệu</p>
+            <h2 id="history-title" className="sd-h2" data-reveal>Hơn nửa thế kỷ <em>đào tạo</em> cho công nghiệp.</h2>
+            <p className="sd-body" data-reveal>
+              Trường Đại học Sao Đỏ (mã trường SDU) định hướng đào tạo đa ngành gắn với ứng dụng thực tiễn, phát
+              triển năng lực số, nghiên cứu và phục vụ cộng đồng.
+            </p>
+            <div className="sd-timeline">
+              <span className="sd-timeline-line" aria-hidden="true" />
+              <ol>
+                {milestones.map((item) => (
+                  <li key={item.when} data-reveal>
+                    <PhuongFlower size={22} className="sd-timeline-flower" />
+                    <time>{item.when}</time>
+                    <p>{item.text}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className="sd-city-band" aria-labelledby="city-title">
+          <PhuongTree className="sd-band-tree" id="phuong-band" />
+          <div data-reveal>
+            <p className="sd-eyebrow"><PhuongFlower size={16} /> Hải Phòng</p>
+            <h2 id="city-title">Mùa hè, cả thành phố <em>rực đỏ sắc phượng.</em></h2>
+            <p className="sd-body">
+              Hoa phượng đỏ là biểu tượng của Hải Phòng, Thành phố Hoa Phượng Đỏ. Sắc phượng đầu hè gắn với mùa thi, mùa
+              tốt nghiệp và những kỷ niệm tuổi sinh viên.
+            </p>
+          </div>
+        </section>
+
+        <PhuongDivider />
+
+        <section className="sd-section" id="dao-tao" aria-labelledby="faculty-title">
+          <div className="sd-faculty-head">
+            <div>
+              <h2 id="faculty-title" className="sd-h2" data-reveal>Chọn ngành bạn thích, <em>học để làm được việc.</em></h2>
+              <p className="sd-body" data-reveal>
+                Các lĩnh vực đào tạo gồm kỹ thuật, công nghệ thông tin, trí tuệ nhân tạo, kinh tế, luật, ngoại ngữ, du
+                lịch và sư phạm.
+              </p>
+            </div>
+            <a
+              className="sd-btn sd-btn-ghost"
+              href="https://saodo.edu.vn/vi/news/nganh-dao-tao/gioi-thieu-ve-cac-nganh-dao-tao-cua-truong-dai-hoc-sao-do-2698.html"
+              {...external}
+            >
+              Xem các ngành <Icon name="arrow" />
             </a>
           </div>
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <span className="orbit orbit-one" />
-          <span className="orbit orbit-two" />
-          <span className="orbit-dot dot-one" />
-          <span className="orbit-dot dot-two" />
-          <span className="orbit-dot dot-three" />
-          <Image
-            src="/sao-do-logo.png"
-            alt=""
-            width={360}
-            height={360}
-            className="hero-logo"
-            priority
-          />
-        </div>
-      </section>
+          <div data-reveal>
+            <FacultyRail faculties={faculties} />
+          </div>
+        </section>
 
-      <section className="manifesto" aria-label="Tuyên ngôn sản phẩm">
-        <p>
-          {revealCopy.split(" ").map((word, index) => (
-            <span className="reveal-word" key={`${word}-${index}`}>
-              {word}{" "}
-            </span>
-          ))}
-        </p>
-      </section>
+        <section className="sd-section sd-practice" aria-labelledby="practice-title">
+          <div className="sd-practice-text" data-reveal>
+            <h2 id="practice-title" className="sd-h2">Học qua thực hành, <em>trên máy thật.</em></h2>
+            <p className="sd-body">
+              Nhà trường có các trung tâm thực hành cơ khí, công nghệ thông tin, ô tô và điện. Năm 2025, sinh viên Khoa
+              Cơ khí gia công sản phẩm cho Công ty Cơ khí chính xác và Thương mại Nhật Nam.
+            </p>
+          </div>
+          <figure className="sd-mosaic-a" data-reveal>
+            <Image src="/truong/thuc-hanh-01.jpg" alt="Giảng viên hướng dẫn sinh viên kiểm tra chi tiết gia công bên máy CNC" width={1500} height={1000} sizes="(max-width: 767px) 100vw, 40vw" />
+          </figure>
+          <figure className="sd-mosaic-b" data-reveal>
+            <Image src="/truong/thuc-hanh-05.jpg" alt="Sinh viên vận hành bảng điều khiển máy tiện CNC" width={1500} height={1062} sizes="(max-width: 767px) 100vw, 30vw" />
+          </figure>
+          <figure className="sd-mosaic-c" data-reveal>
+            <Image src="/truong/thuc-hanh-07.jpg" alt="Sinh viên đo kiểm sản phẩm bằng thước cặp điện tử" width={1500} height={985} sizes="(max-width: 767px) 100vw, 30vw" />
+          </figure>
+          <figure className="sd-mosaic-d" data-reveal>
+            <Image src="/truong/thuc-hanh-02.jpg" alt="Nhóm sinh viên đọc bản vẽ kỹ thuật cạnh máy phay CNC" width={1500} height={1000} sizes="(max-width: 767px) 100vw, 40vw" />
+          </figure>
+        </section>
 
-      <section id="cach-van-hanh" className="pinned-story">
-        <div className="pinned-heading">
-          <p className="eyebrow">Một cổng truy cập nhất quán</p>
-          <h2>Từ đăng nhập đến lớp học, đúng người và đúng phạm vi.</h2>
-        </div>
-        <div className="story-list">
-          <article>
-            <h3>Đăng nhập an toàn</h3>
-            <p>
-              Tài khoản được xác thực trước khi portal tải bất kỳ dữ liệu lớp
-              học nào.
-            </p>
-          </article>
-          <article>
-            <h3>Vai trò theo từng cơ sở</h3>
-            <p>
-              Quan hệ thành viên xác định bạn là quản trị viên, giảng viên hay
-              sinh viên trong đúng đơn vị.
-            </p>
-          </article>
-          <article>
-            <h3>Danh sách lớp đúng quyền</h3>
-            <p>
-              Chính sách dữ liệu của hệ thống chỉ trả về những lớp tài khoản
-              hiện tại được phép xem.
-            </p>
-          </article>
-        </div>
-      </section>
+        <PhuongDivider />
 
-      <section id="dang-nhap" className="login-section">
-        <div className="login-intro">
-          <p className="eyebrow">Bắt đầu</p>
-          <h2>Trở lại lớp học của bạn.</h2>
-          <p>
-            Dùng tài khoản do Đại học Sao Đỏ cấp để truy cập đúng vai trò và cơ
-            sở.
-          </p>
-        </div>
-        <form className="login-form" method="post" onSubmit={signIn}>
-          {hasSupabaseEnvironment ? (
-            <>
-              <label>
-                Email
-                <input
-                  aria-describedby={error ? "login-error" : undefined}
-                  aria-invalid={Boolean(error)}
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="tenban@saodo.edu.vn"
-                  required
-                />
-              </label>
-              <label>
-                Mật khẩu
-                <input
-                  aria-describedby={error ? "login-error" : undefined}
-                  aria-invalid={Boolean(error)}
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
-              {error && (
-                <p className="form-error" id="login-error" role="alert">
-                  {error}
-                </p>
-              )}
-              <button
-                className="button button-primary"
-                aria-busy={loading}
-                disabled={loading}
-                type="submit"
-              >
-                {loading ? "Đang đăng nhập…" : "Đăng nhập"}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="configuration-notice" role="alert">
-                <strong>Hệ thống chưa sẵn sàng</strong>
-                <p>
-                  Chưa cấu hình dịch vụ xác thực. Liên hệ quản trị viên để được
-                  hỗ trợ.
-                </p>
+        <section className="sd-section sd-life" id="doi-song" aria-labelledby="life-title">
+          <div className="sd-life-text" data-reveal>
+            <p className="sd-eyebrow"><PhuongFlower size={16} /> Đời sống sinh viên</p>
+            <h2 id="life-title" className="sd-h2">Một nơi để đọc, <em>học nhóm và gặp gỡ.</em></h2>
+            <p className="sd-body">
+              Thư viện rộng 988 m² với hơn 4.000 đầu sách, có khu cafe sách, bàn học nhóm và góc đọc yên tĩnh.
+            </p>
+          </div>
+          <div className="sd-life-photos">
+            <figure className="sd-life-main" data-reveal>
+              <Image src="/truong/thu-vien-2.jpg" alt="Sinh viên học nhóm trên ghế sofa xanh trong thư viện" width={1000} height={659} sizes="(max-width: 767px) 100vw, 50vw" />
+            </figure>
+            <figure data-reveal>
+              <Image src="/truong/thu-vien-1.jpg" alt="Nhóm sinh viên trao đổi bài quanh bàn tròn" width={1000} height={667} sizes="(max-width: 767px) 100vw, 25vw" />
+            </figure>
+            <figure data-reveal>
+              <Image src="/truong/thu-vien-3.jpg" alt="Sinh viên chọn sách giữa các giá sách" width={960} height={640} sizes="(max-width: 767px) 100vw, 25vw" />
+            </figure>
+          </div>
+          <p className="sd-note">Ảnh tư liệu thư viện năm 2021.</p>
+        </section>
+
+        <section className="sd-section sd-events" aria-labelledby="events-title">
+          <h2 id="events-title" className="sd-h2" data-reveal>Những dấu ấn <em>năm 2025.</em></h2>
+          <div className="sd-events-grid">
+            {events.map((item, index) => (
+              <figure key={item.src} className={index === 0 ? "sd-event-wide" : undefined} data-reveal>
+                <Image src={item.src} alt={item.alt} width={1500} height={555} sizes={index === 0 ? "100vw" : "(max-width: 767px) 100vw, 50vw"} />
+              </figure>
+            ))}
+          </div>
+        </section>
+
+        <PhuongDivider />
+
+        <section className="sd-section sd-news" aria-labelledby="news-title">
+          <h2 id="news-title" className="sd-h2" data-reveal>Tin mới <em>từ nhà trường.</em></h2>
+          <div className="sd-news-grid">
+            <a
+              className="sd-news-card sd-news-accent"
+              href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/thanh-lap-phan-hieu-truong-dai-hoc-sao-do-tai-ha-noi-dau-moc-moi-tren-hanh-trinh-phat-trien-2959.html"
+              {...external}
+              data-reveal
+            >
+              <time>20/09/2026</time>
+              <h3>Thành lập Phân hiệu Trường Đại học Sao Đỏ tại Hà Nội</h3>
+              <p>Dấu mốc mới trên hành trình phát triển của nhà trường.</p>
+              <span className="sd-link">Đọc trên saodo.edu.vn <Icon name="arrow" /></span>
+            </a>
+            <a
+              className="sd-news-card sd-news-photo"
+              href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/truong-dai-hoc-sao-do-tung-bung-khai-giang-nam-hoc-2026-2027-2953.html"
+              {...external}
+              data-reveal
+            >
+              <Image src="/truong/khai-giang-sinh-vien.jpg" alt="Tân sinh viên dự lễ khai giảng" width={1173} height={793} sizes="(max-width: 767px) 100vw, 50vw" />
+              <div>
+                <time>05/09/2026</time>
+                <h3>Tưng bừng khai giảng năm học 2026-2027</h3>
+                <span className="sd-link">Đọc trên saodo.edu.vn <Icon name="arrow" /></span>
               </div>
-            </>
-          )}
-        </form>
-      </section>
+            </a>
+          </div>
+        </section>
 
-      <footer className="access-footer">
-        <span>© 2026 Đại học Sao Đỏ</span>
-        <span>Cơ sở Hải Dương</span>
+        <section className="sd-portal" aria-labelledby="portal-title">
+          <div data-reveal>
+            <h2 id="portal-title">Đang là sinh viên Sao Đỏ?</h2>
+            <p>
+              {aiAvailable
+                ? "Vào cổng học tập để xem lớp học, hạn nộp bài và học cùng trợ lý AI."
+                : "Vào cổng học tập để xem lớp học, hạn nộp bài và phản hồi của giảng viên."}
+            </p>
+          </div>
+          <div className="sd-actions" data-reveal>
+            <Link className="sd-btn sd-btn-light" href="/login">
+              Đăng nhập <Icon name="arrow" />
+            </Link>
+            <Link className="sd-btn sd-btn-outline-light" href="/guest">
+              Xem bản demo
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className="sd-footer" id="lien-he">
+        <div className="sd-footer-top">
+          <div className="sd-footer-brand">
+            <Image src="/sao-do-logo.png" alt="" width={56} height={60} />
+            <p>
+              <strong>Trường Đại học Sao Đỏ</strong>
+              <span className="sd-footer-motto">Toàn diện - Sáng tạo - Thích ứng</span>
+            </p>
+          </div>
+          <address className="sd-contact">
+            <div>
+              <h2>Cơ sở 1</h2>
+              <p>Số 76 Nguyễn Thị Duệ, Thái Học 2, phường Chu Văn An, thành phố Hải Phòng</p>
+            </div>
+            <div>
+              <h2>Cơ sở 2</h2>
+              <p>Km 78, đường Nguyễn Thái Học (Quốc lộ 37), phường Chu Văn An, thành phố Hải Phòng</p>
+            </div>
+            <div>
+              <h2>Liên hệ</h2>
+              <p>
+                <a href="tel:+842203882269">(0220) 3882 269</a>
+                <a href="mailto:info@saodo.edu.vn">info@saodo.edu.vn</a>
+                <a href="https://saodo.edu.vn/" {...external}>saodo.edu.vn</a>
+              </p>
+            </div>
+          </address>
+        </div>
+        <div className="sd-footer-bottom">
+          <span>© 2026 Trường Đại học Sao Đỏ</span>
+          <span>Ảnh và thông tin: website chính thức saodo.edu.vn</span>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 }

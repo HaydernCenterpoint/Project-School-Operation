@@ -102,3 +102,39 @@ export function isAssignmentStatus(
     assignmentStatuses.includes(value as AssignmentStatus)
   );
 }
+
+export const aiModes = ["explain", "summarize", "practice", "plan"] as const;
+export type AiMode = (typeof aiModes)[number];
+
+export function isAiMode(value: unknown): value is AiMode {
+  return typeof value === "string" && aiModes.includes(value as AiMode);
+}
+
+export type AiConversation = {
+  id: string;
+  title: string;
+  mode: AiMode;
+  updatedAt: string;
+};
+
+export type AiMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  status: "pending" | "complete" | "interrupted" | "failed";
+  createdAt: string;
+};
+
+export type AiUsage = {
+  enabled: boolean;
+  used: number;
+  limit: number;
+  resetsAt: string | null;
+};
+
+/** One JSON object per line of the `POST /api/ai/chat` response stream. */
+export type AiStreamEvent =
+  | { type: "start"; conversationId: string; requestId: string }
+  | { type: "delta"; text: string }
+  | { type: "complete" }
+  | { type: "error"; code: string };

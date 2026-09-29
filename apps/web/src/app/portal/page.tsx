@@ -5,6 +5,7 @@ import type {
   Assignment,
   Submission,
 } from "@sao-do/contracts";
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,8 @@ import {
   useRef,
   useState,
 } from "react";
+import "@/app/landing.css";
+import { centerOf, closeCurtain, SceneArrival } from "@/components/landing/SceneTransition";
 import { academicRequest } from "@/lib/academic-client";
 import {
   getSupabaseBrowserClient,
@@ -90,7 +93,7 @@ export default function PortalPage() {
       : {
           kind: "error",
           message:
-            "Portal cần cấu hình Supabase để dùng dữ liệu học thuật thật.",
+            "Cổng học tập chưa được cấu hình. Vui lòng liên hệ quản trị viên.",
         },
   );
   const [reload, setReload] = useState(0);
@@ -107,6 +110,10 @@ export default function PortalPage() {
           "/api/classes",
           accessToken,
         );
+        if (data.role === "student") {
+          router.replace("/student");
+          return;
+        }
         setSession(data);
         setSelectedClassId((current) =>
           data.classes.some((item) => item.id === current)
@@ -117,13 +124,13 @@ export default function PortalPage() {
         setNotice({
           kind: "error",
           message:
-            error instanceof Error ? error.message : "Không thể tải portal.",
+            error instanceof Error ? error.message : "Không thể tải cổng học tập.",
         });
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [router],
   );
 
   useEffect(() => {
@@ -136,7 +143,7 @@ export default function PortalPage() {
       if (cancelled) return;
       const accessToken = data.session?.access_token;
       if (!accessToken) {
-        router.replace("/#dang-nhap");
+        router.replace("/login?next=/portal" as Route);
         return;
       }
       currentToken = accessToken;
@@ -147,7 +154,7 @@ export default function PortalPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!nextSession) {
-        router.replace("/#dang-nhap");
+        router.replace("/login?next=/portal" as Route);
         return;
       }
       if (nextSession.access_token !== currentToken) {
@@ -374,12 +381,13 @@ export default function PortalPage() {
 
   return (
     <div className="portal-shell">
+      <SceneArrival />
       <aside className="portal-rail">
         <Link href="/" className="rail-brand" aria-label="Về trang chủ">
-          <Image src="/sao-do-logo.png" alt="" width={76} height={76} priority />
+          <Image src="/sao-do-logo.png" alt="" width={48} height={51} priority />
           <strong>{session?.tenant.name ?? "Đại học Sao Đỏ"}</strong>
         </Link>
-        <nav aria-label="Điều hướng portal">
+        <nav aria-label="Điều hướng cổng quản lý">
           <a href="#classes" className="active" aria-current="page">
             <Icon name="class" />
             <span>Lớp học</span>
@@ -391,12 +399,6 @@ export default function PortalPage() {
             </a>
           )}
         </nav>
-        <div className="rail-orbits" aria-hidden="true">
-          <i />
-          <i />
-          <b />
-          <b />
-        </div>
       </aside>
 
       <div className="portal-main">
@@ -406,9 +408,22 @@ export default function PortalPage() {
             <Icon name="user" />
             {session ? roleLabels[session.role] : "Đang xác thực…"}
           </span>
+          {session && (
+            <button
+              className="button button-quiet button-small"
+              type="button"
+              onClick={async (event) => {
+                const { x, y } = centerOf(event.currentTarget);
+                await closeCurtain(x, y, "Đã đăng xuất. Hẹn gặp lại!")?.closed;
+                await getSupabaseBrowserClient().auth.signOut();
+              }}
+            >
+              Đăng xuất
+            </button>
+          )}
         </header>
 
-        <main className="portal-content">
+        <main className="portal-content" id="noi-dung">
           <div className="page-heading">
             <div>
               <h1>Không gian học thuật</h1>

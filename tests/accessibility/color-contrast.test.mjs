@@ -37,6 +37,14 @@ test("critical brand and status text pairs meet WCAG AA contrast", () => {
     ["ink on yellow navigation", "#071a34", "#ffea00"],
     ["submitted status", "#174ea6", "#dceaff"],
     ["reviewed status", "#075f36", "#dff7ea"],
+    ["success chip", "#067647", "#e3f6ec"],
+    ["warning chip", "#8a5a00", "#fff4d6"],
+    ["danger chip", "#b42318", "#fdeceb"],
+    ["active navigation", "#0052a3", "#e8f1fc"],
+    ["muted on mist", "#61708a", "#f4f7fb"],
+    ["ink on guest banner", "#1d3150", "#fffbe0"],
+    ["paper on navy welcome card", "#ffffff", "#071a34"],
+    ["navy card copy", "#c9d7ea", "#071a34"],
   ];
 
   for (const [label, foreground, background] of pairs) {
@@ -51,6 +59,8 @@ test("interactive control boundaries meet WCAG non-text contrast", () => {
   const pairs = [
     ["web control border", "#61708a", "#ffffff"],
     ["mobile control border", "#61708a", "#ffffff"],
+    ["phượng control border, light", "#6b5553", "#ffffff"],
+    ["phượng control border, dark", "#bba39c", "#251a1c"],
   ];
 
   for (const [label, boundary, background] of pairs) {
@@ -72,7 +82,12 @@ test("interactive control boundaries meet WCAG non-text contrast", () => {
     resolve(root, "apps/mobile/app/assignment/[id].tsx"),
     "utf8",
   );
-  assert.match(webCss, /\.login-form input \{[^}]*border: 1px solid var\(--muted\)/s);
+  assert.match(webCss, /\.field input[^{]*\{[^}]*border: 1px solid var\(--muted\)/s);
+  const aiCss = readFileSync(
+    resolve(root, "apps/web/src/components/ai-workspace.css"),
+    "utf8",
+  );
+  assert.match(aiCss, /\.aw-box \{[^}]*border: 1px solid var\(--muted\)/s);
   assert.match(
     webCss,
     /\.academic-form input[^}]*border: 1px solid var\(--muted\)/s,

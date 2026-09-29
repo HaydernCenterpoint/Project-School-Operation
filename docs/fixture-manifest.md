@@ -13,6 +13,7 @@ All six accounts use the seed-only password `Password123!`.
 | Sao Do Campus A | `admin` | Admin A | `admin.a@saodo.test` | `10000000-0000-0000-0000-000000000001` |
 | Sao Do Campus A | `teacher` | Teacher A | `teacher.a@saodo.test` | `10000000-0000-0000-0000-000000000002` |
 | Sao Do Campus A | `student` | Student A | `student.a@saodo.test` | `10000000-0000-0000-0000-000000000003` |
+| Sao Do Campus A | `student` | Sinh viên 2200286 (đăng nhập bằng mã `2200286`, mật khẩu `1111`, chỉ dùng local) | `2200286@sv.saodo.edu.vn` | `10000000-0000-0000-0000-000002200286` |
 | Sao Do Campus B | `admin` | Admin B | `admin.b@saodo.test` | `20000000-0000-0000-0000-000000000001` |
 | Sao Do Campus B | `teacher` | Teacher B | `teacher.b@saodo.test` | `20000000-0000-0000-0000-000000000002` |
 | Sao Do Campus B | `student` | Student B | `student.b@saodo.test` | `20000000-0000-0000-0000-000000000003` |
