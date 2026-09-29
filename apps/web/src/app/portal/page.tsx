@@ -31,6 +31,7 @@ type SubmissionResponse = { submissions: Submission[] };
 
 const roleLabels = {
   admin: "Quản trị viên",
+  staff: "Cán bộ phòng ban",
   teacher: "Giảng viên",
   student: "Sinh viên",
 } as const;
@@ -397,6 +398,12 @@ export default function PortalPage() {
               <Icon name="assignment" />
               <span>Bài tập</span>
             </a>
+          )}
+          {session && (
+            <Link href="/quan-tri">
+              <Icon name="user" />
+              <span>{session.role === "teacher" ? "Sinh viên lớp tôi" : "Quản lý sinh viên"}</span>
+            </Link>
           )}
         </nav>
       </aside>

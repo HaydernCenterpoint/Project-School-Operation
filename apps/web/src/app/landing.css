@@ -297,6 +297,7 @@
 
 /* Login: same phượng paper as the welcome page, fitted to one screen on desktop */
 .sd.auth-page { min-height: 100dvh; background: radial-gradient(800px 600px at 100% 0, rgba(255, 214, 120, .45), transparent 65%), radial-gradient(700px 600px at 0 100%, rgba(255, 138, 110, .2), transparent 65%), var(--sd-bg); }
+.sd.auth-page.auth-single { grid-template-columns: minmax(0, 1fr); }
 .sd > aside { position: relative; z-index: 1; }
 .sd .auth-art { grid-template-rows: auto minmax(0, 1fr) auto; gap: clamp(16px, 2.4vh, 28px); padding: clamp(20px, 3.4vh, 40px) clamp(24px, 3vw, 44px); color: var(--sd-ink); background: linear-gradient(165deg, #fffaf4 0%, #ffeede 100%); border: 1px solid var(--sd-line); box-shadow: var(--sd-shadow); }
 .sd .auth-art .brand-lockup small { color: var(--sd-muted); }

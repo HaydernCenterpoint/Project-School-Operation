@@ -52,6 +52,8 @@ export function AppShell({
   notifications,
   profileHref,
   noticesHref,
+  tag = "SV",
+  searchLabel = "Tìm bài tập",
   children,
 }: {
   nav: NavGroup[];
@@ -63,6 +65,9 @@ export function AppShell({
   profileHref: Route;
   /** Page listing every notice, linked from the bell. */
   noticesHref?: Route;
+  /** Short badge beside the logo naming the area (SV, QT…). */
+  tag?: string;
+  searchLabel?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -142,7 +147,7 @@ export function AppShell({
               <small>Cổng học tập</small>
             </span>
           </Link>
-          <span className="version-tag">SV</span>
+          <span className="version-tag">{tag}</span>
         </div>
         <nav className="app-nav" aria-label="Điều hướng chính" ref={navRef}>
           <span className={`nav-slider${navReady ? " is-ready" : ""}`} style={navStyle} aria-hidden="true" />
@@ -193,8 +198,8 @@ export function AppShell({
           <h1 className="sr-only">{title}</h1>
           <form className="top-search" action={searchAction} role="search">
             <Icon name="search" />
-            <label className="sr-only" htmlFor="top-search">Tìm bài tập</label>
-            <input id="top-search" name="q" type="search" placeholder="Tìm bài tập…" autoComplete="off" />
+            <label className="sr-only" htmlFor="top-search">{searchLabel}</label>
+            <input id="top-search" name="q" type="search" placeholder={`${searchLabel}…`} autoComplete="off" />
           </form>
           <div className="top-actions">
             <button

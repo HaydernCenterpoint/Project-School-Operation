@@ -308,17 +308,6 @@ export function useDemoState<T>(key: string, initial: () => T) {
         // Keep the initial demo value.
       }
     });
-    // Other tabs of this browser write the same key; follow them so demo chat feels live.
-    const sync = (event: StorageEvent) => {
-      if (event.key !== storageKey || !event.newValue) return;
-      try {
-        setValue(JSON.parse(event.newValue) as T);
-      } catch {
-        // Ignore a malformed write.
-      }
-    };
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
   }, [storageKey]);
 
   const update = useCallback(

@@ -46,6 +46,14 @@ const paths = {
   sort: <><path d="m7 15 5 5 5-5" /><path d="m7 9 5-5 5 5" /></>,
   more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
   trend: <><path d="m3 17 6-6 4 4 8-8" /><path d="M15 7h6v6" /></>,
+  code: <><path d="m8 7-5 5 5 5" /><path d="m16 7 5 5-5 5" /><path d="m13.5 4-3 16" /></>,
+  briefcase: <><rect x="3" y="7" width="18" height="13" rx="3" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><path d="M3 13h18" /></>,
+  ball: <><circle cx="12" cy="12" r="9" /><path d="m12 7.5 3.8 2.8-1.4 4.4H9.6l-1.4-4.4L12 7.5Z" /><path d="M12 3v4.5M15.8 10.3l4.6-1.5M14.4 14.7l2.8 3.9M9.6 14.7l-2.8 3.9M8.2 10.3 3.6 8.8" /></>,
+  language: <><path d="M4 5h9M8.5 3v2M11 5c-1 4-3.5 7-7 9" /><path d="M6 9c1 2 3 3.5 5 4.5" /><path d="m13 21 4-9 4 9M14.5 18h5" /></>,
+  music: <><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></>,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  reply: <><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 6 6v5" /></>,
+  at: <><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></>,
   help: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9" /></>,
 } as const;
 

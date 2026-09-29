@@ -1,0 +1,93 @@
+/* Management area (/quan-tri): student records and accounts. Phượng tokens, light + dark,
+   with the same soft motion as the rest of the portal. */
+.sd-app { --ad-spring: cubic-bezier(.34, 1.56, .64, 1); --ad-out: cubic-bezier(.16, 1, .3, 1); }
+
+.ad-gate { min-height: 100dvh; padding: 24px; display: grid; place-items: center; }
+.ad-toolbar { margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+.ad-search { position: relative; flex: 1 1 280px; max-width: 420px; }
+.ad-search svg { position: absolute; top: 50%; left: 14px; width: 16px; height: 16px; color: var(--muted); transform: translateY(-50%); }
+.ad-search input, .ad-select select { width: 100%; min-height: 44px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-control); transition: border-color var(--fast) var(--ease), box-shadow 220ms var(--ease); }
+.ad-search input { padding: 0 14px 0 40px; }
+.ad-select select { padding: 0 34px 0 14px; }
+.ad-search input:focus-visible, .ad-select select:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgb(0 102 204 / .18); }
+
+.ad-table-wrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-md); }
+.ad-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ad-table th { position: sticky; top: 0; height: 44px; padding: 0 14px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-align: left; text-transform: uppercase; white-space: nowrap; background: var(--paper); border-bottom: 1px solid var(--border); }
+.ad-table td { padding: 10px 14px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+.ad-table tbody tr:last-child td { border-bottom: 0; }
+.ad-table tbody tr { transition: background-color 140ms var(--ease); }
+.ad-table tbody tr:hover { background: var(--mist); }
+.ad-table tr.is-bad { background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.ad-code { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.ad-name { font-weight: 600; }
+.ad-name small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+.ad-faculty { color: var(--ink-2); }
+.ad-actions { text-align: right; white-space: nowrap; }
+.ad-bad { color: var(--danger); font-size: 13px; font-weight: 600; }
+.ad-table .chip { white-space: nowrap; }
+.ad-table code, .ad-secret-box code { padding: 2px 8px; font-size: 13px; background: var(--mist); border-radius: 6px; }
+
+/* dialogs */
+.ad-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 22px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-dialog); box-shadow: var(--shadow-lg); }
+.ad-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ad-dialog-head h3 { margin: 0; }
+.ad-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.ad-grid .field input:disabled, .ad-grid .field select:disabled { color: var(--muted); background: var(--mist); cursor: not-allowed; }
+.ad-problems { margin: 0; padding: 10px 14px 10px 30px; color: var(--danger); font-size: 14px; font-weight: 600; background: var(--red-soft); border-radius: var(--r-panel); }
+.ad-push { margin-left: auto; }
+.ad-secret { width: min(440px, calc(100vw - 32px)); text-align: center; }
+.ad-secret h3 { margin: 10px 0 4px; }
+.ad-secret-icon { width: 56px; height: 56px; margin: 0 auto; display: grid; place-items: center; color: var(--success); background: var(--success-soft); border-radius: 50%; }
+.ad-secret-icon svg { width: 28px; height: 28px; }
+.ad-secret-box { margin: 16px 0; padding: 14px; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; text-align: left; background: var(--mist); border-radius: var(--r-panel); }
+.ad-secret-box dt { color: var(--muted); }
+.ad-secret-box dd { margin: 0; font-weight: 700; }
+.ad-secret-box code { font-size: 16px; letter-spacing: .06em; }
+.ad-secret .pt-form-actions { justify-content: center; }
+
+/* import */
+.ad-steps { margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; list-style: none; }
+.ad-steps li { padding: 18px; display: flex; gap: 14px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-md); }
+.ad-steps p { margin: 4px 0 12px; color: var(--ink-2); font-size: 14px; }
+.ad-step-no { width: 34px; height: 34px; display: grid; place-items: center; flex: none; color: #fff; font-weight: 800; background: var(--red); border-radius: 50%; }
+.ad-file { position: relative; overflow: hidden; }
+.ad-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ad-file:focus-within { outline: 3px solid var(--blue); outline-offset: 2px; }
+.ad-file-name { display: block; margin-top: 8px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .ad-grid { grid-template-columns: minmax(0, 1fr); }
+  .ad-table .ad-faculty, .ad-table th:nth-child(4) { display: none; }
+  .ad-actions span { display: none; }
+  .ad-push { margin-left: 0; }
+}
+
+/* ---------- motion ---------- */
+@keyframes ad-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes ad-row { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes ad-pop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.ad-page > * { animation: ad-rise .5s var(--ad-out) both; }
+.ad-page > :nth-child(2) { animation-delay: 60ms; }
+.ad-page > :nth-child(3) { animation-delay: 120ms; }
+.ad-page > :nth-child(n + 4) { animation-delay: 180ms; }
+.ad-table tbody tr { animation: ad-row .4s var(--ad-out) both; animation-delay: calc(var(--i, 0) * 25ms + 150ms); }
+.ad-steps li { transition: transform 260ms var(--ad-spring), box-shadow 260ms var(--ease); }
+.ad-steps li:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+.ad-steps li:hover .ad-step-no { animation: ad-pop .45s var(--ad-spring); }
+.ad-actions .button svg { transition: transform 240ms var(--ad-spring); }
+.ad-actions .button:hover svg { transform: rotate(-12deg) scale(1.15); }
+.ad-dialog { opacity: 0; transform: translateY(14px) scale(.97); transition: opacity .22s var(--ease), transform .32s var(--ad-spring), overlay .32s allow-discrete, display .32s allow-discrete; }
+.ad-dialog[open] { opacity: 1; transform: none; }
+.ad-dialog::backdrop { background: rgb(20 10 12 / 0); transition: background-color .25s var(--ease), overlay .32s allow-discrete, display .32s allow-discrete; }
+.ad-dialog[open]::backdrop { background: rgb(20 10 12 / .5); backdrop-filter: blur(3px); }
+@starting-style {
+  .ad-dialog[open] { opacity: 0; transform: translateY(14px) scale(.97); }
+  .ad-dialog[open]::backdrop { background: rgb(20 10 12 / 0); }
+}
+.ad-secret[open] .ad-secret-icon { animation: ad-pop .55s .1s var(--ad-spring) both; }
+.ad-problems { animation: ad-rise .3s var(--ad-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="ad-"], [class*="ad-"] *, .ad-dialog::backdrop { animation: none !important; transition: none !important; }
+}

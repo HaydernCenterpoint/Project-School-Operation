@@ -1,6 +1,7 @@
 "use client";
 
 import type { AcademicSession } from "@sao-do/contracts";
+import type { Session } from "@supabase/supabase-js";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -14,7 +15,7 @@ import {
 
 /** Only same-site paths inside the signed-in area are accepted as return URLs. */
 export function safeReturnPath(value: string | null, role: AcademicSession["role"]) {
-  const home = role === "student" ? "/student" : "/portal";
+  const home = role === "student" ? "/student" : role === "staff" ? "/quan-tri" : "/portal";
   const inside = value === home || value?.startsWith(`${home}/`);
   return inside && /^\/[\w\-/]*$/.test(value!) ? value! : home;
 }
@@ -28,12 +29,11 @@ export function loginEmail(value: string) {
   return /^\d{5,12}$/.test(id) ? `${id}@${STUDENT_EMAIL_DOMAIN}` : id;
 }
 
-async function destination(token: string) {
-  const session = await academicRequest<AcademicSession>("/api/classes", token);
-  return safeReturnPath(
-    new URLSearchParams(location.search).get("next"),
-    session.role,
-  ) as Route;
+/** Accounts made by staff carry a temporary password that must be replaced before anything else. */
+async function destination({ access_token, user }: Session) {
+  const session = await academicRequest<AcademicSession>("/api/classes", access_token);
+  const target = safeReturnPath(new URLSearchParams(location.search).get("next"), session.role);
+  return (user.app_metadata.must_change_password ? `/doi-mat-khau?next=${encodeURIComponent(target)}` : target) as Route;
 }
 
 export function LoginForm() {
@@ -50,7 +50,7 @@ export function LoginForm() {
       .then(async ({ data }) => {
         if (!data.session) return;
         try {
-          router.replace(await destination(data.session.access_token));
+          router.replace(await destination(data.session));
         } catch {
           // Stay on the form; the user can sign in again.
         }
@@ -86,7 +86,7 @@ export function LoginForm() {
     // Accepted: close the curtain while the portal is resolved; it opens again on arrival.
     const curtain = closeCurtain(origin.x, origin.y, "Đang vào cổng học tập…");
     try {
-      const [target] = await Promise.all([destination(data.session.access_token), curtain?.closed]);
+      const [target] = await Promise.all([destination(data.session), curtain?.closed]);
       router.push(target);
     } catch (requestError) {
       curtain?.cancel();

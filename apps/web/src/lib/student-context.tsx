@@ -98,6 +98,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       const token = auth.session?.access_token;
       if (!token) return toLogin();
+      if (auth.session!.user.app_metadata.must_change_password) {
+        return router.replace(`/doi-mat-khau?next=${encodeURIComponent(pathRef.current)}` as Route);
+      }
       tokenRef.current = token;
       void fetchFor(token);
     });

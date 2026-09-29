@@ -18,6 +18,7 @@
     "test:security": "node --test tests/security/security-check.test.mjs",
     "test:accessibility": "node --test tests/accessibility/color-contrast.test.mjs",
     "test:config": "node --test tests/config/mobile-build-env.test.mjs",
+    "test:unit": "node --test \"tests/unit/*.test.mts\"",
     "build:web": "pnpm --filter web build",
     "deploy:web": "pnpm --filter web cf:deploy",
     "build:mobile": "pnpm --filter mobile exec expo export --platform android --output-dir dist/android-export",

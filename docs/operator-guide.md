@@ -19,6 +19,8 @@ Dùng bộ Campus A cho một luồng xuyên suốt. Tất cả tài khoản dù
 | Teacher | `teacher.a@saodo.test` | Web |
 | Student | `student.a@saodo.test` | Web `/student` hoặc Expo mobile |
 | Student (mã sinh viên) | `2200286`, mật khẩu `1111` | Web `/student`; form tự đổi mã thành `2200286@sv.saodo.edu.vn` |
+| Student (chat Cộng đồng) | `2200301` đến `2200310`, mật khẩu `1111` | Web `/student/community`; mở hai trình duyệt (hoặc một cửa sổ ẩn danh) để chat giữa hai tài khoản |
+| Cán bộ phòng ban | `daotao.a@saodo.test`, mật khẩu `Password123!` | Web `/quan-tri`: thêm, sửa, khoá sinh viên, cấp lại mật khẩu, nhập CSV. Giảng viên mở `/quan-tri` để xem sinh viên lớp mình |
 
 Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
 
