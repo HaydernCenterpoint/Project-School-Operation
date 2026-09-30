@@ -53,6 +53,8 @@ const paths = {
   music: <><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></>,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   reply: <><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 6 6v5" /></>,
+  news: <><path d="M4 5h12v14H6a2 2 0 0 1-2-2V5Z" /><path d="M16 9h3a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2h-2" /><path d="M7.5 8.5h5M7.5 12h5M7.5 15.5h3" /></>,
+  external: <><path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></>,
   at: <><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></>,
   help: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9" /></>,
 } as const;

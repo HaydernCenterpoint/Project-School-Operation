@@ -1,0 +1,31 @@
+name: News sync
+
+# Pulls new posts from the school's websites and Facebook page into /student/news every hour.
+# Needs repository secrets NEWS_SYNC_URL (https://<site>/api/news/sync) and NEWS_CRON_SECRET
+# (same value as the server's env). Without them the job skips instead of failing.
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger sync
+        env:
+          NEWS_SYNC_URL: ${{ secrets.NEWS_SYNC_URL }}
+          NEWS_CRON_SECRET: ${{ secrets.NEWS_CRON_SECRET }}
+        run: |
+          if [ -z "$NEWS_SYNC_URL" ] || [ -z "$NEWS_CRON_SECRET" ]; then
+            echo "News sync secrets are not set; skipping."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 540 \
+            -X POST "$NEWS_SYNC_URL" \
+            -H "content-type: application/json" \
+            -H "x-cron-secret: $NEWS_CRON_SECRET" \
+            -d '{}'

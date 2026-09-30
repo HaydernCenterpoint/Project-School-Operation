@@ -22,7 +22,7 @@ export type NavItem = { href: Route; label: string; icon: IconName; exact?: bool
 export type NavGroup = { label: string; items: NavItem[] };
 export type Notification = { id: string; title: string; text: string; href: Route };
 
-/** Nine entries, no group headings: related pages share one entry and switch with tabs (see `tabs`). */
+/** Ten entries, no group headings: related pages share one entry and switch with tabs (see `tabs`). */
 export const studentNav: NavGroup[] = [
   {
     label: "",
@@ -33,6 +33,7 @@ export const studentNav: NavGroup[] = [
       { href: "/student/registration", label: "Đăng ký học phần", short: "Đăng ký", icon: "clipboard" },
       { href: "/student/tuition", label: "Học phí", icon: "wallet" },
       { href: "/student/activities", label: "Hoạt động", icon: "flag", tabs: [{ href: "/student/activities", label: "Sự kiện & rèn luyện" }, { href: "/student/clubs", label: "Câu lạc bộ" }] },
+      { href: "/student/news", label: "Tin tức", icon: "news" },
       { href: "/student/community", label: "Cộng đồng", icon: "message" },
       { href: "/student/ai", label: "Trợ lý AI", short: "AI", icon: "sparkle", newTab: true, mobile: true, featured: true },
       { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }] },

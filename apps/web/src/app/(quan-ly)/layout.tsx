@@ -23,6 +23,7 @@ function navFor(role: StaffRole): NavGroup[] {
       ...(role !== "staff" ? [{ href: "/portal" as Route, label: "Lớp học & bài tập", short: "Lớp học", icon: "class" as const, mobile: true }] : []),
       { href: "/quan-tri", label: manage ? "Sinh viên" : "Sinh viên lớp tôi", short: "Sinh viên", icon: "users", exact: true, mobile: true },
       ...(manage ? [{ href: "/quan-tri/nhap" as Route, label: "Nhập từ tệp", short: "Nhập", icon: "file" as const, mobile: true }] : []),
+      ...(manage ? [{ href: "/quan-tri/tin-tuc" as Route, label: "Tin tức", icon: "news" as const, mobile: true }] : []),
     ],
   }];
 }
