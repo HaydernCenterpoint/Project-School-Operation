@@ -46,6 +46,7 @@ const db = () => getSupabaseBrowserClient();
 async function run<T>(query: PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>): Promise<T> {
   const { data, error } = await query;
   if (error) {
+    if (error.message === "rate_limited") throw new Error("Bạn thao tác quá nhanh. Chờ một lát rồi thử lại.");
     if (error.code === "23505") throw new Error("Mã sinh viên này đã có tài khoản.");
     if (error.code === "42501") throw new Error("Bạn không có quyền thực hiện thao tác này.");
     if (error.code === "22023" || error.code === "23514") throw new Error("Dữ liệu chưa hợp lệ. Kiểm tra mã sinh viên, ngày sinh, số điện thoại và email.");

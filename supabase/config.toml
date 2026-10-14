@@ -26,3 +26,17 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = false
+# A stolen refresh token stops working as soon as the real session refreshes.
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Applies when a password is set or changed (e.g. /doi-mat-khau), never to existing sign-ins.
+minimum_password_length = 8
+password_requirements = "letters_digits"
+
+# Per IP per 5 minutes. Sign-ins are generous because a whole class signs in from the school's
+# one public IP; add Cloudflare Turnstile ([auth.captcha]) if brute force shows up.
+[auth.rate_limit]
+email_sent = 2
+sign_in_sign_ups = 120
+token_refresh = 300
+token_verifications = 30

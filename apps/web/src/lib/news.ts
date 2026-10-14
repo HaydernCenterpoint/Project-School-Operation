@@ -32,9 +32,10 @@ export type SyncResult = { source: string; name: string; added: number; error?: 
 
 const db = () => getSupabaseBrowserClient();
 
-async function run<T>(query: PromiseLike<{ data: unknown; error: { code?: string } | null }>): Promise<T> {
+async function run<T>(query: PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>): Promise<T> {
   const { data, error } = await query;
   if (error) {
+    if (error.message === "rate_limited") throw new Error("Bạn thao tác quá nhanh. Chờ một lát rồi thử lại.");
     if (error.code === "23505") throw new Error("Nguồn này đã có trong danh sách.");
     if (error.code === "42501") throw new Error("Bạn không có quyền thực hiện thao tác này.");
     if (error.code === "23514") throw new Error("Dữ liệu chưa hợp lệ. RSS phải là địa chỉ http(s).");

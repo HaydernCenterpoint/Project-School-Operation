@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { apiError, getAcademicContext, isUuid, json } from "@/lib/academic-api";
 import { syncNews } from "@/lib/news-sync";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /** Constant-time compare, so the secret cannot be guessed byte by byte from timing. */
 function sameSecret(given: string | null, expected: string | undefined) {
@@ -19,6 +20,9 @@ function sameSecret(given: string | null, expected: string | undefined) {
  * Body: optional { "sourceId": uuid } to sync one source.
  */
 export async function POST(request: Request) {
+  // The secret check below runs before auth, so guessing it is rate limited per IP too.
+  const limited = await rateLimit("ip", clientIp(request));
+  if (limited) return limited;
   const body = (await request.json().catch(() => ({}))) as { sourceId?: unknown };
   const only = isUuid(body.sourceId) ? body.sourceId : undefined;
 
