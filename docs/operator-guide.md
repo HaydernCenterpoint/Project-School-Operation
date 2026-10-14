@@ -19,6 +19,8 @@ Dùng bộ Campus A cho một luồng xuyên suốt. Tất cả tài khoản dù
 | Teacher | `teacher.a@saodo.test` | Web |
 | Student | `student.a@saodo.test` | Web `/student` hoặc Expo mobile |
 | Student (mã sinh viên) | `2200286`, mật khẩu `1111` | Web `/student`; form tự đổi mã thành `2200286@sv.saodo.edu.vn` |
+| Student (chat Cộng đồng) | `2200301` đến `2200310`, mật khẩu `1111` | Web `/student/community`; mở hai trình duyệt (hoặc một cửa sổ ẩn danh) để chat giữa hai tài khoản |
+| Cán bộ phòng ban | `daotao.a@saodo.test`, mật khẩu `Password123!` | Web `/quan-tri`: thêm, sửa, khoá sinh viên, cấp lại mật khẩu, nhập CSV. Giảng viên mở `/quan-tri` để xem sinh viên lớp mình |
 
 Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
 
@@ -96,3 +98,12 @@ Lượt bị hủy hoặc lỗi vẫn được tính (thận trọng về chi ph
 **Quyền riêng tư:** cuộc trò chuyện chỉ chủ sở hữu đọc/xóa được (RLS). Sinh viên chỉ đính kèm được bài tập mà RLS cho phép đọc. Dữ liệu tự hết hạn sau 30 ngày không dùng; mỗi lần sinh viên gửi câu hỏi sẽ dọn dữ liệu hết hạn của chính họ. Để dọn cho toàn hệ thống, lên lịch hằng ngày (ví dụ pg_cron): `select private.purge_expired_ai_conversations();`. Máy chủ không ghi nội dung tin nhắn hay token vào log.
 
 **Rollback:** đặt `AI_ENABLED=false` và triển khai lại web. Không cần xóa bảng; dữ liệu học thuật không bị ảnh hưởng.
+
+## Tin tức
+
+Sinh viên đọc tại `/student/news`; phòng ban và quản trị viên quản lý tại `/quan-tri/tin-tuc`.
+
+- **Nguồn:** RSS NukeViet của website trường (`https://saodo.edu.vn/vi/news/rss/<mục>/`) và 8 trang khoa (`http://<khoa>.saodo.edu.vn/vi/news/rss/`), cộng fanpage `TruongDHSaoDo`. Danh sách gốc ở `supabase/seed-news.sql`; cán bộ thêm, tạm dừng hoặc xoá nguồn trên trang quản lý.
+- **Cách chạy:** mỗi lần lấy, mỗi nguồn nhận tối đa 8 bài mới. Hệ thống mở từng bài gốc để lấy ảnh và nội dung, rồi AI tóm tắt 2-3 câu nếu đã bật Trợ lý AI; nếu chưa bật thì dùng đoạn mở đầu của bài. Bài đăng ngay, trùng đường dẫn thì bỏ qua. Cán bộ ẩn bài sai trên trang quản lý.
+- **Tự động mỗi giờ:** workflow `.github/workflows/news-sync.yml`. Cần đặt biến môi trường máy chủ `NEWS_CRON_SECRET` (≥ 24 ký tự ngẫu nhiên) và `SUPABASE_SERVICE_ROLE_KEY`, cùng hai secret của repository: `NEWS_SYNC_URL` (`https://<tên miền>/api/news/sync`) và `NEWS_CRON_SECRET`. Thiếu secret thì workflow bỏ qua. Nút **Cập nhật ngay** luôn dùng được và chạy bằng phiên của cán bộ.
+- **Facebook:** quản trị viên fanpage tạo Page Access Token (quyền `pages_read_engagement`) trong Meta for Developers và đặt vào `FACEBOOK_PAGE_ACCESS_TOKEN`. Chưa có token thì nguồn Facebook báo lỗi "Chưa cấu hình", các nguồn website vẫn chạy. Không dùng công cụ cào Facebook: vi phạm điều khoản và thường bị chặn.

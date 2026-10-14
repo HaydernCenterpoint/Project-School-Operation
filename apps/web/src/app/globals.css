@@ -375,91 +375,6 @@ a { color: inherit; text-decoration: none; }
 .account-card h2 { margin: 0; font-size: 1.4rem; }
 .account-card p { margin: 4px 0 0; color: var(--muted); }
 
-/* ---------- Legacy portal (admin / teacher) ---------- */
-.portal-shell { min-height: 100svh; display: grid; grid-template-columns: 248px minmax(0, 1fr); background: var(--mist); }
-.portal-rail { position: sticky; top: 0; height: 100svh; padding: 20px 14px; overflow: hidden; display: flex; flex-direction: column; gap: 20px; background: var(--paper); border-right: 1px solid var(--border); }
-.rail-brand { padding: 6px 8px; display: flex; align-items: center; gap: 12px; font-size: 15px; line-height: 1.3; }
-.rail-brand img { width: 48px; height: 48px; object-fit: contain; }
-.portal-rail nav { display: grid; gap: 4px; }
-.portal-rail nav a { min-height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-weight: 600; border-radius: var(--r-control); }
-.portal-rail nav a:hover { background: var(--mist); }
-.portal-rail nav a.active { color: var(--blue-deep); background: var(--sky); }
-.portal-rail svg, .portal-topbar svg, .empty-state svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.portal-main { min-width: 0; }
-.portal-topbar { min-height: 72px; padding: 0 36px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-.portal-topbar > span { min-height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 10px; font-weight: 600; background: var(--paper); border: 1px solid var(--border); border-radius: 999px; }
-.portal-topbar .button { min-height: 44px; }
-.portal-content { max-width: 1280px; margin: 0 auto; padding: 8px 36px 90px; }
-.page-heading { margin-bottom: 24px; }
-.page-heading h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem); letter-spacing: -.03em; }
-.page-heading p:last-child { margin: 8px 0 0; color: var(--muted); }
-.status-region { min-height: 0; }
-.portal-notice { margin-bottom: 18px; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: var(--paper); border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: var(--r-panel); }
-.portal-notice.success { border-left-color: var(--success); }
-.portal-notice.error { border-left-color: var(--danger); }
-.portal-notice button { min-height: 44px; margin-left: auto; padding: 0 16px; color: var(--blue); background: #fff; border: 1px solid var(--blue); border-radius: var(--r-control); cursor: pointer; }
-.portal-feedback { min-height: 160px; padding: 28px; display: flex; align-items: center; gap: 18px; background: #fff; border: 1px solid var(--border); border-radius: var(--r-card); }
-.portal-feedback strong { color: var(--blue); }
-.portal-feedback p { margin: 3px 0 0; color: var(--muted); }
-.spinner { flex: 0 0 auto; width: 44px; height: 44px; border: 4px solid var(--sky-2); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
-.academic-section { margin-top: 16px; padding: clamp(18px, 2.4vw, 28px); background: #fff; border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-sm); }
-.section-heading { margin-bottom: 20px; display: flex; align-items: end; justify-content: space-between; gap: 20px; }
-.section-heading > div { display: flex; align-items: baseline; gap: 12px; }
-.section-heading h2 { margin: 0; font-size: 1.5rem; letter-spacing: -.02em; }
-.section-heading p { margin: 0; color: var(--muted); }
-.class-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.class-cards > button, .assignment-list > button { min-height: 112px; padding: 18px; display: grid; align-content: center; gap: 6px; text-align: left; color: var(--ink); background: var(--mist); border: 1px solid var(--border); border-radius: var(--r-panel); cursor: pointer; transition: border-color var(--fast), background-color var(--fast); }
-.class-cards > button:hover, .assignment-list > button:hover { border-color: var(--blue); }
-.class-cards > button.selected, .assignment-list > button.selected { color: #fff; background: var(--ink); border-color: var(--ink); }
-.class-cards button span { color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .06em; }
-.class-cards button.selected span { color: var(--yellow); }
-.class-cards small, .assignment-list small { color: var(--muted); }
-.class-cards button.selected small, .assignment-list button.selected small { color: #cbd9ea; }
-.academic-form { margin-top: 24px; padding: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; background: var(--mist); border-radius: var(--r-card); }
-.form-heading { grid-column: 1 / -1; }
-.form-heading h3 { margin: 0; font-size: 1.25rem; }
-.form-heading p { margin: 4px 0 0; color: var(--muted); }
-.academic-form label { display: grid; align-content: start; gap: 8px; font-weight: 600; }
-.academic-form input:not([type="checkbox"]), .academic-form select, .academic-form textarea { width: 100%; min-height: 50px; padding: 12px 14px; color: var(--ink); background: #fff; border: 1px solid var(--muted); border-radius: var(--r-control); }
-.academic-form textarea { resize: vertical; }
-.academic-form fieldset, .wide-field { grid-column: 1 / -1; }
-.academic-form fieldset { margin: 0; padding: 14px; border: 1px solid var(--border); border-radius: var(--r-panel); background: #fff; }
-.academic-form legend { padding: 0 6px; font-weight: 700; }
-.member-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.member-checks label { min-height: 56px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; background: var(--mist); border: 1px solid var(--border); border-radius: var(--r-control); cursor: pointer; }
-.member-checks input { width: 20px; height: 20px; accent-color: var(--blue); }
-.member-checks span { display: grid; }
-.member-checks small { color: var(--muted); font-weight: 400; }
-.academic-form .button { justify-self: start; }
-.permission-note { margin: 0; padding: 13px 16px; color: var(--ink-2); background: var(--warning-soft); border-radius: var(--r-control); }
-.section-loading { margin: 0 0 14px; color: var(--blue); font-weight: 700; }
-.assignment-layout { margin-top: 24px; display: grid; grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr); gap: 16px; }
-.assignment-list { display: grid; align-content: start; gap: 8px; }
-.assignment-list > button { min-height: 100px; }
-.assignment-detail { min-height: 280px; padding: 24px; background: var(--mist); border-radius: var(--r-card); }
-.assignment-detail > h3 { margin: 12px 0 4px; font-size: 1.5rem; }
-.due-line { margin: 0; color: var(--muted); }
-.instructions { margin-top: 18px; padding: 18px; white-space: pre-wrap; background: #fff; border-radius: var(--r-panel); }
-.status-chip { width: fit-content; padding: 4px 10px; color: var(--success); background: var(--success-soft); border-radius: 999px; font-size: 12px; font-weight: 700; }
-.status-chip.draft { color: #674e00; background: #fff3b1; }
-.status-chip.submitted { color: #174ea6; background: #dceaff; }
-.status-chip.reviewed { color: #075f36; background: #dff7ea; }
-.submission-list { margin-top: 24px; }
-.submission-list h4, .student-status h4 { margin: 0 0 12px; font-size: 1.1rem; }
-.submission-list article { margin-top: 10px; padding: 18px; background: #fff; border-radius: var(--r-panel); }
-.submission-heading { display: flex; justify-content: space-between; gap: 12px; }
-.submission-content { max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
-.submission-list article > small { color: var(--muted); }
-.submission-list form { margin-top: 16px; display: grid; gap: 10px; }
-.submission-list form label { display: grid; gap: 6px; font-weight: 600; }
-.submission-list form textarea { width: 100%; min-height: 84px; padding: 12px 14px; resize: vertical; border: 1px solid var(--muted); border-radius: var(--r-control); }
-.submission-list form .button { justify-self: start; }
-.student-status { margin-top: 24px; padding: 18px; background: #fff; border-radius: var(--r-panel); }
-.empty-state { min-height: 160px; grid-column: 1 / -1; padding: 24px; display: grid; place-items: center; align-content: center; text-align: center; color: var(--muted); background: var(--mist); border: 1px dashed #b7c6da; border-radius: var(--r-panel); }
-.empty-state.compact { min-height: 180px; }
-.empty-state svg { width: 40px; height: 40px; margin-bottom: 8px; }
-.empty-state p { margin: 3px 0 0; }
-
 /* ---------- Motion ---------- */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes shimmer { to { transform: translateX(100%); } }
@@ -475,41 +390,21 @@ a { color: inherit; text-decoration: none; }
 /* ---------- Responsive ---------- */
 @media (max-width: 1180px) {
   .dash-grid, .detail-grid { grid-template-columns: 1fr; }
-  .class-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .assignment-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 960px) {
   .auth-page { grid-template-columns: minmax(0, 1fr); }
   .auth-art { display: none; }
   .auth-mobile-brand { display: flex; }
-  .portal-shell { grid-template-columns: 88px minmax(0, 1fr); }
-  .portal-rail { padding: 20px 10px; }
-  .rail-brand strong, .portal-rail nav a span { display: none; }
-  .portal-rail nav a { justify-content: center; padding: 0; }
-  .portal-content { padding: 8px 20px 60px; }
-  .academic-form { grid-template-columns: 1fr; }
-  .member-checks { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .brand-lockup img { width: 40px; height: 40px; }
   .brand-lockup small { display: none; }
   .hero-actions { display: grid; grid-template-columns: 1fr; }
   .hero-actions .button { width: 100%; }
-  .portal-shell { display: block; }
-  .portal-rail { display: none; }
   .msg { max-width: 100%; }
   .row-list a { grid-template-columns: auto minmax(0, 1fr); }
   .row-list a > .row-meta { grid-column: 2; margin-top: -8px; }
   .row-list .chev { display: none; }
-  .portal-topbar { min-height: 64px; padding: 0 14px; justify-content: space-between; }
-  .portal-content { padding: 8px 14px 60px; }
-  .portal-notice button { margin-left: 0; }
-  .academic-section { padding: 18px 14px; }
-  .section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
-  .class-cards { grid-template-columns: 1fr; }
-  .academic-form { padding: 18px 14px; }
-  .assignment-detail { padding: 18px 14px; }
-  .submission-heading { align-items: flex-start; flex-direction: column; }
   .nav-pill { bottom: calc(92px + env(safe-area-inset-bottom)); }
 }
 /* App shell responsive */

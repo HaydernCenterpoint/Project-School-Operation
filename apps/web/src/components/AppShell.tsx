@@ -22,7 +22,7 @@ export type NavItem = { href: Route; label: string; icon: IconName; exact?: bool
 export type NavGroup = { label: string; items: NavItem[] };
 export type Notification = { id: string; title: string; text: string; href: Route };
 
-/** Nine entries, no group headings: related pages share one entry and switch with tabs (see `tabs`). */
+/** Ten entries, no group headings: related pages share one entry and switch with tabs (see `tabs`). */
 export const studentNav: NavGroup[] = [
   {
     label: "",
@@ -33,6 +33,7 @@ export const studentNav: NavGroup[] = [
       { href: "/student/registration", label: "Đăng ký học phần", short: "Đăng ký", icon: "clipboard" },
       { href: "/student/tuition", label: "Học phí", icon: "wallet" },
       { href: "/student/activities", label: "Hoạt động", icon: "flag", tabs: [{ href: "/student/activities", label: "Sự kiện & rèn luyện" }, { href: "/student/clubs", label: "Câu lạc bộ" }] },
+      { href: "/student/news", label: "Tin tức", icon: "news" },
       { href: "/student/community", label: "Cộng đồng", icon: "message" },
       { href: "/student/ai", label: "Trợ lý AI", short: "AI", icon: "sparkle", newTab: true, mobile: true, featured: true },
       { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }] },
@@ -52,6 +53,8 @@ export function AppShell({
   notifications,
   profileHref,
   noticesHref,
+  tag = "SV",
+  searchLabel = "Tìm bài tập",
   children,
 }: {
   nav: NavGroup[];
@@ -63,6 +66,9 @@ export function AppShell({
   profileHref: Route;
   /** Page listing every notice, linked from the bell. */
   noticesHref?: Route;
+  /** Short badge beside the logo naming the area (SV, QT…). */
+  tag?: string;
+  searchLabel?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -142,7 +148,7 @@ export function AppShell({
               <small>Cổng học tập</small>
             </span>
           </Link>
-          <span className="version-tag">SV</span>
+          <span className="version-tag">{tag}</span>
         </div>
         <nav className="app-nav" aria-label="Điều hướng chính" ref={navRef}>
           <span className={`nav-slider${navReady ? " is-ready" : ""}`} style={navStyle} aria-hidden="true" />
@@ -193,8 +199,8 @@ export function AppShell({
           <h1 className="sr-only">{title}</h1>
           <form className="top-search" action={searchAction} role="search">
             <Icon name="search" />
-            <label className="sr-only" htmlFor="top-search">Tìm bài tập</label>
-            <input id="top-search" name="q" type="search" placeholder="Tìm bài tập…" autoComplete="off" />
+            <label className="sr-only" htmlFor="top-search">{searchLabel}</label>
+            <input id="top-search" name="q" type="search" placeholder={`${searchLabel}…`} autoComplete="off" />
           </form>
           <div className="top-actions">
             <button

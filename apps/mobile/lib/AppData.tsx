@@ -208,6 +208,7 @@ export function useAppData() {
 
 export const roleLabels: Record<Role, string> = {
   admin: "Quản trị viên",
+  staff: "Cán bộ phòng ban",
   student: "Sinh viên",
   teacher: "Giảng viên",
 };
