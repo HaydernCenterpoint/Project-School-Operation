@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AppShell, studentNav, type Notification } from "@/components/AppShell";
+import { AppShell, studentNav, type Notification, type SearchSuggestion } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { initials } from "@/lib/format";
 import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
@@ -30,6 +30,28 @@ function Frame({ children }: { children: React.ReactNode }) {
         }))
     : null;
 
+  const classNames = new Map(data?.session.classes.map((item) => [item.id, item.name]));
+  const searchItems: SearchSuggestion[] | undefined = data
+    ? [
+        ...data.assignments.map((item) => ({
+          id: `asg-${item.id}`,
+          label: item.title,
+          detail: classNames.get(item.classId) ?? "Bài tập học phần",
+          category: "Bài tập",
+          href: `/student/assignments/${item.id}` as Route,
+          icon: "assignment" as const,
+        })),
+        ...data.session.classes.map((item) => ({
+          id: `cls-${item.id}`,
+          label: item.name,
+          detail: "Lớp học phần của bạn",
+          category: "Lớp học",
+          href: `/student/classes/${item.id}` as Route,
+          icon: "class" as const,
+        })),
+      ]
+    : undefined;
+
   return (
     <>
       <SceneArrival />
@@ -37,6 +59,7 @@ function Frame({ children }: { children: React.ReactNode }) {
         nav={studentNav}
         user={user}
         searchAction="/student/assignments"
+        searchItems={searchItems}
         notifications={notifications}
         profileHref="/student/account"
         noticesHref="/student/notices"

@@ -188,10 +188,40 @@ a { color: inherit; text-decoration: none; }
 .app-main { min-width: 0; display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-card); }
 .app-top { position: sticky; z-index: 10; top: 8px; min-height: 60px; padding: 0 16px; display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, .92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); border-radius: var(--r-card) var(--r-card) 0 0; }
 .app-top .top-brand { display: none; }
-.top-search { position: relative; width: min(360px, 100%); display: flex; align-items: center; }
-.top-search svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
-.top-search input { width: 100%; min-height: 40px; padding: 0 12px 0 36px; font-size: 14px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-control); }
+.top-search { position: relative; width: min(420px, 100%); display: flex; align-items: center; }
+.top-search > svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.top-search input { width: 100%; min-height: 40px; padding: 0 38px 0 36px; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-control); }
+.top-search input::-webkit-search-cancel-button { display: none; }
 .top-search input:focus-visible { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(7, 26, 52, .12); }
+.top-search-kbd { position: absolute; right: 10px; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--mist); border: 1px solid var(--border); border-radius: 6px; pointer-events: none; }
+.top-search-clear { position: absolute; right: 8px; width: 26px; height: 26px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); background: var(--mist); border: 0; border-radius: 50%; cursor: pointer; }
+.top-search-clear:hover { color: var(--ink); background: var(--border); }
+.top-search-clear svg { width: 14px; height: 14px; }
+.top-search-panel { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; width: min(480px, calc(100vw - 32px)); background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-lg); overflow: hidden; }
+.top-search-head { padding: 10px 14px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--border); }
+.top-search-head small { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.top-search-list { max-height: 360px; margin: 0; padding: 6px; overflow-y: auto; overflow-x: hidden; display: grid; gap: 2px; list-style: none; }
+.top-search-option { min-width: 0; }
+.top-search-option button { width: 100%; min-width: 0; padding: 9px 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; color: var(--ink); background: transparent; border: 0; border-radius: var(--r-control); cursor: pointer; font: inherit; }
+.top-search-option.is-active button, .top-search-option button:hover { background: var(--mist); }
+.top-search-icon { width: 34px; height: 34px; display: grid; place-items: center; color: var(--ink); background: var(--mist); border: 1px solid var(--border); border-radius: 9px; }
+.top-search-option.is-active .top-search-icon { color: #fff; background: var(--red); border-color: var(--red); }
+.top-search-icon svg { width: 16px; height: 16px; }
+.top-search-body { min-width: 0; display: grid; gap: 2px; }
+.top-search-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.top-search-row strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--ink); }
+.top-search-badge { flex: none; padding: 2px 8px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--mist); border: 1px solid var(--border); border-radius: 999px; }
+.top-search-body small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.top-search-mark { padding: 0 2px; color: var(--ink); background: #ffe08a; border-radius: 3px; font-weight: 700; }
+.top-search-go { color: var(--muted); display: inline-grid; place-items: center; }
+.top-search-option.is-active .top-search-go { color: var(--red); transform: translateX(2px); }
+.top-search-go svg { width: 15px; height: 15px; }
+.top-search-empty { padding: 20px 16px; text-align: center; display: grid; gap: 4px; }
+.top-search-empty p { margin: 0; font-size: 14px; color: var(--ink); }
+.top-search-empty small { font-size: 12.5px; color: var(--muted); }
+.top-search-foot { padding: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); background: var(--mist); border-top: 1px solid var(--border); }
+.top-search-foot span { display: inline-flex; align-items: center; gap: 4px; }
+.top-search-foot kbd { min-width: 18px; padding: 1px 5px; font-family: var(--font-mono), monospace; font-size: 12px; color: var(--ink-2); background: var(--paper); border: 1px solid var(--border); border-radius: 4px; text-align: center; }
 .top-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .bell { position: relative; }
 .bell .dot { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
@@ -428,6 +458,8 @@ a { color: inherit; text-decoration: none; }
   .app-top { top: 0; padding: 0 12px; border-radius: 0; }
   .app-top .top-brand { display: flex; }
   .top-search { flex: 1; }
+  .top-search-panel { position: fixed; top: 72px; left: 12px; right: 12px; width: auto; }
+  .top-search-kbd { display: none; }
   .app-content { padding: 16px 14px 24px; }
   .app-footer { padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
   .popover-panel { inset: 64px 12px auto 12px; width: auto; }

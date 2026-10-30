@@ -140,6 +140,8 @@
 [data-theme="dark"] .class-cards button.selected span { color: #ffe08a; }
 [data-theme="dark"] .class-cards button.selected small, [data-theme="dark"] .assignment-list button.selected small { color: #ffe1dc; }
 [data-theme="dark"] .bubble pre { color: #f6e9e2; background: #120b0c; }
+[data-theme="dark"] .top-search-mark { color: #1f1517; background: #f5c26b; }
+[data-theme="dark"] .top-search-option.is-active .top-search-go { color: #ff8a80; }
 @media (max-width: 640px) {
   [data-theme="dark"] .app-bottom { background: rgba(31, 21, 23, .96); box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .65); }
 }
