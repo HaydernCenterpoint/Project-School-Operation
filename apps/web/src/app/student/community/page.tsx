@@ -2,9 +2,10 @@
 
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, ChatRoom, fold, when } from "@/components/community/ChatRoom";
 import { Icon, type IconName } from "@/components/Icon";
+import { cropAvatarFile, persistAvatar } from "@/lib/avatar";
 import { community, roomIcons, toneOf, topics, type Profile, type RoomIcon, type RoomSummary, type Topic } from "@/lib/community";
 import "@/components/community/community.css";
 
@@ -412,9 +413,23 @@ function ProfileDialog({
   onSaved: () => Promise<void>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const avatarInput = useRef<HTMLInputElement>(null);
   const [bio, setBio] = useState("");
   const [status, setStatus] = useState("");
   const self = profile?.user_id === me.user_id;
+
+  async function onPickAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !self) return;
+    try {
+      const cropped = await cropAvatarFile(file);
+      await persistAvatar(me.user_id, cropped);
+      setStatus("Đã lưu ảnh đại diện mới");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Không đổi được ảnh đại diện");
+    }
+  }
 
   useEffect(() => {
     if (profile && !dialog.current?.open) {
@@ -446,6 +461,25 @@ function ProfileDialog({
             <Icon name="close" />
           </button>
           <Avatar profile={profile} size="lg" />
+          {self && (
+            <>
+              <input
+                ref={avatarInput}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={onPickAvatar}
+              />
+              <button
+                type="button"
+                className="button button-quiet button-small"
+                style={{ justifySelf: "center", marginTop: 6 }}
+                onClick={() => avatarInput.current?.click()}
+              >
+                <Icon name="image" /> Đổi ảnh đại diện
+              </button>
+            </>
+          )}
           <h3>{profile.display_name}</h3>
           {profile.student_code && <p className="pt-code">MSSV {profile.student_code}</p>}
           <dl className="cm-profile-facts">

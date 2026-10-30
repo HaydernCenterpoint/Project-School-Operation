@@ -115,7 +115,7 @@ type Message = AiMessage & {
 };
 
 export default function AiWorkspace() {
-  const { data, error: loadError, refresh } = useStudent();
+  const { data, error: loadError, avatarUrl, refresh } = useStudent();
   const { theme, toggleTheme } = usePhuongTheme();
   const token = data?.token ?? "";
   const [now] = useState(Date.now);
@@ -620,7 +620,9 @@ export default function AiWorkspace() {
         </nav>
         <div className="aw-side-foot">
           <div className="aw-user">
-            <span className="avatar aw-user-avatar">{initials(name)}</span>
+            <span className="avatar aw-user-avatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" className="avatar-img" /> : initials(name)}
+            </span>
             <span>
               <strong>{name}</strong>
               <small>Sinh viên</small>

@@ -14,6 +14,7 @@ import {
 } from "react";
 import { closeCurtain } from "@/components/landing/SceneTransition";
 import { academicRequest } from "./academic-client";
+import { persistAvatar, readStoredAvatar, useAvatarSync } from "./avatar";
 import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "./supabase-browser";
 
 export type StudentData = {
@@ -28,6 +29,8 @@ export type StudentData = {
 type StudentState = {
   data: StudentData | null;
   error: string;
+  avatarUrl: string | null;
+  setAvatarUrl: (next: string | null) => Promise<void>;
   refresh: () => Promise<void>;
   /** Pass the click origin to play the sign-out curtain from there. */
   signOut: (from?: { x: number; y: number }) => Promise<void>;
@@ -102,6 +105,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         return router.replace(`/doi-mat-khau?next=${encodeURIComponent(pathRef.current)}` as Route);
       }
       tokenRef.current = token;
+      const metaAvatar = auth.session!.user.user_metadata?.avatar_url;
+      if (typeof metaAvatar === "string" && metaAvatar && !readStoredAvatar(auth.session!.user.id)) {
+        void persistAvatar(auth.session!.user.id, metaAvatar);
+      }
       void fetchFor(token);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -118,10 +125,22 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchFor, router]);
 
+  const userId = data?.session.user.id ?? null;
+  const avatarUrl = useAvatarSync(userId, true);
+
+  const setAvatarUrl = useCallback(
+    async (next: string | null) => {
+      await persistAvatar(userId, next);
+    },
+    [userId],
+  );
+
   const value = useMemo<StudentState>(
     () => ({
       data,
       error,
+      avatarUrl,
+      setAvatarUrl,
       refresh: () => fetchFor(tokenRef.current),
       signOut: async (from) => {
         // Cover the page before the session ends: signing out triggers the redirect to /login.
@@ -130,7 +149,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         router.replace("/login");
       },
     }),
-    [data, error, fetchFor, router],
+    [avatarUrl, data, error, fetchFor, router, setAvatarUrl],
   );
 
   return <StudentContext.Provider value={value}>{children}</StudentContext.Provider>;

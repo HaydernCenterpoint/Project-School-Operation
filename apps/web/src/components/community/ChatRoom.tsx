@@ -3,6 +3,7 @@
 import { ChangeEvent, ClipboardEvent, DragEvent, FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { community, isVideo, mediaAccept, mediaLimits, mediaProblem, toneOf, type ChatMessage, type Profile, type RoomSummary } from "@/lib/community";
+import { useAvatarSync } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { clock, longDay, shortDay } from "@/lib/portal-demo";
 
@@ -25,9 +26,10 @@ const continues = (previous: ChatMessage | undefined, next: ChatMessage | undefi
     && Date.parse(next.created_at) - Date.parse(previous.created_at) < groupWindow);
 
 export function Avatar({ profile, size = "md" }: { profile: Pick<Profile, "user_id" | "display_name"> | undefined; size?: "sm" | "md" | "lg" }) {
+  const customUrl = useAvatarSync(profile?.user_id, false);
   return (
     <span className={`cm-avatar cm-avatar-${size} tone-${profile ? toneOf(profile.user_id) : 0}`} aria-hidden="true">
-      {profile ? initials(profile.display_name) : "?"}
+      {customUrl ? <img src={customUrl} alt="" className="avatar-img" /> : profile ? initials(profile.display_name) : "?"}
     </span>
   );
 }

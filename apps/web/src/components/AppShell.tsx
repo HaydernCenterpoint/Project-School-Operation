@@ -164,7 +164,7 @@ export function AppShell({
   children,
 }: {
   nav: NavGroup[];
-  user: { name: string; role: string; initial: string } | null;
+  user: { name: string; role: string; initial: string; avatarUrl?: string | null } | null;
   sideCard?: React.ReactNode;
   /** Plain GET form target, so search works without JavaScript. */
   searchAction: Route;
@@ -626,7 +626,7 @@ export function AppShell({
               )}
             </div>
             <Link href={profileHref} className="avatar" aria-label={user ? `Tài khoản của ${user.name}` : "Tài khoản"}>
-              {user?.initial ?? ""}
+              {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="avatar-img" /> : (user?.initial ?? "")}
             </Link>
           </div>
         </header>

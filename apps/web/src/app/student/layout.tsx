@@ -10,11 +10,16 @@ import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 
 function Frame({ children }: { children: React.ReactNode }) {
-  const { data, error, refresh, signOut } = useStudent();
+  const { data, error, avatarUrl, refresh, signOut } = useStudent();
   // The AI workspace is its own full-page app (opened in a new tab); it only needs the session.
   if (usePathname().startsWith("/student/ai")) return children;
   const user = data
-    ? { name: data.session.user.displayName, role: "Sinh viên", initial: initials(data.session.user.displayName) }
+    ? {
+        name: data.session.user.displayName,
+        role: "Sinh viên",
+        initial: initials(data.session.user.displayName),
+        avatarUrl,
+      }
     : null;
   const titles = new Map(data?.assignments.map((item) => [item.id, item.title]));
   const notifications: Notification[] | null = data

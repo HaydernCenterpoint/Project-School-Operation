@@ -59,8 +59,10 @@ export function classCode(id: string) {
 }
 
 export function initials(name: string) {
-  // Vietnamese given names come last.
-  return (name.trim().split(/\s+/).at(-1)?.[0] ?? "S").toUpperCase();
+  // Vietnamese given names come last; skip trailing numeric IDs like "Sinh viên 2200286".
+  const words = name.trim().split(/\s+/);
+  const alphaWord = [...words].reverse().find((w) => /^\p{L}/u.test(w)) ?? words.at(-1);
+  return (alphaWord?.[0] ?? "S").toUpperCase();
 }
 
 export const classAccents = ["#0066cc", "#d60000", "#067647", "#b7791f", "#6b46c1"];
