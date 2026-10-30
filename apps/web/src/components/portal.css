@@ -199,7 +199,7 @@
    One highlight slides between sidebar entries and one underline between tabs (useSlider),
    and the page enters from the direction you travelled. Transform and opacity only. */
 .app-nav { position: relative; }
-.nav-slider { position: absolute; z-index: 0; top: 0; left: 0; pointer-events: none; border-radius: var(--r-control); background: var(--ink); box-shadow: none; }
+.nav-slider { position: absolute; z-index: 0; top: 0; left: 0; pointer-events: none; border-radius: var(--r-control); background: linear-gradient(135deg, #ff7a4d 0%, #e63946 55%, #b81f2f 100%); box-shadow: none; }
 .nav-slider.is-ready { transition: transform .36s var(--ease), width .3s var(--ease), height .3s var(--ease), opacity .2s; }
 .app-nav a { position: relative; z-index: 1; }
 .sd-app .app-nav a[aria-current="page"] { color: #fff; background: transparent; box-shadow: none; transition: color .2s .08s; }

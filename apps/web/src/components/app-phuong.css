@@ -33,7 +33,7 @@
 .sd-app .app-main:not(:has(.cm-shell)) > .app-top { border: 1px solid var(--border); border-radius: var(--r-card); }
 .sd-app .app-main:not(:has(.cm-shell)) > .app-content { padding-inline: 4px; }
 .sd-app .version-tag { color: var(--red); background: var(--red-soft); border-color: #f5cfc8; }
-.sd-app .app-nav a[aria-current="page"], .sd-app .app-bottom a[aria-current="page"] { background: var(--ink); box-shadow: none; }
+.sd-app .app-nav a[aria-current="page"], .sd-app .app-bottom a[aria-current="page"] { color: #fff; background: linear-gradient(135deg, #ff7a4d 0%, #e63946 55%, #b81f2f 100%); box-shadow: none; }
 .sd-app .plan-card { background: linear-gradient(180deg, #fff, #fff3ea); }
 .sd-app .plan-head svg { color: var(--red); }
 .sd-app .meter span { background: var(--blue); }
