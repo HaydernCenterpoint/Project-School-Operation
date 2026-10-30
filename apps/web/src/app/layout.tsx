@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   },
   description:
     "Cổng học tập của sinh viên Đại học Sao Đỏ: lớp học, bài tập, phản hồi của giảng viên và trợ lý học tập AI.",
+  icons: {
+    icon: [{ url: "/sao-do-logo.png", type: "image/png" }],
+    shortcut: ["/sao-do-logo.png"],
+    apple: [{ url: "/sao-do-logo.png", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

@@ -37,6 +37,9 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
                 height={faculty.height}
                 sizes="(max-width: 767px) 80vw, 420px"
               />
+              <figcaption className="sd-rail-caption">
+                <span>{faculty.name}</span>
+              </figcaption>
             </figure>
           </li>
         ))}

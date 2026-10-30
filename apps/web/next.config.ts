@@ -43,6 +43,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/sao-do-logo.png" }];
+  },
 };
 
 export default nextConfig;

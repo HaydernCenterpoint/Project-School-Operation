@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T13:10:00.000Z",
+  "title": "Design System: Sao Do University Campus Study Studio",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Maritime Navy Ink",
+        "canonical": "#071a34",
+        "tonalRamp": ["#040e1d", "#071a34", "#122847", "#1d3150", "#384f73", "#647b9e", "#a9bbd4", "#e8eef7"]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "University Blue",
+        "canonical": "#0066cc",
+        "tonalRamp": ["#002b59", "#004080", "#0052a3", "#0066cc", "#2684e6", "#66abf2", "#b3d7fa", "#e8f1fc"]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Crimson Crest Red",
+        "canonical": "#d60000",
+        "tonalRamp": ["#4d0000", "#800000", "#b80000", "#d60000", "#e63939", "#f27979", "#f9b8b8", "#fdeceb"]
+      },
+      "flamboyant-red": {
+        "role": "secondary",
+        "displayName": "Hoa Phuong Flamboyant Red",
+        "canonical": "#d62839",
+        "tonalRamp": ["#4a0d13", "#7a1620", "#a81f2c", "#d62839", "#e63946", "#f06a74", "#f7adb3", "#ffefe4"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Crisp Studio Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1d3150", "#3c4d66", "#61708a", "#94a2b8", "#c5ccd6", "#dce4ef", "#f4f7fb", "#ffffff"]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Cool Mist Canvas",
+        "canonical": "#f4f7fb",
+        "tonalRamp": ["#1d2736", "#354459", "#52637a", "#7989a1", "#a6b3c7", "#cfd8e6", "#e4e7ec", "#f4f7fb"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Muted Copy",
+        "canonical": "#61708a",
+        "tonalRamp": ["#141b26", "#253042", "#3b485e", "#4e5d75", "#61708a", "#8593ab", "#b4bfd1", "#e4e9f2"]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Reviewed Jade Green",
+        "canonical": "#067647",
+        "tonalRamp": ["#022e1b", "#044d2e", "#067647", "#09995c", "#2bb57a", "#6ed1a6", "#b3ebd2", "#e3f6ec"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Deadline Amber",
+        "canonical": "#8a5a00",
+        "tonalRamp": ["#382400", "#5e3d00", "#8a5a00", "#b57700", "#db981a", "#f2bc57", "#fae0a8", "#fff4d6"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Overdue Garnet",
+        "canonical": "#b42318",
+        "tonalRamp": ["#450c08", "#73150e", "#941c13", "#b42318", "#d6453a", "#e87c74", "#f5bab5", "#fdeceb"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display Serif",
+        "purpose": "Public welcome hero and section headlines on `/`, paired with Dancing Script italics."
+      },
+      "headline": {
+        "displayName": "Headline Sans",
+        "purpose": "Auth card titles and primary portal headings."
+      },
+      "title": {
+        "displayName": "Studio Section Title",
+        "purpose": "Dashboard greeting, frame headers, and tabular KPI readouts."
+      },
+      "body": {
+        "displayName": "Body Copy",
+        "purpose": "Vietnamese coursework instructions, community chat, and AI study responses."
+      },
+      "label": {
+        "displayName": "Status & Nav Label",
+        "purpose": "Semantic chips, uppercase sidebar group headers, and table column headers."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(7, 26, 52, 0.06), 0 2px 8px rgba(7, 26, 52, 0.04)",
+        "purpose": "Quiet buttons and standalone cards outside the studio shell."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 10px 30px -12px rgba(7, 26, 52, 0.18), 0 2px 6px rgba(7, 26, 52, 0.05)",
+        "purpose": "Login auth card and floating route-progress pill."
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 30px 60px -24px rgba(7, 26, 52, 0.28)",
+        "purpose": "Notification popovers, modal dialogs, and framed campus art."
+      },
+      {
+        "name": "button-primary-glow",
+        "value": "0 8px 20px -8px rgba(0, 102, 204, 0.55)",
+        "purpose": "Tinted elevation under primary University Blue buttons."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-studio",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Standard easing for studio controls, sidebar collapse, and route progress."
+      },
+      {
+        "name": "ease-landing",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Expressive easing for public welcome buttons and faculty rail."
+      },
+      {
+        "name": "duration-fast",
+        "value": "150ms",
+        "purpose": "Hover, focus, and active state transitions on interactive controls."
+      },
+      {
+        "name": "duration-med",
+        "value": "240ms",
+        "purpose": "Sidebar width transitions and panel entrances."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile-min", "value": "320px" },
+      { "name": "mobile", "value": "768px" },
+      { "name": "tablet", "value": "960px" },
+      { "name": "desktop", "value": "1360px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary University Blue action button for auth and form submissions.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Đăng nhập cổng học tập</button>",
+      "css": ".ds-btn-primary { min-height: 48px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: GeistSans, system-ui, sans-serif; font-size: 16px; font-weight: 650; line-height: 1.2; color: #ffffff; background: #0066cc; border: 1px solid transparent; border-radius: 14px; box-shadow: 0 8px 20px -8px rgba(0, 102, 204, 0.55); cursor: pointer; transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-primary:hover { background: #0052a3; transform: translateY(-1px); } .ds-btn-primary:active { transform: translateY(0) scale(0.98); } .ds-btn-primary:focus-visible { outline: 3px solid #0066cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Studio Dark Action Button",
+      "kind": "button",
+      "refersTo": "button-dark",
+      "description": "Compact Maritime Navy action button used inside the framed student and teacher studio shell.",
+      "html": "<button class=\"ds-btn-dark\" type=\"button\">Nộp bài tập</button>",
+      "css": ".ds-btn-dark { min-height: 40px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: GeistSans, system-ui, sans-serif; font-size: 14px; font-weight: 650; line-height: 1.2; color: #ffffff; background: #071a34; border: 1px solid transparent; border-radius: 10px; cursor: pointer; transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-dark:hover { background: #1d3150; transform: translateY(-1px); } .ds-btn-dark:active { transform: scale(0.98); } .ds-btn-dark:focus-visible { outline: 3px solid #0066cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Outline Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary bordered paper button for neutral actions and filters.",
+      "html": "<button class=\"ds-btn-quiet\" type=\"button\">Xem chi tiết lớp</button>",
+      "css": ".ds-btn-quiet { min-height: 48px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: GeistSans, system-ui, sans-serif; font-size: 15px; font-weight: 650; color: #071a34; background: #ffffff; border: 1px solid #dce4ef; border-radius: 14px; box-shadow: 0 1px 2px rgba(7, 26, 52, 0.06); cursor: pointer; transition: background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-quiet:hover { background: #f4f7fb; border-color: #b7c6da; } .ds-btn-quiet:focus-visible { outline: 3px solid #0066cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Coursework Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "High-contrast form field with ≥3:1 resting border contrast and 4px blue focus halo.",
+      "html": "<label class=\"ds-field\"><span>Email sinh viên</span><input class=\"ds-input\" type=\"email\" placeholder=\"student1@saodo.edu.vn\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; font-family: GeistSans, system-ui, sans-serif; font-size: 15px; font-weight: 600; color: #071a34; } .ds-input { width: 100%; min-height: 50px; padding: 12px 16px; font-size: 15px; font-weight: 400; color: #071a34; background: #ffffff; border: 1px solid #61708a; border-radius: 14px; transition: border-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-input:hover { border-color: #1d3150; } .ds-input:focus-visible { outline: none; border-color: #0066cc; box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.2); }"
+    },
+    {
+      "name": "Submission Status Chips",
+      "kind": "chip",
+      "refersTo": "chip-default",
+      "description": "Semantic pill badges for assignment states (Đã nộp, Đã chấm, Sắp hết hạn, Bản thử nghiệm).",
+      "html": "<div class=\"ds-chip-row\"><span class=\"ds-chip\">Đang mở</span><span class=\"ds-chip ds-chip-reviewed\">Đã chấm</span><span class=\"ds-chip ds-chip-soon\">Sắp hết hạn</span><span class=\"ds-chip ds-chip-demo\">Bản xem thử</span></div>",
+      "css": ".ds-chip-row { display: flex; flex-wrap: wrap; gap: 8px; font-family: GeistSans, system-ui, sans-serif; } .ds-chip { min-height: 28px; padding: 3px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; line-height: 1.4; color: #0052a3; background: #e8f1fc; border-radius: 999px; } .ds-chip-reviewed { color: #067647; background: #e3f6ec; } .ds-chip-soon { color: #8a5a00; background: #fff4d6; } .ds-chip-demo { color: #071a34; background: #ffea00; }"
+    },
+    {
+      "name": "Studio Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "card-studio",
+      "description": "Grouped studio navigation items with solid Maritime Navy active pill.",
+      "html": "<nav class=\"ds-studio-nav\" aria-label=\" Không gian học tập\"><p class=\"ds-nav-group\">HỌC TẬP</p><a class=\"ds-nav-item\" href=\"#tong-quan\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg><span>Tổng quan</span></a><a class=\"ds-nav-item\" href=\"#lop-hoc\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20\"/><path d=\"M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z\"/></svg><span>Lớp học &amp; Bài tập</span></a></nav>",
+      "css": ".ds-studio-nav { width: 240px; padding: 10px 12px; display: grid; gap: 4px; font-family: GeistSans, system-ui, sans-serif; background: #ffffff; border: 1px solid #e4e7ec; border-radius: 14px; } .ds-nav-group { margin: 4px 0; padding: 0 8px; color: #61708a; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; } .ds-nav-item { min-height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; color: #1d3150; text-decoration: none; border-radius: 10px; transition: background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1), color 150ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-nav-item svg { width: 18px; height: 18px; flex: none; } .ds-nav-item:hover { background: #f4f7fb; } .ds-nav-item[aria-current=\"page\"] { color: #ffffff; background: #071a34; } .ds-nav-item:focus-visible { outline: 3px solid #0066cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Framed Studio Metric Cell",
+      "kind": "card",
+      "refersTo": "card-studio",
+      "description": "Flat, hairline-bordered studio metric readout with tabular numbers and dotted band separator.",
+      "html": "<div class=\"ds-studio-frame\"><div class=\"ds-metric-cell\"><div><div class=\"ds-metric-label\">Bài tập cần nộp trong 3 ngày</div><div class=\"ds-metric-value\">02 <span class=\"ds-badge-warn\">Cần ưu tiên</span></div></div><div class=\"ds-icon-box\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 3\"/></svg></div></div><div class=\"ds-frame-gap\"></div></div>",
+      "css": ".ds-studio-frame { overflow: hidden; font-family: GeistSans, system-ui, sans-serif; color: #071a34; background: #ffffff; border: 1px solid #e4e7ec; border-radius: 14px; } .ds-metric-cell { padding: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; } .ds-metric-label { font-size: 14px; color: #1d3150; } .ds-metric-value { margin-top: 6px; display: flex; align-items: center; gap: 8px; font-size: 28px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-badge-warn { padding: 2px 8px; font-size: 12px; font-weight: 600; color: #b54708; background: #fff4e5; border-radius: 999px; } .ds-icon-box { width: 40px; height: 40px; display: grid; place-items: center; color: #071a34; border: 1px solid #e4e7ec; border-radius: 10px; } .ds-icon-box svg { width: 18px; height: 18px; } .ds-frame-gap { height: 16px; background: radial-gradient(circle, #c5ccd6 1px, transparent 1.4px) 0 50% / 10px 10px; border-top: 1px solid #e4e7ec; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Red Flamboyant Studio",
+    "overview": "The Sao Do University web platform balances two purposeful atmospheres under one institutional roof. On the public welcome surface (`/`), the system opens into warm sunlit cream (`#fff8f0`), flamboyant red (`#d62839`), coral (`#ff6b4a`), and leaf green (`#2e9e5b`), celebrating Hải Phòng (Thành phố Hoa Phượng Đỏ) and the university's technical heritage since 1969 through editorial serif headlines, calligraphic accents, and gentle botanical motion.\n\nOnce a student, teacher, or administrator steps inside the working campus (`/student`, `/guest`, `/portal`), the atmosphere shifts to a crisp, distraction-free study studio. Two outlined white panels float on a cool mist canvas (`#f4f7fb` / `#f5f6f8`) separated by an 8px gap, anchored by deep maritime navy (`#071a34`) and university blue (`#0066cc`). Every metric, deadline bar, and submission table is framed by hairlines and dotted divider bands rather than heavy shadows, keeping daily academic work calm, scannable, and trustworthy.",
+    "keyCharacteristics": [
+      "Dual-atmosphere architecture: warm sunlit Hoa Phượng Đỏ editorial welcome (`/`) transitioning into a crisp, framed navy-and-paper studio shell (`/student`, `/portal`).",
+      "Outlined studio geometry: 1px structural borders (`#dce4ef` outside, `#e4e7ec` inside the shell) and 16px radial-dot divider bands replace nested card shadows.",
+      "Vietnamese-first typographic clarity: full diacritic legibility across Playfair Display, Dancing Script, Be Vietnam Pro, and GeistSans, paired with `tabular-nums` on every deadline, counter, and grade metric.",
+      "Tactile, high-contrast controls: 44px to 50px touch heights, 3px university-blue focus rings, and semantic status pills verified at ≥3:1 border/muted contrast.",
+      "Respectful institutional branding: the official Sao Do University crest (`sao-do-logo.png`) anchors splash states, route progress, and sidebar lockups without distortion."
+    ],
+    "rules": [
+      {
+        "name": "The Two-World Palette Rule",
+        "body": "Warm cream (`#fff8f0`) and coral-red gradients belong to the public welcome surface (`/`). Inside `/student`, `/guest`, and `/portal`, surfaces stay strictly on Crisp Studio Paper (`#ffffff`) and Cool Mist (`#f4f7fb`) so long study sessions remain visually quiet.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sparse Crimson Rule",
+        "body": "Crimson (`#d60000`) is an alarm and a seal, never a wallpaper. Inside the workspace it appears only on live notification dots, urgent overdue badges, or destructive confirmations.",
+        "section": "colors"
+      },
+      {
+        "name": "The Guest Yellow Lock Rule",
+        "body": "Signal Yellow (`#ffea00`) is reserved solely for identifying read-only guest mode (`/guest`). Never assign it to ordinary warnings or decorative tags.",
+        "section": "colors"
+      },
+      {
+        "name": "The Vietnamese Diacritic Clearance Rule",
+        "body": "Headings must never set `line-height` below `1.08` (or `1.2` in UI controls) and must never clip vertical overflow without `0.02em–0.12em` block padding, preserving stacked Vietnamese tone marks.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Metric Rule",
+        "body": "Every numeric counter, deadline countdown, chart axis, and AI quota readout must apply `font-variant-numeric: tabular-nums` so columns align vertically and updates never jitter horizontally.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-Inside-The-Shell Rule",
+        "body": "Never apply drop shadows to cards, stat cells, or table wrappers inside `.app-shell`. Divide interior workspace regions with `1px solid var(--border)` hairlines and `.frame-gap` dotted bands instead.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use `1px solid #e4e7ec` hairlines and `.frame-gap` radial-dot bands (`16px` height) to subdivide dashboard and portal data inside `.app-shell`.",
+      "Do keep resting form input borders at `#61708a` (`--muted`) on white surfaces so input boundaries maintain ≥3:1 contrast.",
+      "Do apply `font-variant-numeric: tabular-nums` on every deadline, submission counter, and AI allowance readout.",
+      "Do render the Sao Do University crest (`/sao-do-logo.png`) at its natural aspect ratio without recolouring, cropping, or spinning it.",
+      "Do halt ambient petal animations, shimmer, and breathing halos under `@media (prefers-reduced-motion: reduce)`."
+    ],
+    "donts": [
+      "Don't mix the public welcome palette (`#fff8f0` cream, `#ff6b4a` coral, Playfair Display / Dancing Script) into the `/student` or `/portal` workspaces.",
+      "Don't stack cards inside cards with drop shadows inside `.app-shell`; interior studio surfaces must remain flat (`box-shadow: none`).",
+      "Don't use Signal Yellow (`#ffea00`) for anything other than the read-only `/guest` mode indicator.",
+      "Don't set interactive controls below `44×44px` on public/mobile views or `40px` height inside the desktop studio shell."
+    ]
+  }
+}

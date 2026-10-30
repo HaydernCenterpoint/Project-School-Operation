@@ -3,9 +3,9 @@
    Built on the phượng tokens, so light and dark follow the app theme. */
 
 /* ---------- shared ---------- */
-.sd-app { --cm-spring: cubic-bezier(.34, 1.56, .64, 1); --cm-out: cubic-bezier(.16, 1, .3, 1); --cm-bubble: 20px; --cm-tight: 6px; }
+.sd-app { --cm-spring: var(--ease); --cm-out: cubic-bezier(.16, 1, .3, 1); --cm-bubble: 20px; --cm-tight: 6px; }
 .cm-avatar { width: 44px; height: 44px; display: inline-grid; place-items: center; flex: none; color: #fff; font-size: 15px; font-weight: 700; background: var(--c, var(--red)); border-radius: 50%; }
-.cm-avatar-sm { width: 30px; height: 30px; font-size: 11px; }
+.cm-avatar-sm { width: 30px; height: 30px; font-size: 12px; }
 .cm-avatar-lg { width: 84px; height: 84px; font-size: 28px; border: 6px solid var(--paper); }
 /* Group rooms get a tinted squircle in the room's own tone, so the rail reads at a glance. */
 .cm-glyph { width: 44px; height: 44px; display: grid; place-items: center; flex: none; color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--paper)); border-radius: 14px; }
@@ -89,7 +89,7 @@
 .cm-row.is-unread strong, .cm-row.is-unread .cm-row-preview { color: var(--ink); font-weight: 700; }
 .cm-row.is-unread time { color: var(--red); font-weight: 700; }
 .sd-app[data-theme="dark"] .cm-row.is-unread time { color: var(--blue); }
-.cm-row-topic { flex: none; padding: 1px 8px; color: var(--ink-2); font-size: 11.5px; font-weight: 650; background: var(--paper); border: 1px solid var(--border); border-radius: 99px; }
+.cm-row-topic { flex: none; padding: 1px 8px; color: var(--ink-2); font-size: 12px; font-weight: 650; background: var(--paper); border: 1px solid var(--border); border-radius: 99px; }
 .cm-explore { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
 .cm-explore h3 { margin: 0 12px 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .cm-rail-empty { margin: 8px 12px; color: var(--muted); font-size: 14px; }
@@ -154,7 +154,7 @@
 .cm-msg-meta { margin: 0 0 4px; padding: 0 12px; display: flex; align-items: baseline; gap: 8px; }
 .cm-name { padding: 0; color: var(--c); font: inherit; font-size: 13px; font-weight: 700; background: none; border: 0; cursor: pointer; }
 .cm-name:hover { text-decoration: underline; }
-.cm-msg-meta time { color: var(--muted); font-size: 11.5px; }
+.cm-msg-meta time { color: var(--muted); font-size: 12px; }
 .cm-bubble-row { min-width: 0; max-width: 100%; display: flex; align-items: center; gap: 6px; }
 .cm-msg.is-mine .cm-bubble-row { flex-direction: row-reverse; }
 .cm-bubble { min-width: 0; padding: 9px 14px; color: var(--ink); background: var(--mist); border: 1px solid var(--border); border-radius: var(--cm-bubble); }
@@ -171,10 +171,10 @@
 .cm-mention.is-me { color: #7a4d00; background: color-mix(in srgb, #ffc53d 42%, transparent); }
 .sd-app[data-theme="dark"] .cm-mention.is-me { color: #ffd67a; }
 .cm-msg.is-mine .cm-mention { color: #fff; background: rgb(255 255 255 / .22); text-decoration: underline; text-underline-offset: 2px; }
-.cm-quote { width: 100%; max-width: 100%; margin: 0 0 6px; padding: 6px 10px; display: grid; gap: 1px; color: var(--ink-2); font: inherit; font-size: 13px; text-align: left; background: color-mix(in srgb, var(--paper) 70%, transparent); border: 0; border-left: 3px solid var(--c); border-radius: 10px; cursor: pointer; }
+.cm-quote { width: 100%; max-width: 100%; margin: 0 0 6px; padding: 6px 10px; display: grid; gap: 1px; color: var(--ink-2); font: inherit; font-size: 13px; text-align: left; background: color-mix(in srgb, var(--paper) 70%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, var(--border)); border-radius: 10px; cursor: pointer; }
 .cm-quote b { color: var(--c); font-size: 12.5px; }
 .cm-quote span, .cm-quote i { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.cm-msg.is-mine .cm-quote { color: #fff; background: rgb(255 255 255 / .16); border-left-color: #fff; }
+.cm-msg.is-mine .cm-quote { color: #fff; background: rgb(255 255 255 / .16); border-color: rgb(255 255 255 / .4); }
 .cm-msg.is-mine .cm-quote b { color: #fff; }
 /* Photos and videos: a grid inside the bubble, edge to edge when the message has no text. */
 .cm-bubble.has-media { width: min(360px, 100%); }
@@ -218,7 +218,7 @@
 /* ---------- composer ---------- */
 .cm-error { margin: 0; padding: 6px 20px; }
 .cm-compose { position: relative; padding: 10px 16px 16px; border-top: 1px solid var(--border); }
-.cm-replying { margin: 0 0 8px; padding: 8px 8px 8px 12px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; background: var(--mist); border-left: 3px solid var(--red); border-radius: 12px; }
+.cm-replying { margin: 0 0 8px; padding: 8px 8px 8px 12px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; background: var(--mist); border: 1px solid color-mix(in srgb, var(--red) 35%, var(--border)); border-radius: 12px; }
 .cm-replying > svg { width: 15px; height: 15px; flex: none; }
 .cm-replying > span { min-width: 0; flex: 1; display: grid; }
 .cm-replying b { color: var(--ink); }

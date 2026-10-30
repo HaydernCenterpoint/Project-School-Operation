@@ -75,11 +75,11 @@
 .sch-head strong { width: 38px; height: 38px; display: grid; place-items: center; font-size: 1.2rem; border-radius: 50%; }
 .sch-head.is-weekend span { color: var(--red); }
 .sch-head.is-today strong { color: #fff; background: var(--red); box-shadow: 0 8px 18px -8px rgba(214, 40, 57, .8); }
-.sch-head em { color: var(--red); font-size: 11px; font-style: normal; font-weight: 700; }
+.sch-head em { color: var(--red); font-size: 12px; font-style: normal; font-weight: 700; }
 .sch-axis { position: relative; grid-row: 2; grid-column: 1; }
-.sch-axis span { position: absolute; right: 10px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; transform: translateY(-50%); }
+.sch-axis span { position: absolute; right: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; transform: translateY(-50%); }
 .sch-axis span:first-child { transform: none; }
-.sch-axis b { position: absolute; left: 8px; margin-top: 18px; padding: 1px 6px; font-size: 10px; font-weight: 700; color: var(--part); background: color-mix(in srgb, var(--part) 14%, var(--paper)); border-radius: 6px; }
+.sch-axis b { position: absolute; left: 8px; margin-top: 18px; padding: 1px 6px; font-size: 12px; font-weight: 700; color: var(--part); background: color-mix(in srgb, var(--part) 14%, var(--paper)); border-radius: 6px; }
 .sch-body { position: relative; grid-row: 2; grid-column: 2 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background-image: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px var(--hour)); }
 .sch-part { position: absolute; left: 0; right: 0; pointer-events: none; background: color-mix(in srgb, var(--part) 7%, transparent); }
 .p-morning { --part: #d98a00; }
@@ -94,12 +94,12 @@
 .sch-free { position: absolute; top: 40%; left: 0; right: 0; margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
 
 /* Items */
-.sch-ev { position: absolute; z-index: 1; min-width: 0; padding: 6px 8px; overflow: hidden; display: grid; align-content: start; gap: 1px; color: var(--ink); background: color-mix(in srgb, var(--k) 15%, var(--paper)); border: 1px solid color-mix(in srgb, var(--k) 28%, transparent); border-left: 3px solid var(--k); border-radius: 10px; box-shadow: 0 6px 14px -10px rgba(40, 10, 10, .45); cursor: default; transition: transform var(--fast) var(--ease), box-shadow var(--fast); animation: sch-in .45s cubic-bezier(.16, 1, .3, 1) both; }
+.sch-ev { position: absolute; z-index: 1; min-width: 0; padding: 6px 8px; overflow: hidden; display: grid; align-content: start; gap: 1px; color: var(--ink); background: color-mix(in srgb, var(--k) 15%, var(--paper)); border: 1px solid color-mix(in srgb, var(--k) 38%, transparent); border-radius: 10px; box-shadow: 0 6px 14px -10px rgba(40, 10, 10, .45); cursor: default; transition: transform var(--fast) var(--ease), box-shadow var(--fast); animation: sch-in .45s cubic-bezier(.16, 1, .3, 1) both; }
 .sch-ev:hover { z-index: 3; transform: translateY(-1px) scale(1.02); box-shadow: 0 14px 24px -14px rgba(40, 10, 10, .55); }
-.sch-ev time { color: var(--k); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; filter: brightness(.85); }
+.sch-ev time { color: var(--k); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; filter: brightness(.85); }
 .sd-app[data-theme="dark"] .sch-ev time { filter: none; }
 .sch-ev h4 { margin: 0; font-size: 12.5px; line-height: 1.3; }
-.sch-ev p { margin: 0; display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11.5px; }
+.sch-ev p { margin: 0; display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
 .sch-ev p svg { width: 11px; height: 11px; flex: none; }
 .sch-ev-detail { display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 @keyframes sch-in { from { opacity: 0; transform: translateY(6px); } }
@@ -189,14 +189,13 @@
 .sd-time { padding-top: 14px; display: grid; justify-items: end; align-content: start; gap: 1px; font-variant-numeric: tabular-nums; }
 .sd-time strong { font-size: 1.15rem; line-height: 1.1; }
 .sd-time span { color: var(--muted); font-size: 13px; }
-.sd-time small { margin-top: 6px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.sd-time small { margin-top: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .sd-rail { position: relative; display: flex; justify-content: center; }
 .sd-rail::before { content: ""; position: absolute; top: 0; bottom: -12px; width: 2px; background: linear-gradient(var(--k), color-mix(in srgb, var(--k) 10%, transparent)); border-radius: 2px; opacity: .6; }
 .sd-rail i { position: relative; width: 14px; height: 14px; margin-top: 18px; background: var(--paper); border: 3px solid var(--k); border-radius: 50%; }
 .sd-row.is-live .sd-rail i { background: var(--k); box-shadow: 0 0 0 5px color-mix(in srgb, var(--k) 22%, transparent); animation: sch-pulse 2s ease-in-out infinite; }
 
 .sd-card { position: relative; min-width: 0; padding: 16px 18px 16px 20px; overflow: hidden; background: linear-gradient(120deg, color-mix(in srgb, var(--k) 13%, var(--paper)) 0%, var(--paper) 62%); border: 1px solid color-mix(in srgb, var(--k) 26%, var(--border)); border-radius: 18px; box-shadow: 0 10px 26px -20px rgba(40, 10, 10, .6); transition: transform var(--fast) var(--ease), box-shadow var(--fast); }
-.sd-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--k); }
 .sd-card:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -22px rgba(40, 10, 10, .7); }
 .sd-card header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .sd-tag, .sd-periods, .sd-status { min-height: 26px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; border-radius: 999px; }
@@ -214,7 +213,7 @@
 .sd-meta dt svg { width: 13px; height: 13px; }
 .sd-meta dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .sd-person { display: flex; align-items: center; gap: 8px; }
-.sd-person span { width: 24px; height: 24px; display: grid; place-items: center; flex: none; color: #fff; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, color-mix(in srgb, var(--k) 70%, #fff), var(--k)); border-radius: 50%; }
+.sd-person span { width: 24px; height: 24px; display: grid; place-items: center; flex: none; color: #fff; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, color-mix(in srgb, var(--k) 70%, #fff), var(--k)); border-radius: 50%; }
 .sd-progress { height: 6px; margin-top: 14px; overflow: hidden; background: var(--mist); border-radius: 99px; }
 .sd-progress span { display: block; height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--k) 60%, #fff), var(--k)); border-radius: inherit; }
 .sd-row.is-done .sd-card { opacity: .62; }
@@ -236,10 +235,10 @@
 .sd-heat { padding: 16px; }
 .sd-heat h3 { margin: 0 0 12px; font-size: 1rem; }
 .sd-heat-grid { display: grid; grid-template-columns: 42px repeat(7, minmax(0, 1fr)); gap: 4px; }
-.sd-heat-day, .sd-heat-part { color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; }
+.sd-heat-day, .sd-heat-part { color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; }
 .sd-heat-part { align-self: center; text-align: left; text-transform: capitalize; }
 .sd-heat-day.is-today { color: var(--red); }
-.sd-heat-cell { aspect-ratio: 1; display: grid; place-items: center; color: var(--ink); font-size: 11px; font-weight: 800; background: var(--mist); border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: transform var(--fast) var(--ease); }
+.sd-heat-cell { aspect-ratio: 1; display: grid; place-items: center; color: var(--ink); font-size: 12px; font-weight: 800; background: var(--mist); border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: transform var(--fast) var(--ease); }
 .sd-heat-cell:hover { transform: scale(1.1); }
 .sd-heat-cell.l-1 { background: color-mix(in srgb, var(--red) 22%, var(--paper)); }
 .sd-heat-cell.l-2 { background: color-mix(in srgb, var(--red) 48%, var(--paper)); }

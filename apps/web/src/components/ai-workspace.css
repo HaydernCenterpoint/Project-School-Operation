@@ -39,7 +39,7 @@
 .aw-new { min-height: 44px; padding: 0 12px; display: flex; white-space: nowrap; align-items: center; gap: 10px; color: var(--ink); font-weight: 600; text-align: left; background: var(--paper); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: border-color var(--fast), box-shadow var(--fast); }
 .aw-new:hover:not(:disabled) { border-color: var(--red); box-shadow: 0 0 0 3px rgba(214, 40, 57, .12); }
 .aw-new svg { width: 18px; height: 18px; flex: none; color: var(--red); }
-.aw-new kbd { min-width: 0; margin-left: auto; overflow: hidden; color: var(--muted); font: inherit; font-size: 11px; }
+.aw-new kbd { min-width: 0; margin-left: auto; overflow: hidden; color: var(--muted); font: inherit; font-size: 12px; }
 .aw-search { position: relative; display: flex; align-items: center; }
 .aw-search svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
 .aw-search input { width: 100%; min-height: 40px; padding: 0 12px 0 36px; font-size: 14px; background: transparent; border: 1px solid var(--border); border-radius: 12px; }
@@ -161,7 +161,7 @@
 /* Opening scene (AiIntro.tsx): splash blooms, then opens like a curtain onto the workspace,
    whose parts arrive in order: sidebar, top bar, greeting, composer, modes, suggestions. */
 .aw-splash { position: fixed; z-index: 100; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; color: #fff; text-align: center; background: radial-gradient(circle at 50% 45%, #ff7a4d 0%, #e63946 45%, #a8182a 100%); clip-path: circle(150vmax at 50% 45%); }
-.aw-splash-mark { width: 104px; height: 104px; margin-bottom: 12px; display: grid; place-items: center; background: #fff; border-radius: 50%; box-shadow: 0 20px 40px -16px rgba(80, 0, 10, .55); animation: aw-bloom .8s cubic-bezier(.34, 1.56, .64, 1) both; }
+.aw-splash-mark { width: 104px; height: 104px; margin-bottom: 12px; display: grid; place-items: center; background: #fff; border-radius: 50%; box-shadow: 0 20px 40px -16px rgba(80, 0, 10, .55); animation: aw-bloom .7s var(--ease) both; }
 .aw-splash-mark svg { animation: aw-spin 6s linear .8s infinite; }
 .aw-splash strong { font-family: var(--font-display), Georgia, serif; font-size: clamp(1.8rem, 4vw, 2.4rem); animation: aw-rise .6s cubic-bezier(.16, 1, .3, 1) .25s both; }
 .aw-splash > span:last-child { color: rgba(255, 255, 255, .85); font-size: 15px; letter-spacing: .04em; animation: aw-rise .6s cubic-bezier(.16, 1, .3, 1) .38s both; }
@@ -194,7 +194,7 @@
 .aw-attach svg { width: 16px; height: 16px; }
 .aw-attach:hover:not(:disabled) { color: var(--red); background: var(--sky); }
 .aw-attach:disabled { opacity: .45; cursor: not-allowed; }
-.aw-attach-menu { position-anchor: --aw-attach; position-area: top span-right; width: 280px; margin: 0 0 8px; padding: 6px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(6px) scale(.97); transform-origin: 16px 100%; transition: opacity .18s ease, transform .28s cubic-bezier(.34, 1.3, .64, 1), overlay .28s allow-discrete, display .28s allow-discrete; }
+.aw-attach-menu { position-anchor: --aw-attach; position-area: top span-right; width: 280px; margin: 0 0 8px; padding: 6px; color: var(--ink); background: var(--paper); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(6px) scale(.97); transform-origin: 16px 100%; transition: opacity .18s ease, transform .26s var(--ease), overlay .26s allow-discrete, display .26s allow-discrete; }
 .aw-attach-menu:popover-open { opacity: 1; transform: none; }
 @starting-style { .aw-attach-menu:popover-open { opacity: 0; transform: translateY(6px) scale(.97); } }
 .aw-attach-menu button { width: 100%; padding: 10px; display: flex; align-items: center; gap: 12px; color: inherit; text-align: left; background: none; border: 0; border-radius: 10px; cursor: pointer; }
@@ -208,14 +208,14 @@
 }
 
 .aw-tray { margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; list-style: none; }
-.aw-file { position: relative; max-width: 240px; padding: 6px 30px 6px 6px; display: flex; align-items: center; gap: 8px; background: var(--mist); border: 1px solid var(--border); border-radius: 12px; animation: aw-file-in .3s cubic-bezier(.34, 1.3, .64, 1) both; }
+.aw-file { position: relative; max-width: 240px; padding: 6px 30px 6px 6px; display: flex; align-items: center; gap: 8px; background: var(--mist); border: 1px solid var(--border); border-radius: 12px; animation: aw-file-in .26s var(--ease) both; }
 .aw-file img, .aw-file-icon { width: 38px; height: 38px; flex: none; object-fit: cover; border-radius: 8px; }
 .aw-file-icon { display: grid; place-items: center; color: var(--red); background: var(--sky); }
 .aw-file-icon svg { width: 18px; height: 18px; }
 .aw-file.k-text .aw-file-icon { color: var(--k-activity, #2e9e5b); }
 .aw-file-text { min-width: 0; display: grid; line-height: 1.3; }
 .aw-file-text strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.aw-file-text small { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.aw-file-text small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .aw-file-remove { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; color: var(--muted); font-size: 16px; line-height: 1; background: none; border: 0; border-radius: 50%; cursor: pointer; }
 .aw-file-remove:hover { color: #fff; background: var(--red); }
 .aw-file.is-loading { padding-right: 12px; color: var(--muted); font-size: 13px; }

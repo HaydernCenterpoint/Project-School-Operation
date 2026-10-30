@@ -28,13 +28,13 @@ const milestones = [
 ];
 
 const faculties: Faculty[] = [
-  { name: "Khoa Cơ khí", src: "/truong/khoa-co-khi.jpg", width: 1276, height: 956 },
-  { name: "Khoa Công nghệ thông tin", src: "/truong/khoa-cntt.jpg", width: 1500, height: 1000 },
-  { name: "Khoa Điện", src: "/truong/khoa-dien.jpg", width: 945, height: 567 },
-  { name: "Khoa Ô tô", src: "/truong/khoa-o-to.jpg", width: 600, height: 360 },
-  { name: "Khoa Kinh tế", src: "/truong/khoa-kinh-te.jpg", width: 1488, height: 893 },
-  { name: "Khoa Du lịch và Ngoại ngữ", src: "/truong/khoa-du-lich-ngoai-ngu.jpg", width: 1464, height: 878 },
-  { name: "Khoa May và Thời trang", src: "/truong/khoa-may-thoi-trang.jpg", width: 1300, height: 976 },
+  { name: "Khoa Cơ khí", src: "/truong/khoa-co-khi.jpg", width: 1276, height: 872 },
+  { name: "Khoa Công nghệ thông tin", src: "/truong/khoa-cntt.jpg", width: 1500, height: 894 },
+  { name: "Khoa Điện", src: "/truong/khoa-dien.jpg", width: 945, height: 496 },
+  { name: "Khoa Ô tô", src: "/truong/khoa-o-to.jpg", width: 600, height: 312 },
+  { name: "Khoa Kinh tế", src: "/truong/khoa-kinh-te.jpg", width: 1488, height: 778 },
+  { name: "Khoa Du lịch và Ngoại ngữ", src: "/truong/khoa-du-lich-ngoai-ngu.jpg", width: 1464, height: 764 },
+  { name: "Khoa May và Thời trang", src: "/truong/khoa-may-thoi-trang.jpg", width: 1300, height: 890 },
 ];
 
 const events = [

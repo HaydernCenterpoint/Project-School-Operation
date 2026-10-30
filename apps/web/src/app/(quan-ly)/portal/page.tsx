@@ -49,6 +49,11 @@ export default function PortalPage() {
     hasSupabaseEnvironment ? null : { kind: "error", message: "Cổng học tập chưa được cấu hình. Vui lòng liên hệ quản trị viên." },
   );
   const [reload, setReload] = useState(0);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [selectedStudentCount, setSelectedStudentCount] = useState(0);
+  const [showPublishForm, setShowPublishForm] = useState(true);
+  const [submissionFilter, setSubmissionFilter] = useState<"all" | "submitted" | "reviewed">("all");
+  const [submissionQuery, setSubmissionQuery] = useState("");
   const assignmentsController = useRef<AbortController | null>(null);
   const submissionsController = useRef<AbortController | null>(null);
   const sectionLoading = assignmentsLoading || submissionsLoading;
@@ -190,6 +195,17 @@ export default function PortalPage() {
   const selectedAssignment = assignments.find((item) => item.id === selectedAssignmentId) ?? null;
   const teachers = useMemo(() => session?.people.filter((person) => person.role === "teacher") ?? [], [session]);
   const students = useMemo(() => session?.people.filter((person) => person.role === "student") ?? [], [session]);
+  const normalizedStudentQuery = studentQuery.trim().toLowerCase();
+  const matchingStudentCount = useMemo(
+    () =>
+      !normalizedStudentQuery
+        ? students.length
+        : students.filter((person) => `${person.displayName} ${person.email}`.toLowerCase().includes(normalizedStudentQuery)).length,
+    [normalizedStudentQuery, students],
+  );
+  const pendingSubmissionCount = useMemo(() => submissions.filter((item) => item.status !== "reviewed").length, [submissions]);
+  const reviewedSubmissionCount = submissions.length - pendingSubmissionCount;
+  const normalizedSubmissionQuery = submissionQuery.trim().toLowerCase();
 
   async function mutate(run: () => Promise<void>, success: string, failure: string) {
     setMutating(true);
@@ -306,8 +322,45 @@ export default function PortalPage() {
           </Section>
 
           {session.role === "admin" && (
-            <Section title="Tạo lớp mới" icon="plus">
-              <form className="academic-form lp-form" onSubmit={createClass}>
+            <Section
+              title="Tạo lớp mới"
+              icon="plus"
+              action={
+                students.length > 0 ? (
+                  <span className="lp-members-count">
+                    Đã chọn {selectedStudentCount}/{students.length} sinh viên
+                  </span>
+                ) : undefined
+              }
+            >
+              {students.length > 0 && (
+                <div className="lp-filter-bar">
+                  <label className="ad-search">
+                    <Icon name="search" />
+                    <input
+                      type="search"
+                      value={studentQuery}
+                      onChange={(event) => setStudentQuery(event.target.value)}
+                      placeholder="Tìm sinh viên theo tên hoặc email…"
+                      aria-label="Tìm sinh viên theo tên hoặc email"
+                    />
+                  </label>
+                  {normalizedStudentQuery && (
+                    <span className="pt-muted">
+                      Hiển thị {matchingStudentCount}/{students.length} sinh viên
+                    </span>
+                  )}
+                </div>
+              )}
+              <form
+                className="academic-form lp-form"
+                onSubmit={createClass}
+                onChange={(event) => {
+                  const checked = event.currentTarget.querySelectorAll('input[name="studentIds"]:checked').length;
+                  setSelectedStudentCount(checked);
+                }}
+                onReset={() => setSelectedStudentCount(0)}
+              >
                 <div className="form-heading">
                   <h3>Tạo lớp mới</h3>
                   <p className="pt-muted">Chọn một giảng viên và ít nhất một sinh viên.</p>
@@ -326,14 +379,22 @@ export default function PortalPage() {
                   </select>
                 </label>
                 <fieldset className="lp-members">
-                  <legend>Sinh viên</legend>
+                  <legend>
+                    <span>Sinh viên</span>
+                    <span className="lp-members-count">Đã chọn {selectedStudentCount}</span>
+                  </legend>
                   <div>
-                    {students.map((person) => (
-                      <label key={person.id}>
-                        <input type="checkbox" name="studentIds" value={person.id} />
-                        <span><strong>{person.displayName}</strong><small>{person.email}</small></span>
-                      </label>
-                    ))}
+                    {students.map((person) => {
+                      const matches =
+                        !normalizedStudentQuery ||
+                        `${person.displayName} ${person.email}`.toLowerCase().includes(normalizedStudentQuery);
+                      return (
+                        <label key={person.id} hidden={!matches}>
+                          <input type="checkbox" name="studentIds" value={person.id} />
+                          <span><strong>{person.displayName}</strong><small>{person.email}</small></span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
                 {!teachers.length || !students.length ? (
@@ -350,11 +411,30 @@ export default function PortalPage() {
           )}
 
           {session.role !== "admin" && (
-            <Section title="Bài tập" icon="assignment" action={<span className="pt-muted">{selectedClass?.name ?? "Chọn một lớp để tiếp tục"}</span>}>
+            <Section
+              title="Bài tập"
+              icon="assignment"
+              action={
+                <div className="lp-section-actions">
+                  <span className="pt-muted">{selectedClass?.name ?? "Chọn một lớp để tiếp tục"}</span>
+                  {session.role === "teacher" && selectedClass && (
+                    <button
+                      type="button"
+                      className="button button-outline button-small"
+                      aria-expanded={showPublishForm}
+                      onClick={() => setShowPublishForm((open) => !open)}
+                    >
+                      <Icon name={showPublishForm ? "chevron" : "plus"} />
+                      {showPublishForm ? "Thu gọn biểu mẫu" : "Công bố bài tập mới"}
+                    </button>
+                  )}
+                </div>
+              }
+            >
               {sectionLoading && <p className="section-loading" role="status">Đang cập nhật dữ liệu…</p>}
 
               {session.role === "teacher" && selectedClass && (
-                <form className="academic-form assignment-form lp-form" onSubmit={publishAssignment}>
+                <form className="academic-form assignment-form lp-form" hidden={!showPublishForm} onSubmit={publishAssignment}>
                   <div className="form-heading">
                     <h3>Công bố bài tập</h3>
                     <p className="pt-muted">Bài tập sẽ hiển thị ngay cho sinh viên trong lớp.</p>
@@ -412,30 +492,84 @@ export default function PortalPage() {
 
                       {session.role === "teacher" && (
                         <div className="lp-submissions">
-                          <h4>Bài nộp ({submissions.length})</h4>
-                          {submissions.map((item, index) => (
-                            <article key={item.id} style={{ "--i": Math.min(index, 12) } as React.CSSProperties}>
-                              <header>
-                                <strong>{item.studentDisplayName}</strong>
-                                <span className={`chip ${item.status === "reviewed" ? "reviewed" : "submitted"}`}>
-                                  {item.status === "reviewed" ? "Đã phản hồi" : "Đã nộp"}
-                                </span>
-                              </header>
-                              <p className="lp-content">{item.content}</p>
-                              <small className="pt-muted">Nộp lúc {formatDate(item.submittedAt)}</small>
-                              <form className="pt-form" onSubmit={(event) => sendFeedback(event, item.id)}>
-                                <label className="field">
-                                  Phản hồi
-                                  <textarea name="feedback" rows={3} maxLength={5000} required defaultValue={item.feedback ?? ""} />
-                                </label>
-                                <div className="pt-form-actions">
-                                  <button className="button button-outline button-small" type="submit" disabled={mutating || sectionLoading}>
-                                    <Icon name="send" /> {item.feedback ? "Cập nhật phản hồi" : "Gửi phản hồi"}
-                                  </button>
-                                </div>
-                              </form>
-                            </article>
-                          ))}
+                          <div className="lp-submissions-head">
+                            <h4>Bài nộp ({submissions.length})</h4>
+                            {submissions.length > 0 && (
+                              <div className="segmented" role="group" aria-label="Lọc trạng thái bài nộp">
+                                <button
+                                  type="button"
+                                  aria-pressed={submissionFilter === "all"}
+                                  onClick={() => setSubmissionFilter("all")}
+                                >
+                                  Tất cả ({submissions.length})
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-pressed={submissionFilter === "submitted"}
+                                  onClick={() => setSubmissionFilter("submitted")}
+                                >
+                                  Chờ chấm ({pendingSubmissionCount})
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-pressed={submissionFilter === "reviewed"}
+                                  onClick={() => setSubmissionFilter("reviewed")}
+                                >
+                                  Đã phản hồi ({reviewedSubmissionCount})
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {submissions.length > 1 && (
+                            <div className="lp-filter-bar">
+                              <label className="ad-search">
+                                <Icon name="search" />
+                                <input
+                                  type="search"
+                                  value={submissionQuery}
+                                  onChange={(event) => setSubmissionQuery(event.target.value)}
+                                  placeholder="Tìm bài nộp theo tên sinh viên…"
+                                  aria-label="Tìm bài nộp theo tên sinh viên"
+                                />
+                              </label>
+                            </div>
+                          )}
+                          {submissions.map((item, index) => {
+                            const matchesStatus =
+                              submissionFilter === "all" ||
+                              (submissionFilter === "reviewed" ? item.status === "reviewed" : item.status !== "reviewed");
+                            const matchesName =
+                              !normalizedSubmissionQuery ||
+                              item.studentDisplayName.toLowerCase().includes(normalizedSubmissionQuery);
+                            return (
+                              <article
+                                key={item.id}
+                                className={item.status === "reviewed" ? "is-reviewed" : undefined}
+                                hidden={!matchesStatus || !matchesName}
+                                style={{ "--i": Math.min(index, 12) } as React.CSSProperties}
+                              >
+                                <header>
+                                  <strong>{item.studentDisplayName}</strong>
+                                  <span className={`chip ${item.status === "reviewed" ? "reviewed" : "submitted"}`}>
+                                    {item.status === "reviewed" ? "Đã phản hồi" : "Đã nộp"}
+                                  </span>
+                                </header>
+                                <p className="lp-content">{item.content}</p>
+                                <small className="pt-muted">Nộp lúc {formatDate(item.submittedAt)}</small>
+                                <form className="pt-form" onSubmit={(event) => sendFeedback(event, item.id)}>
+                                  <label className="field">
+                                    Phản hồi
+                                    <textarea name="feedback" rows={3} maxLength={5000} required defaultValue={item.feedback ?? ""} />
+                                  </label>
+                                  <div className="pt-form-actions">
+                                    <button className="button button-outline button-small" type="submit" disabled={mutating || sectionLoading}>
+                                      <Icon name="send" /> {item.feedback ? "Cập nhật phản hồi" : "Gửi phản hồi"}
+                                    </button>
+                                  </div>
+                                </form>
+                              </article>
+                            );
+                          })}
                           {!submissions.length && !sectionLoading && <p className="pt-muted">Chưa có sinh viên nộp bài.</p>}
                         </div>
                       )}

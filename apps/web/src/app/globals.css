@@ -23,9 +23,9 @@
   --r-panel: 18px;
   --r-card: 24px;
   --r-dialog: 28px;
-  --shadow-sm: 0 1px 2px rgba(7, 26, 52, .06), 0 2px 8px rgba(7, 26, 52, .04);
-  --shadow-md: 0 10px 30px -12px rgba(7, 26, 52, .18), 0 2px 6px rgba(7, 26, 52, .05);
-  --shadow-lg: 0 30px 60px -24px rgba(7, 26, 52, .28);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px rgba(0, 0, 0, .04);
+  --shadow-md: 0 10px 30px -12px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .05);
+  --shadow-lg: 0 30px 60px -24px rgba(0, 0, 0, .24);
   --ease: cubic-bezier(.2, .8, .2, 1);
   --fast: 150ms;
   --med: 240ms;
@@ -72,6 +72,7 @@ a { color: inherit; text-decoration: none; }
 .field small { color: var(--muted); font-weight: 400; }
 .input, .field input, .field select, .field textarea { width: 100%; min-height: 50px; padding: 12px 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--muted); border-radius: var(--r-control); font-weight: 400; transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
 .field textarea, textarea.input { resize: vertical; line-height: 1.6; }
+.input::placeholder, .field input::placeholder, .field textarea::placeholder, .top-search input::placeholder { color: var(--muted); opacity: 1; }
 .input:focus-visible, .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(0, 102, 204, .2); }
 .field [aria-invalid="true"] { border-color: var(--danger); }
 .password-wrap { position: relative; }
@@ -204,7 +205,7 @@ a { color: inherit; text-decoration: none; }
 .app-content { width: 100%; max-width: 1360px; margin: 0 auto; padding: 20px clamp(16px, 2vw, 24px) 32px; flex: 1; }
 .app-footer { padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); }
 .app-bottom { display: none; }
-.avatar { width: 36px; height: 36px; display: grid; place-items: center; flex: none; color: #fff; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, var(--blue), #3b8ae0); border-radius: 50%; }
+.avatar { width: 36px; height: 36px; display: grid; place-items: center; flex: none; color: #fff; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, var(--blue), var(--blue-deep)); border-radius: 50%; }
 .avatar.large { width: 72px; height: 72px; font-size: 26px; }
 .guest-banner { margin: 0 0 20px; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: #fffbe0; border: 1px solid #f4e27a; border-radius: var(--r-panel); }
 .guest-banner p { margin: 0; flex: 1 1 280px; color: var(--ink-2); font-size: 15px; }
@@ -307,8 +308,7 @@ a { color: inherit; text-decoration: none; }
 .item-text strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-text small { display: block; color: var(--muted); font-size: 14px; }
 .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.class-card { position: relative; min-height: 150px; padding: 18px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-panel); transition: transform var(--med) var(--ease), box-shadow var(--med) var(--ease), border-color var(--med); }
-.class-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: var(--accent, var(--blue)); }
+.class-card { position: relative; min-height: 150px; padding: 18px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; background: linear-gradient(180deg, color-mix(in srgb, var(--accent, var(--blue)) 8%, var(--paper)) 0%, var(--paper) 42%); border: 1px solid var(--border); border-radius: var(--r-panel); transition: transform var(--med) var(--ease), box-shadow var(--med) var(--ease), border-color var(--med); }
 .class-card:hover { transform: translateY(-3px); border-color: #b7c6da; box-shadow: var(--shadow-md); }
 .class-card .code { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; }
 .class-card h4 { margin: 4px 0 0; font-size: 1.08rem; }
@@ -443,7 +443,7 @@ a { color: inherit; text-decoration: none; }
   .data-table td:nth-child(4) { display: none; }
   .cell-title { min-width: 0; }
   .app-bottom { position: fixed; z-index: 30; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); height: 68px; padding: 6px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; background: rgba(255, 255, 255, .96); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg); backdrop-filter: blur(12px); }
-  .app-bottom a { min-width: 0; display: grid; place-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 11px; font-weight: 600; border-radius: 12px; }
+  .app-bottom a { min-width: 0; display: grid; place-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 12px; font-weight: 600; border-radius: 12px; }
   .app-bottom a svg { width: 22px; height: 22px; }
   .app-bottom a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .app-bottom a[aria-current="page"] { color: #fff; background: var(--ink); }
@@ -525,13 +525,13 @@ select { cursor: pointer; }
 /* Code stays dark in both themes, like an editor. */
 .bubble .md-code { margin: 12px 0; overflow: hidden; color: #f3e9e4; background: #1c1416; border: 1px solid rgba(255, 255, 255, .06); border-radius: 12px; }
 .bubble .md-code figcaption { padding: 6px 8px 6px 14px; display: flex; align-items: center; justify-content: space-between; color: #c9b8b2; font-size: 12px; background: rgba(255, 255, 255, .06); }
-.bubble .md-code figcaption span { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: lowercase; }
+.bubble .md-code figcaption span { font-family: Consolas, monospace; text-transform: lowercase; }
 .bubble .md-code button { min-height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; color: inherit; font-size: 12px; background: none; border: 0; border-radius: 8px; cursor: pointer; }
 .bubble .md-code button:hover { color: #fff; background: rgba(255, 255, 255, .1); }
 .bubble .md-code button svg { width: 14px; height: 14px; }
 .bubble .md-code pre { margin: 0; color: inherit; background: transparent; border-radius: 0; }
 .bubble a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
-.bubble blockquote { margin: 10px 0; padding: 4px 14px; color: var(--ink-2); border-left: 3px solid var(--blue); background: var(--mist); border-radius: 0 10px 10px 0; }
+.bubble blockquote { margin: 10px 0; padding: 6px 14px; color: var(--ink-2); border: 1px solid color-mix(in srgb, var(--blue) 35%, var(--border)); background: var(--mist); border-radius: 10px; }
 .bubble blockquote > :first-child { margin-top: 4px; }
 .bubble hr { margin: 16px 0; border: 0; border-top: 1px solid var(--border); }
 .bubble .md-table { margin: 12px 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
@@ -544,7 +544,7 @@ select { cursor: pointer; }
 .bubble ol ol { list-style-type: lower-alpha; }
 
 /* ---------- Formulas (Tex.tsx) ---------- */
-.tx { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", Georgia, serif; font-size: 1.06em; line-height: 1.4; white-space: nowrap; }
+.tx { font-family: var(--font-display), Georgia, serif; font-size: 1.06em; line-height: 1.4; white-space: nowrap; }
 .tx i { font-style: italic; }
 .tx-text { font-style: normal; font-family: inherit; }
 .tx-display { display: block; margin: .5em 0; font-size: 1.2em; text-align: center; overflow-x: auto; }
