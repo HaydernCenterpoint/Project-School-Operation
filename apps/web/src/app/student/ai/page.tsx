@@ -14,39 +14,62 @@ import { phuongFonts } from "@/components/landing/fonts";
 import { PhuongFlower } from "@/components/landing/Phuong";
 import { Markdown } from "@/components/Markdown";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
-import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
-import { greeting, initials } from "@/lib/format";
+import { formatSize, addFiles, filesFromDrop, type Attachment } from "@/lib/ai-files";
+import { initials } from "@/lib/format";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
-const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggestions: string[] }[] = [
+const modes: {
+  key: AiMode;
+  label: string;
+  desc: string;
+  icon: IconName;
+  hint: string;
+  suggestions: { tag: string; text: string }[];
+}[] = [
   {
     key: "explain",
     label: "Giải thích",
+    desc: "Phân tích khái niệm từng bước kèm ví dụ trực quan",
     icon: "book",
-    hint: "Hỏi về khái niệm bạn chưa hiểu…",
-    suggestions: ["Giải thích đệ quy bằng ví dụ đời thường", "Vì sao cần chuẩn hoá cơ sở dữ liệu?"],
+    hint: "Nhập khái niệm, định lý hoặc đoạn mã cần giải thích…",
+    suggestions: [
+      { tag: "IT3040 · Kỹ thuật lập trình", text: "Giải thích đệ quy và ngăn xếp lời gọi hàm bằng ví dụ thực tế" },
+      { tag: "IT3080 · Cơ sở dữ liệu", text: "Vì sao cần chuẩn hoá bảng lên 3NF và khi nào nên dừng ở 2NF" },
+    ],
   },
   {
     key: "summarize",
     label: "Tóm tắt",
+    desc: "Cô đọng giáo trình, ghi chép trên lớp thành ý cốt lõi",
     icon: "list",
-    hint: "Dán ghi chép hoặc đoạn văn cần tóm tắt…",
-    suggestions: ["Tóm tắt ghi chép sau thành 5 ý chính:", "Rút gọn đoạn văn này để ôn thi:"],
+    hint: "Dán ghi chép bài giảng hoặc đính kèm tài liệu PDF cần tóm tắt…",
+    suggestions: [
+      { tag: "Đề cương học phần", text: "Tóm tắt chương này thành 5 luận điểm chính kèm công thức cần nhớ:" },
+      { tag: "Ôn tập trước giờ thi", text: "Rút gọn ghi chép bài giảng sau thành bảng đối chiếu ngắn gọn:" },
+    ],
   },
   {
     key: "practice",
     label: "Luyện tập",
+    desc: "Tạo câu hỏi tự lượng giá và gợi ý hướng suy luận",
     icon: "question",
-    hint: "Nhập chủ đề muốn luyện tập…",
-    suggestions: ["Cho tôi 5 câu trắc nghiệm về mạng máy tính", "Đố tôi 3 câu về cấu trúc dữ liệu"],
+    hint: "Nhập chương học hoặc chủ đề muốn tự kiểm tra…",
+    suggestions: [
+      { tag: "IT3090 · Mạng máy tính", text: "Ra 5 câu hỏi tình huống về định tuyến IP và bắt tay TCP 3 bước" },
+      { tag: "IT3011 · Cấu trúc dữ liệu", text: "Đố 3 bài toán phân tích độ phức tạp thời gian của cây tìm kiếm nhị phân" },
+    ],
   },
   {
     key: "plan",
     label: "Lập kế hoạch",
+    desc: "Chia mốc ôn tập và tiến độ bài tập lớn theo tuần",
     icon: "calendar",
-    hint: "Mô tả mục tiêu và thời gian bạn có…",
-    suggestions: ["Lập kế hoạch ôn thi cuối kỳ trong 2 tuần", "Chia nhỏ bài tập lớn thành các bước"],
+    hint: "Nêu môn học, hạn nộp và quỹ thời gian trong tuần của bạn…",
+    suggestions: [
+      { tag: "Lịch ôn thi học kỳ", text: "Lập lộ trình ôn thi cuối kỳ 4 môn chuyên ngành trong 14 ngày" },
+      { tag: "Đồ án môn học", text: "Chia nhỏ bài tập lớn thành các mốc kiểm tra theo từng tuần" },
+    ],
   },
 ];
 
@@ -215,7 +238,7 @@ export default function AiWorkspace() {
       await aiRequest(`/api/ai/conversations/${id}`, token, { method: "DELETE" });
       setConversations((items) => items.filter((item) => item.id !== id));
       if (activeId === id) newConversation();
-      setStatus("Đã xoá cuộc trò chuyện.");
+      setStatus("Đã xoá cuộc trò chuyện");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : aiErrorMessage("unknown"));
     }
@@ -224,7 +247,7 @@ export default function AiWorkspace() {
   async function send(content: string) {
     const files = attachments;
     // Files alone are a valid question; give the model something to answer.
-    const text = content.trim() || (files.length ? "Hãy xem giúp mình các tệp đính kèm." : "");
+    const text = content.trim() || (files.length ? "Hãy xem giúp mình các tệp đính kèm" : "");
     if (!text || streaming || !token) return;
     setAttachments([]);
     const requestId = crypto.randomUUID();
@@ -271,7 +294,7 @@ export default function AiWorkspace() {
         abort.signal,
         files.map((file) => ({ blob: file.blob, name: file.name })),
       );
-      setStatus("Trợ lý đã trả lời xong.");
+      setStatus("Trợ lý đã trả lời xong");
     } catch (error) {
       // Nothing was generated: restore the draft and drop the optimistic turn.
       setMessages((items) => items.filter((item) => item.id !== assistantId && item.id !== `user-${requestId}`));
@@ -297,7 +320,7 @@ export default function AiWorkspace() {
       ? `Bỏ qua ${result.skipped.length} tệp chưa hỗ trợ (ví dụ: ${result.skipped[0]}). Word/Excel hãy xuất ra PDF.`
       : "";
     setNotice([result.error, skipped].filter(Boolean).join(" "));
-    if (result.added.length) setStatus(`Đã đính kèm ${result.added.length} tệp.`);
+    if (result.added.length) setStatus(`Đã đính kèm ${result.added.length} tệp`);
     composer.current?.focus();
   }
 
@@ -410,7 +433,7 @@ export default function AiWorkspace() {
     ? conversations.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()))
     : conversations;
   const empty = !messages.length && !loadingThread;
-  const usedPercent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
+  const selectedAssignment = data.assignments.find((item) => item.id === assignmentId);
 
   const composerForm = (
     <form className="aw-composer" onSubmit={submit}>
@@ -489,18 +512,18 @@ export default function AiWorkspace() {
           </button>
           <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
             <button type="button" onClick={() => pick(imagePicker.current)}>
-              <Icon name="sparkle" />
-              <span><strong>Ảnh</strong><small>Chụp màn hình, ảnh bài làm</small></span>
+              <Icon name="image" />
+              <span><strong>Ảnh bài làm</strong><small>Chụp màn hình, ảnh vở ghi</small></span>
             </button>
             <button type="button" onClick={() => pick(filePicker.current)}>
               <Icon name="file" />
-              <span><strong>Tệp</strong><small>PDF, văn bản, mã nguồn</small></span>
+              <span><strong>Tài liệu & mã nguồn</strong><small>PDF, văn bản, tệp lập trình</small></span>
             </button>
             <button type="button" onClick={() => pick(folderPicker.current)}>
               <Icon name="class" />
-              <span><strong>Thư mục</strong><small>Cả thư mục tài liệu hoặc dự án</small></span>
+              <span><strong>Thư mục dự án</strong><small>Tải lên toàn bộ thư mục bài tập</small></span>
             </button>
-            <p>Tổng dưới 30 MB · tối đa 100 tệp · có thể kéo thả hoặc dán ảnh</p>
+            <p>Tối đa 30 MB · 100 tệp · hỗ trợ kéo thả hoặc dán trực tiếp</p>
           </div>
           <input ref={imagePicker} type="file" hidden multiple accept="image/png,image/jpeg,image/gif,image/webp" onChange={onPicked} />
           <input ref={filePicker} type="file" hidden multiple onChange={onPicked} />
@@ -509,21 +532,23 @@ export default function AiWorkspace() {
             <Icon name="assignment" />
             <span className="sr-only">Đính kèm bài tập làm ngữ cảnh</span>
             <select value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} disabled={streaming}>
-              <option value="">Không đính kèm bài tập</option>
+              <option value="">Không gắn bài tập</option>
               {data.assignments.map((item) => (
                 <option key={item.id} value={item.id}>{item.title}</option>
               ))}
             </select>
           </label>
-          <label className="aw-pill">
-            <Icon name={currentMode.icon} />
-            <span className="sr-only">Chế độ học</span>
-            <select value={mode} onChange={(event) => setMode(event.target.value as AiMode)} disabled={streaming}>
-              {modes.map((item) => (
-                <option key={item.key} value={item.key}>{item.label}</option>
-              ))}
-            </select>
-          </label>
+          {!empty && (
+            <label className="aw-pill">
+              <Icon name={currentMode.icon} />
+              <span className="sr-only">Chế độ học</span>
+              <select value={mode} onChange={(event) => setMode(event.target.value as AiMode)} disabled={streaming}>
+                {modes.map((item) => (
+                  <option key={item.key} value={item.key}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
           {streaming ? (
             <button className="aw-send stop" type="button" aria-label="Dừng tạo câu trả lời" onClick={() => controller.current?.abort()}>
               <Icon name="stop" />
@@ -535,7 +560,7 @@ export default function AiWorkspace() {
           )}
         </div>
       </div>
-      <p className="aw-disclaimer">Trợ lý AI có thể sai. Hãy tự kiểm chứng trước khi dùng cho bài tập.</p>
+      <p className="aw-disclaimer">Trợ lý AI hỗ trợ gợi mở phương pháp — hãy tự kiểm chứng với giáo trình trước khi nộp bài</p>
     </form>
   );
 
@@ -544,10 +569,10 @@ export default function AiWorkspace() {
       <aside className="aw-side" aria-label="Lịch sử trò chuyện" id="aw-side">
         <div className="aw-side-head">
           <Link href="/student" className="aw-brand" aria-label="Về cổng học tập">
-            <img src="/sao-do-logo.png" alt="" width={30} height={32} />
+            <img src="/sao-do-logo.png" alt="" width={28} height={30} />
             <span>
               <strong>Trợ lý Sao Đỏ</strong>
-              <small>Học cùng AI</small>
+              <small>Bàn học học thuật</small>
             </span>
           </Link>
           <button className="icon-button" type="button" onClick={toggleSide} aria-label="Đóng thanh bên" aria-controls="aw-side">
@@ -555,13 +580,14 @@ export default function AiWorkspace() {
           </button>
         </div>
         <button className="aw-new" type="button" onClick={newConversation} disabled={streaming}>
-          <Icon name="plus" /> Cuộc trò chuyện mới
-          <kbd>Ctrl ⇧ O</kbd>
+          <Icon name="plus" />
+          <span>Trò chuyện mới</span>
+          <kbd className="aw-kbd">Ctrl ⇧ O</kbd>
         </button>
         <label className="aw-search">
           <Icon name="search" />
           <span className="sr-only">Tìm cuộc trò chuyện</span>
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm cuộc trò chuyện" />
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm lịch sử học tập" />
         </label>
         <nav className="aw-history" aria-label="Các cuộc trò chuyện">
           {filtered.length ? (
@@ -589,21 +615,12 @@ export default function AiWorkspace() {
               </div>
             ))
           ) : (
-            <p className="aw-muted">{query ? "Không tìm thấy cuộc trò chuyện." : "Chưa có cuộc trò chuyện nào."}</p>
+            <p className="aw-muted">{query ? "Không tìm thấy cuộc trò chuyện" : "Chưa có phiên trao đổi nào"}</p>
           )}
         </nav>
         <div className="aw-side-foot">
-          {usage?.enabled && (
-            <div className="aw-usage">
-              <span>Lượt hỏi hôm nay</span>
-              <strong>{usage.used}/{usage.limit}</strong>
-              <div className="meter" role="meter" aria-label="Lượt hỏi AI đã dùng hôm nay" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
-                <span style={{ width: `${usedPercent}%` }} />
-              </div>
-            </div>
-          )}
           <div className="aw-user">
-            <span className="avatar">{initials(name)}</span>
+            <span className="avatar aw-user-avatar">{initials(name)}</span>
             <span>
               <strong>{name}</strong>
               <small>Sinh viên</small>
@@ -660,6 +677,11 @@ export default function AiWorkspace() {
             <Icon name="panel" />
           </button>
           <h1>{title}</h1>
+          <span className="aw-top-meta">
+            <i className={`aw-status-dot${enabled ? " is-online" : ""}`} aria-hidden="true" />
+            {currentMode.label}
+            {selectedAssignment ? ` · ${selectedAssignment.title}` : ""}
+          </span>
           <button className="icon-button aw-top-new" type="button" onClick={newConversation} disabled={streaming} aria-label="Cuộc trò chuyện mới">
             <Icon name="plus" />
           </button>
@@ -667,36 +689,50 @@ export default function AiWorkspace() {
 
         {empty ? (
           <div className="aw-welcome">
-            <h2>
-              <PhuongFlower size={34} /> {greeting(new Date(now))}, {name}
-            </h2>
-            <p>
-              {enabled
-                ? "Hôm nay bạn muốn học gì? Trợ lý trả lời bằng tiếng Việt và giúp bạn tự suy luận."
-                : usage
-                  ? aiErrorMessage("ai_disabled")
-                  : "Đang kiểm tra trạng thái trợ lý…"}
-            </p>
-            {composerForm}
+            <div className="aw-desk-head">
+              <div>
+                <h2>Bàn học & ôn luyện học phần</h2>
+                <p>
+                  {enabled
+                    ? currentMode.desc
+                    : usage
+                      ? aiErrorMessage("ai_disabled")
+                      : "Đang kiểm tra trạng thái trợ lý…"}
+                </p>
+              </div>
+              <span className="aw-desk-badge">
+                <i className={`aw-status-dot${enabled ? " is-online" : ""}`} aria-hidden="true" />
+                <span>{data.assignments.length} bài tập trong kỳ</span>
+              </span>
+            </div>
+
             <div className="aw-modes" role="group" aria-label="Chế độ học">
               {modes.map((item) => (
                 <button key={item.key} type="button" aria-pressed={item.key === mode} onClick={() => setMode(item.key)}>
-                  <Icon name={item.icon} /> {item.label}
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
                 </button>
               ))}
             </div>
+
+            {composerForm}
+
             {enabled && !exhausted && (
-              <div className="aw-suggestions">
-                {currentMode.suggestions.map((text) => (
+              <div className="aw-suggestions" aria-label="Gợi ý câu hỏi theo học phần">
+                {currentMode.suggestions.map((item) => (
                   <button
-                    key={text}
+                    key={item.text}
                     type="button"
                     onClick={() => {
-                      setDraft(text.endsWith(":") ? `${text}\n` : text);
+                      setDraft(item.text.endsWith(":") ? `${item.text}\n` : item.text);
                       composer.current?.focus();
                     }}
                   >
-                    {text} <Icon name="arrow" />
+                    <div className="aw-suggestion-body">
+                      <code>{item.tag}</code>
+                      <span>{item.text}</span>
+                    </div>
+                    <Icon name="arrow" />
                   </button>
                 ))}
               </div>
