@@ -450,6 +450,68 @@
 /* Closing is quicker and without the overshoot. */
 .popover-panel:not(:popover-open), .more-sheet:not(:popover-open) { transition-duration: .16s, .2s, .2s, .2s; transition-timing-function: ease-in; }
 
+/* ---------- Assignments Ledger (/student/assignments & class detail) ----------
+   Asymmetric progress ledger + filter card above a 4-column hairline-divided assignment table. */
+.asg-overview { margin-bottom: 16px; display: grid; grid-template-columns: 1.55fr 1fr; gap: 12px; }
+.asg-meter-soon { position: absolute; top: 0; bottom: 0; background: var(--warning); transition: width 240ms cubic-bezier(.22, 1, .36, 1), left 240ms cubic-bezier(.22, 1, .36, 1); }
+.dot-soon { width: 8px; height: 8px; border-radius: 2px; background: var(--warning); }
+.asg-filter-card { padding: 20px 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-card); }
+.asg-filter-controls { display: grid; gap: 8px; }
+.asg-search-input { position: relative; display: flex; align-items: center; }
+.asg-search-input svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.asg-search-input input, .asg-class-select select { width: 100%; min-height: 36px; padding: 0 12px; color: var(--ink); font-size: 14px; background: var(--mist); border: 1px solid var(--border); border-radius: 8px; transition: border-color 150ms cubic-bezier(.22, 1, .36, 1), background-color 150ms cubic-bezier(.22, 1, .36, 1); }
+.asg-search-input input { padding-left: 36px; }
+.asg-search-input input:focus-visible, .asg-class-select select:focus-visible { outline: none; background: var(--paper); border-color: var(--red); }
+
+/* Segmented filter tabs (10px outer -> 6px inner, quiet surface step + mono count) */
+.asg-tabs { padding: 4px; display: inline-flex; align-items: center; gap: 4px; background: var(--mist); border: 1px solid var(--border); border-radius: 10px; }
+.asg-tabs button { min-height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 500; background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; transition: background-color 150ms cubic-bezier(.22, 1, .36, 1), color 150ms cubic-bezier(.22, 1, .36, 1), border-color 150ms cubic-bezier(.22, 1, .36, 1); }
+.asg-tabs button:hover { color: var(--ink); }
+.asg-tabs button[aria-pressed="true"] { color: var(--ink); background: var(--paper); border-color: var(--border); }
+.asg-tabs button code { padding: 0 6px; color: var(--muted); font-family: var(--font-mono), monospace; font-size: 12px; font-variant-numeric: tabular-nums; background: var(--mist); border-radius: 4px; }
+.asg-tabs button[aria-pressed="true"] code { color: var(--red); }
+
+/* 4-column hairline assignment ledger */
+.asg-ledger { margin: 0; padding: 0; display: grid; gap: 0; list-style: none; border-top: 1px solid var(--border); }
+.asg-row { border-bottom: 1px solid var(--border); }
+.asg-row-link { padding: 16px 12px; display: grid; grid-template-columns: 148px minmax(200px, 1.5fr) 176px auto; align-items: center; gap: 16px; color: inherit; text-decoration: none; transition: background-color 150ms cubic-bezier(.22, 1, .36, 1); }
+.asg-row-link:hover { background: var(--mist); }
+.asg-col-code { min-width: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.asg-col-code code { font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 600; color: var(--ink); }
+.asg-col-code span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
+.asg-col-main { min-width: 0; display: grid; gap: 4px; }
+.asg-col-main strong { font-size: 15px; font-weight: 500; color: var(--ink); }
+.asg-col-main p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+.asg-col-due { display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.asg-due-label { font-size: 12px; color: var(--muted); }
+.asg-col-due time { font-family: var(--font-mono), monospace; font-size: 13px; color: var(--ink-2); }
+.asg-col-status { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.asg-status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono), monospace; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+.asg-status i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--muted); }
+.asg-status.is-overdue { color: var(--danger); }
+.asg-status.is-overdue i { background: var(--danger); }
+.asg-status.is-soon { color: var(--warning); }
+.asg-status.is-soon i { background: var(--warning); }
+.asg-status.is-later { color: var(--ink-2); }
+.asg-status.is-later i { background: var(--blue); }
+.asg-status.is-submitted { color: var(--ink); }
+.asg-status.is-submitted i { background: var(--blue); }
+.asg-status.is-reviewed { color: var(--success); }
+.asg-status.is-reviewed i { background: var(--success); }
+.asg-chev { width: 16px; height: 16px; display: grid; place-items: center; color: var(--muted); transition: transform 150ms cubic-bezier(.22, 1, .36, 1), color 150ms cubic-bezier(.22, 1, .36, 1); }
+.asg-chev svg { width: 16px; height: 16px; }
+.asg-row-link:hover .asg-chev { color: var(--red); transform: translateX(2px); }
+.asg-empty { border-top: 1px solid var(--border); border-radius: 8px; }
+
+@media (max-width: 860px) {
+  .asg-overview { grid-template-columns: 1fr; }
+  .asg-row-link { grid-template-columns: 1fr auto; gap: 8px 16px; }
+  .asg-col-code { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .asg-col-due { grid-column: 1 / 2; display: flex; align-items: center; gap: 8px; }
+  .asg-col-status { grid-column: 2 / 3; grid-row: 2 / 4; }
+}
+
+
 /* Rows arrive one after another. */
 .popover-panel:popover-open li, .popover-panel:popover-open > p, .popover-panel:popover-open .popover-all,
 .more-sheet:popover-open .more-group { animation: pop-row .38s cubic-bezier(.16, 1, .3, 1) both; }

@@ -1,48 +1,69 @@
-import type { Assignment, Submission } from "@sao-do/contracts";
+import type { ApiClass, Assignment, Submission } from "@sao-do/contracts";
 import type { Route } from "next";
 import Link from "next/link";
-import { formatDeadline } from "@/lib/format";
-import { DueChip } from "./Dashboard";
+import { classCode, dueState, formatDate, relativeDue } from "@/lib/format";
 import { Icon } from "./Icon";
 
 export function AssignmentRows({
   assignments,
   submissions,
+  classes,
   now,
   empty,
 }: {
   assignments: Assignment[];
   submissions: Submission[];
+  classes?: ApiClass[];
   now: number;
   empty: React.ReactNode;
 }) {
   if (!assignments.length) return <>{empty}</>;
   const byAssignment = new Map(submissions.map((item) => [item.assignmentId, item]));
+  const byClass = new Map((classes ?? []).map((item) => [item.id, item]));
 
   return (
-    <ul className="row-list">
+    <ul className="asg-ledger">
       {assignments.map((item) => {
         const submission = byAssignment.get(item.id);
+        const course = byClass.get(item.classId);
+        const state = submission
+          ? submission.status === "reviewed"
+            ? "reviewed"
+            : "submitted"
+          : dueState(item.dueAt, now);
+        const statusLabel = submission
+          ? submission.status === "reviewed"
+            ? "Đã có phản hồi"
+            : "Đã nộp bài"
+          : relativeDue(item.dueAt, now);
+        const snippet = item.instructions?.trim().replace(/\s+/g, " ");
+
         return (
-          <li key={item.id}>
-            <Link href={`/student/assignments/${item.id}` as Route}>
-              <span className={`tile-icon ${submission ? "green" : ""}`}>
-                <Icon name={submission ? "checkCircle" : "assignment"} />
-              </span>
-              <span className="item-text">
+          <li key={item.id} className={`asg-row is-${state}`}>
+            <Link href={`/student/assignments/${item.id}` as Route} className="asg-row-link">
+              <div className="asg-col-code">
+                <code>{classCode(item.classId)}</code>
+                <span>{course?.name ?? "Học phần chuyên ngành"}</span>
+              </div>
+              <div className="asg-col-main">
                 <strong>{item.title}</strong>
-                <small>Hạn nộp: {formatDeadline(item.dueAt)}</small>
-              </span>
-              <span className="row-meta">
-                {submission ? (
-                  <span className={`chip ${submission.status}`}>
-                    {submission.status === "reviewed" ? "Đã có phản hồi" : "Đã nộp"}
-                  </span>
-                ) : (
-                  <DueChip dueAt={item.dueAt} now={now} />
-                )}
-                <span className="chev"><Icon name="chevron" /></span>
-              </span>
+                {snippet && <p>{snippet}</p>}
+              </div>
+              <div className="asg-col-due">
+                <span className="asg-due-label">Hạn nộp</span>
+                <time dateTime={item.dueAt ?? undefined}>
+                  {item.dueAt ? formatDate(item.dueAt) : "Không giới hạn"}
+                </time>
+              </div>
+              <div className="asg-col-status">
+                <span className={`asg-status is-${state}`}>
+                  <i aria-hidden="true" />
+                  {statusLabel}
+                </span>
+                <span className="asg-chev" aria-hidden="true">
+                  <Icon name="chevron" />
+                </span>
+              </div>
             </Link>
           </li>
         );

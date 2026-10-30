@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { AssignmentRows } from "@/components/AssignmentRows";
 import { Icon } from "@/components/Icon";
+import { Section } from "@/components/portal/Parts";
 import { classCode } from "@/lib/format";
 import { useStudent } from "@/lib/student-context";
 
@@ -38,20 +39,23 @@ export default function ClassDetailPage() {
       <div className="page-title">
         <span className="chip">{classCode(item.id)}</span>
         <h2 style={{ marginTop: 10 }}>{item.name}</h2>
-        <p>{assignments.length ? `${assignments.length} bài tập đã công bố` : "Giảng viên chưa công bố bài tập."}</p>
+        <p>{assignments.length ? `${assignments.length} bài tập đã công bố` : "Giảng viên chưa công bố bài tập"}</p>
       </div>
-      <AssignmentRows
-        assignments={assignments}
-        submissions={data.submissions}
-        now={now}
-        empty={
-          <div className="empty">
-            <Icon name="assignment" />
-            <strong>Chưa có bài tập</strong>
-            <p>Bài tập mới của lớp sẽ xuất hiện tại đây.</p>
-          </div>
-        }
-      />
+      <Section title="Sổ bài tập lớp học phần" action={<span className="reg-table-meta">{assignments.length} bài tập</span>}>
+        <AssignmentRows
+          assignments={assignments}
+          submissions={data.submissions}
+          classes={data.session.classes}
+          now={now}
+          empty={
+            <div className="empty asg-empty">
+              <Icon name="assignment" />
+              <strong>Chưa có bài tập</strong>
+              <p>Bài tập mới của lớp sẽ xuất hiện tại đây</p>
+            </div>
+          }
+        />
+      </Section>
     </>
   );
 }
