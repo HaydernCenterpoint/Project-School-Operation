@@ -516,7 +516,7 @@ export default function StudentPortfolioPage() {
 
   if (!data) return null;
 
-  const accessToken = data.session.accessToken;
+  const accessToken = data.token;
 
   const activeTemplate: EditableDossierTemplate =
     baseTemplates.find((tpl) => tpl.id === selectedTemplateId) ?? baseTemplates[0]!;
