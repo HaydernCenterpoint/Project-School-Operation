@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
+import { streamChat } from "@/lib/ai-client";
 import { initials } from "@/lib/format";
 import {
   attendanceRecords,
@@ -17,7 +18,6 @@ import {
   initialClubs,
   initialProfileUpdates,
   objectiveObservations,
-  portfolioCompetencies,
   portfolioProjects,
   profile,
   program,
@@ -31,187 +31,387 @@ import {
 } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
-type LensMode = "all" | "advisor" | "employer" | "self";
+type CvLayoutStyleId = "modern-split" | "harvard" | "impressive" | "minimal";
 
-type SampleArchetype = {
-  id: string;
-  shortLabel: string;
-  badge: string;
+type CvLayoutStyle = {
+  id: CvLayoutStyleId;
   name: string;
-  gpa: string;
-  conduct: number;
-  attendance: string;
-  composite: number;
-  scores: number[];
+  tag: string;
   summary: string;
-  keyTakeaway: string;
+  accentColor: string;
 };
 
-const sampleArchetypes: SampleArchetype[] = [
+const cvLayoutStyles: CvLayoutStyle[] = [
   {
-    id: "arch-current",
-    shortLabel: "Chuẩn Khoa CNTT",
-    badge: "Chuẩn đầu ra Khoa CNTT",
-    name: "Đối sánh với chuẩn năng lực năm 3 ngành Công nghệ phần mềm",
-    gpa: "3.00",
-    conduct: 80,
-    attendance: "90.0%",
-    composite: 82,
-    scores: [80, 85, 90, 80, 75, 85],
-    summary:
-      "Vượt chuẩn đầu ra giai đoạn năm 3 ở 5/6 chỉ số (Thực hành +3, Chuyên cần +5, Rèn luyện +2, Ngoại ngữ +11, Học thuật +4). Chỉ số Sẵn sàng nghề nghiệp hiện đạt 79/85.",
-    keyTakeaway:
-      "Hoàn thành đồ án học phần IT3040, IT3090 đúng tiến độ và giữ điểm Toán rời rạc (MI1140) từ 7.5 trở lên để đạt trọn vẹn cả 6 trục chuẩn đầu ra.",
+    id: "modern-split",
+    name: "Mẫu Chuyên nghiệp 2 Cột",
+    tag: "Phổ biến nhất trên TopCV",
+    summary: "Cột trái hiển thị liên hệ, kỹ năng, ngoại ngữ; cột phải trình bày mục tiêu nghề nghiệp, học vấn và dự án.",
+    accentColor: "#c81d2e",
   },
   {
-    id: "arch-fullstack",
-    shortLabel: "Mẫu Thực tập IT",
-    badge: "Hồ sơ mẫu · Thực tập Doanh nghiệp",
-    name: "Mẫu sinh viên đỗ thực tập Kỹ thuật phần mềm học kỳ 5",
-    gpa: "3.38",
-    conduct: 85,
-    attendance: "96.0%",
-    composite: 90,
-    scores: [86, 94, 92, 85, 88, 92],
-    summary:
-      "Hồ sơ mẫu nhóm sinh viên trúng tuyển thực tập sớm có điểm thực hành phòng Lab 94/100, tối thiểu 3 dự án cá nhân có kiểm thử tự động và đọc hiểu tài liệu tiếng Anh.",
-    keyTakeaway:
-      "Khoảng cách tổng hợp hiện là -4 điểm (86 vs 90). Nền tảng OOP, SQL và Tiếng Anh B1 đã tương đương; cần đóng gói mã nguồn dự án và xuất Mẫu 01-CVTT bên dưới.",
+    id: "harvard",
+    name: "Mẫu Harvard / Chuẩn ATS",
+    tag: "Tối ưu lọc CV tự động",
+    summary: "Bố cục 1 cột cổ điển, phân mục đường kẻ mảnh chuẩn quốc tế, dễ đọc với hệ thống ATS của tập đoàn & ngân hàng.",
+    accentColor: "#1f2937",
   },
   {
-    id: "arch-scholar",
-    shortLabel: "Mẫu Học bổng KKHT",
-    badge: "Hồ sơ mẫu · Học bổng loại Xuất sắc",
-    name: "Mẫu sinh viên đạt Học bổng Khuyến khích học tập (Top 5% khóa)",
-    gpa: "3.72",
-    conduct: 91,
-    attendance: "99.0%",
-    composite: 93,
-    scores: [95, 92, 98, 91, 90, 90],
-    summary:
-      "Duy trì điểm A ở cả nhóm môn Toán đại cương lẫn Lập trình chuyên ngành, không có tiết vắng không phép và tham gia ít nhất 1 đề tài nghiên cứu cấp Khoa.",
-    keyTakeaway:
-      "Cần thu hẹp độ lệch 2.1 điểm (hệ 10) giữa nhóm môn Toán lý thuyết và nhóm môn lập trình, đồng thời tích lũy thêm 8 điểm rèn luyện học thuật.",
+    id: "impressive",
+    name: "Mẫu Ấn tượng / Tech Portfolio",
+    tag: "Nổi bật dự án & chỉ số",
+    summary: "Header nhấn mạnh vị trí ứng tuyển, đóng khung các con số kết quả học thuật (GPA, truy vấn SQL, điểm Lab).",
+    accentColor: "#0f4c81",
   },
   {
-    id: "arch-fivegood",
-    shortLabel: "Mẫu SV 5 Tốt",
-    badge: "Hồ sơ mẫu · Sinh viên 5 Tốt",
-    name: "Mẫu hồ sơ đạt danh hiệu Sinh viên 5 Tốt cấp Trường",
-    gpa: "3.45",
-    conduct: 94,
-    attendance: "98.0%",
-    composite: 91,
-    scores: [88, 86, 95, 94, 92, 89],
-    summary:
-      "Đáp ứng đồng thời 5 tiêu chí: Đạo đức (ĐRL ≥ 90), Học tập (GPA ≥ 3.2), Thể lực (GDTC đạt A), Tình nguyện (≥ 2 hoạt động/năm) và Hội nhập (Ngoại ngữ B1).",
-    keyTakeaway:
-      "Đã đạt chuẩn Học tập (3.22), Thể lực (GDTC 8.7) và Hội nhập (Tiếng Anh 8.9). Cần cộng thêm 8 điểm rèn luyện và xuất Mẫu 02-HBKK để nộp xét duyệt.",
+    id: "minimal",
+    name: "Mẫu Đơn giản / Tinh gọn",
+    tag: "Dành cho SV thực tập",
+    summary: "Trình bày gọn gàng trên 1 trang A4, ưu tiên mục tiêu nghề nghiệp và các học phần cốt lõi đạt điểm A.",
+    accentColor: "#2d6a4f",
   },
 ];
 
-function RadarHexagon({
-  axes,
-  benchmarkScores,
-  benchmarkLabel,
-}: {
-  axes: typeof portfolioCompetencies;
-  benchmarkScores: number[];
-  benchmarkLabel: string;
-}) {
-  const size = 296;
-  const cx = size / 2;
-  const cy = size / 2;
-  const radius = 100;
-  const rings = [0.25, 0.5, 0.75, 1];
+type JobRoleTrack = {
+  id: string;
+  sector: string;
+  shortLabel: string;
+  roleTitle: string;
+  companyType: string;
+  matchCount: string;
+  defaultObjective: string;
+  recruiterVerdict: string;
+  checklist: {
+    label: string;
+    detail: string;
+    status: "ready" | "missing" | "recommended";
+    actionLabel?: string;
+    templateId?: string;
+  }[];
+  cvSkills: {
+    group: string;
+    items: string[];
+  }[];
+};
 
-  const pointAt = (index: number, pct: number) => {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / axes.length;
-    const r = radius * (pct / 100);
-    return {
-      x: cx + r * Math.cos(angle),
-      y: cy + r * Math.sin(angle),
-      labelX: cx + (radius + 28) * Math.cos(angle),
-      labelY: cy + (radius + 20) * Math.sin(angle),
-    };
-  };
+const jobRoleTracks: JobRoleTrack[] = [
+  {
+    id: "role-fullstack",
+    sector: "CNTT & Phần mềm",
+    shortLabel: "Lập trình viên Backend / Web",
+    roleTitle: "Thực tập sinh Lập trình viên Backend / Fullstack Web",
+    companyType: "Công ty Sản phẩm công nghệ & Phần mềm",
+    matchCount: "5/6 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 chuyên ngành Công nghệ phần mềm tại Trường Đại học Sao Đỏ (GPA 3.22/4.0, thuộc Top 18% lớp DK13-CNTT1) ứng tuyển vị trí Thực tập sinh Lập trình viên Backend / Fullstack. Có nền tảng vững về Lập trình hướng đối tượng (IT3040 - 9.2/10), Cấu trúc dữ liệu & Giải thuật (Điểm A) và Thiết kế CSDL chuẩn 3NF (IT3090 - 9.0/10). Mong muốn vận dụng kỹ năng TypeScript, SQL và kiểm thử tự động vào dự án thực tế tại doanh nghiệp, hướng tới vị trí Kỹ sư phần mềm chính thức sau kỳ thực tập.",
+    recruiterVerdict:
+      "Hồ sơ vượt vòng lọc CV tự động nhờ GPA 3.22/4.0, điểm A môn Cấu trúc dữ liệu & Giải thuật (8.5) và 2 đồ án OOP/CSDL đạt 9.0+. Điểm thiếu duy nhất khi nộp CV là đường dẫn GitHub/Demo công khai của dự án.",
+    checklist: [
+      {
+        label: "GPA tích lũy ≥ 3.0 & nắm vững Cấu trúc dữ liệu, OOP",
+        detail: "Đạt 3.22/4.0 (Loại Giỏi) · IT2010 đạt 8.5 (A), IT3040 Lab đạt 8.8",
+        status: "ready",
+      },
+      {
+        label: "Thiết kế CSDL quan hệ chuẩn 3NF & truy vấn SQL",
+        detail: "Đạt 9.0/10 bài thực hành CSDL (14 bảng, 25 truy vấn thống kê)",
+        status: "ready",
+      },
+      {
+        label: "Đọc hiểu tài liệu kỹ thuật tiếng Anh (Chuẩn B1)",
+        detail: "Đã đạt chuẩn B1 · Tiếng Anh 1 (8.0) & Tiếng Anh 2 (8.9)",
+        status: "ready",
+      },
+      {
+        label: "Link mã nguồn GitHub & bản chạy thử (Live Demo) trong CV",
+        detail: "Đồ án IT3040 & IT3090 mới lưu nội bộ, chưa điền link repo vào CV",
+        status: "missing",
+        actionLabel: "Điền link vào CV",
+        templateId: "tpl-internship-cv",
+      },
+      {
+        label: "Giấy giới thiệu thực tập & Bảng điểm xác nhận của Trường",
+        detail: "Doanh nghiệp thường yêu cầu bản xác nhận sinh viên có dấu đỏ khi nhận việc",
+        status: "recommended",
+        actionLabel: "Tạo đơn Một cửa",
+        templateId: "tpl-onestop-service",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Ngôn ngữ & Nền tảng",
+        items: ["TypeScript / JavaScript", "C++20", "SQL (PostgreSQL, SQLite)", "HTML5 / CSS3"],
+      },
+      {
+        group: "Kiến trúc & Công cụ",
+        items: ["OOP Design Patterns", "Thiết kế ERD 3NF", "Git / GitHub", "Unit Testing"],
+      },
+      {
+        group: "Ngoại ngữ & Kỹ năng mềm",
+        items: ["Tiếng Anh B1 (8.9/10)", "Làm việc nhóm Agile", "Báo cáo kỹ thuật"],
+      },
+    ],
+  },
+  {
+    id: "role-qa",
+    sector: "CNTT & Phần mềm",
+    shortLabel: "Kiểm thử phần mềm (QA / Tester)",
+    roleTitle: "Thực tập sinh Kiểm thử phần mềm (Manual & Automation QA/QC)",
+    companyType: "Doanh nghiệp Outsourcing & Ngân hàng số",
+    matchCount: "5/5 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 ngành Công nghệ thông tin tại Trường Đại học Sao Đỏ (GPA 3.22/4.0, tỷ lệ chuyên cần thực hành phòng Lab đạt 97.5%) ứng tuyển vị trí Thực tập sinh Kiểm thử phần mềm (QA/Tester). Thành thạo viết kịch bản kiểm thử biên, truy vấn SQL đối soát dữ liệu (đạt 9.0/10 học phần CSDL) và Unit Testing (đã kiểm thử 1.200 bản ghi không lỗi trong đồ án Quản lý Thư viện). Mong muốn đóng góp vào quy trình đảm bảo chất lượng phần mềm và phát triển lên Automation QA Engineer.",
+    recruiterVerdict:
+      "Rất phù hợp để ứng tuyển ngay. Tỷ lệ chuyên cần 97.5%, kỹ năng truy vấn SQL kiểm tra dữ liệu và kinh nghiệm viết Unit Test trong đồ án Quản lý Thư viện đáp ứng trực tiếp yêu cầu tuyển QA/QC thực tập.",
+    checklist: [
+      {
+        label: "Nắm vững SQL để kiểm tra dữ liệu Backend (Database Testing)",
+        detail: "Đạt 9.0/10 thực hành CSDL · Thành thạo JOIN, Stored Procedures, Indexing",
+        status: "ready",
+      },
+      {
+        label: "Kinh nghiệm viết kịch bản kiểm thử (Test Case / Unit Test)",
+        detail: "Đã kiểm thử 1.200 bản ghi sách không lỗi trong đồ án IT3040",
+        status: "ready",
+      },
+      {
+        label: "Tính cẩn thận, đúng giờ và tuân thủ quy trình",
+        detail: "Chuyên cần 97.5% · Điểm rèn luyện 82/100 (Xếp loại Tốt)",
+        status: "ready",
+      },
+      {
+        label: "Đọc hiểu tài liệu đặc tả yêu cầu (SRS) bằng tiếng Anh",
+        detail: "Tiếng Anh 2 đạt 8.9/10 (Điểm A) · Đạt chuẩn ngoại ngữ B1",
+        status: "ready",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Kiểm thử & Đảm bảo chất lượng",
+        items: ["Thiết kế Test Case", "Unit Testing", "SQL Data Verification", "Bug Tracking"],
+      },
+      {
+        group: "Kiến thức kỹ thuật",
+        items: ["OOP / TypeScript", "PostgreSQL / SQLite", "RESTful API", "Mạng máy tính"],
+      },
+      {
+        group: "Ngoại ngữ & Quy trình",
+        items: ["Đọc hiểu SRS Tiếng Anh (B1)", "Tài liệu hóa báo cáo lỗi"],
+      },
+    ],
+  },
+  {
+    id: "role-ba",
+    sector: "CNTT & Nghiệp vụ",
+    shortLabel: "Business Analyst (BA Intern)",
+    roleTitle: "Thực tập sinh Phân tích nghiệp vụ phần mềm (IT Business Analyst)",
+    companyType: "Công ty Tư vấn chuyển đổi số & Phát triển sản phẩm",
+    matchCount: "5/5 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 ngành Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, Tiếng Anh B1 đạt 8.9/10) ứng tuyển vị trí Thực tập sinh IT Business Analyst. Có kinh nghiệm khảo sát nghiệp vụ, thiết kế mô hình thực thể kết hợp (ERD 14 bảng chuẩn 3NF) và đặc tả phân hệ phần mềm trong đồ án Quản lý Thư viện & Quản lý Học vụ. Mong muốn làm cầu nối hiệu quả giữa khách hàng và đội ngũ phát triển sản phẩm.",
+    recruiterVerdict:
+      "Điểm Tiếng Anh 2 đạt 8.9 (A) kết hợp với điểm thực hành thiết kế CSDL 9.0/10 và vai trò Trưởng nhóm thiết kế Domain Model trong đồ án IT3040 là minh chứng rất thuyết phục cho vị trí BA thực tập.",
+    checklist: [
+      {
+        label: "Thiết kế lược đồ CSDL (ERD) & mô hình hóa luồng nghiệp vụ",
+        detail: "Trưởng nhóm thiết kế Domain Model (IT3040) & chuẩn hóa 14 bảng 3NF (IT3090)",
+        status: "ready",
+      },
+      {
+        label: "Ngoại ngữ giao tiếp & viết tài liệu đặc tả (SRS / Use Case)",
+        detail: "Tiếng Anh 1 (8.0) & Tiếng Anh 2 (8.9 - Điểm A), chuẩn B1",
+        status: "ready",
+      },
+      {
+        label: "Kỹ năng làm việc nhóm & thuyết trình giải pháp",
+        detail: "Thành viên Ban chuyên môn CLB Tin học Sao Đỏ · Điểm rèn luyện 82/100",
+        status: "ready",
+      },
+      {
+        label: "Đính kèm sơ đồ ERD & mẫu tài liệu đặc tả vào hồ sơ",
+        detail: "Nên trích xuất tóm tắt đồ án IT3090 vào Mẫu 01-CVTT khi gửi nhà tuyển dụng",
+        status: "recommended",
+        actionLabel: "Cập nhật vào CV",
+        templateId: "tpl-internship-cv",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Phân tích & Thiết kế hệ thống",
+        items: ["Mô hình hóa ERD / UML", "Phân tích yêu cầu (SRS)", "Thiết kế Domain Model", "SQL truy vấn báo cáo"],
+      },
+      {
+        group: "Nền tảng công nghệ",
+        items: ["Hiểu kiến trúc Web / OOP", "Cơ sở dữ liệu quan hệ 3NF", "Git & Quản lý tài liệu"],
+      },
+      {
+        group: "Ngoại ngữ & Giao tiếp",
+        items: ["Tiếng Anh B1 (8.9/10)", "Thuyết trình & Phản biện", "Điều phối nhóm đồ án"],
+      },
+    ],
+  },
+  {
+    id: "role-data",
+    sector: "Dữ liệu & AI",
+    shortLabel: "Phân tích dữ liệu (Data / SQL)",
+    roleTitle: "Thực tập sinh Phân tích & Kỹ thuật Dữ liệu (Data / SQL Analyst)",
+    companyType: "Khối Phân tích dữ liệu, Thương mại điện tử & Fintech",
+    matchCount: "4/5 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 Khoa Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0) ứng tuyển vị trí Thực tập sinh Phân tích & Kỹ thuật Dữ liệu (Data / SQL Intern). Nắm vững thiết kế lược đồ CSDL chuẩn 3NF, tối ưu hóa truy vấn SQL (25 truy vấn thống kê chạy dưới 8ms) và cấu trúc dữ liệu đồ thị (Điểm A). Mong muốn tham gia xây dựng pipeline dữ liệu, báo cáo BI và tối ưu truy vấn tại doanh nghiệp.",
+    recruiterVerdict:
+      "Thế mạnh lớn ở thiết kế lược đồ CSDL 3NF và tối ưu truy vấn SQL (< 8ms). Tuy nhiên nhà tuyển dụng Data thường soi kỹ điểm nhóm môn Toán nền tảng (Giải tích, Đại số tuyến tính, Toán rời rạc).",
+    checklist: [
+      {
+        label: "Thiết kế mô hình dữ liệu (ERD) & tối ưu truy vấn SQL",
+        detail: "Đạt 9.0/10 học phần Cơ sở dữ liệu (IT3090) · 25 truy vấn thống kê",
+        status: "ready",
+      },
+      {
+        label: "Lập trình xử lý cấu trúc dữ liệu & thuật toán",
+        detail: "Đạt điểm A (8.5) môn Cấu trúc dữ liệu & Giải thuật (IT2010)",
+        status: "ready",
+      },
+      {
+        label: "Nền tảng Toán học (Giải tích, Đại số tuyến tính, Toán rời rạc)",
+        detail: "Giải tích 1 (6.2 - C), Đại số (7.0 - B) đang thấp hơn mặt bằng lập trình (8.6)",
+        status: "missing",
+        actionLabel: "Lập kế hoạch cải thiện",
+        templateId: "tpl-academic-plan",
+      },
+      {
+        label: "Ngoại ngữ đọc tài liệu phân tích & báo cáo",
+        detail: "Tiếng Anh 2 đạt 8.9/10 · Chuẩn B1",
+        status: "ready",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Cơ sở dữ liệu & Truy vấn",
+        items: ["PostgreSQL", "SQLite", "Thiết kế chuẩn 3NF", "Tối ưu truy vấn & Indexing"],
+      },
+      {
+        group: "Lập trình & Giải thuật",
+        items: ["C++20", "TypeScript", "Đồ thị & Cây tìm kiếm", "Thống kê học vụ"],
+      },
+      {
+        group: "Ngoại ngữ",
+        items: ["Tiếng Anh B1 (8.9/10)", "Trình bày báo cáo số liệu"],
+      },
+    ],
+  },
+  {
+    id: "role-network",
+    sector: "Hạ tầng & Hệ thống",
+    shortLabel: "Quản trị mạng / IT Helpdesk",
+    roleTitle: "Thực tập sinh Quản trị hệ thống & Hỗ trợ kỹ thuật (IT Support / System)",
+    companyType: "Doanh nghiệp sản xuất công nghiệp & Khu công nghiệp Hải Dương / Bắc Ninh",
+    matchCount: "5/5 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 Khoa Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, tỷ lệ chuyên cần 97.5%) ứng tuyển vị trí Thực tập sinh IT Support / Quản trị hệ thống. Có kiến thức vững về Kiến trúc máy tính (8.0), Mạng máy tính (TCP/IP, định tuyến, cấu hình dịch vụ), quản trị CSDL SQL và hỗ trợ kỹ thuật phần mềm. Sẵn sàng làm việc trực tiếp tại doanh nghiệp và hỗ trợ vận hành hạ tầng CNTT ổn định.",
+    recruiterVerdict:
+      "Phù hợp cao với các doanh nghiệp FDI và khu công nghiệp quanh Chí Linh, Hải Dương, Bắc Ninh nhờ kỷ luật chuyên cần 97.5%, nền tảng Kiến trúc máy tính (8.0) và Tiếng Anh B1.",
+    checklist: [
+      {
+        label: "Kiến thức phần cứng, Kiến trúc máy tính & Hệ điều hành",
+        detail: "Đạt 8.0 (B+) học phần Kiến trúc máy tính (IT2030)",
+        status: "ready",
+      },
+      {
+        label: "Cấu hình mạng TCP/IP & Quản trị CSDL nội bộ",
+        detail: "Đang hoàn thành IT3080 (Mạng máy tính) & đạt 9.0 Lab CSDL",
+        status: "ready",
+      },
+      {
+        label: "Giao tiếp tiếng Anh cơ bản trong môi trường doanh nghiệp FDI",
+        detail: "Đạt chuẩn B1 · Tiếng Anh 2 đạt 8.9/10",
+        status: "ready",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Hệ thống & Mạng",
+        items: ["Kiến trúc máy tính", "Mạng TCP/IP & LAN/WAN", "Cài đặt & Xử lý sự cố phần mềm"],
+      },
+      {
+        group: "Cơ sở dữ liệu & Bảo trì",
+        items: ["Sao lưu & Phục hồi SQL", "Quản lý tài khoản nội bộ", "Hỗ trợ người dùng cuối"],
+      },
+      {
+        group: "Ngoại ngữ & Tác phong",
+        items: ["Tiếng Anh B1 (8.9/10)", "Kỷ luật giờ giấc (Chuyên cần 97.5%)"],
+      },
+    ],
+  },
+  {
+    id: "role-sales-eng",
+    sector: "Kinh doanh & Tư vấn",
+    shortLabel: "Tư vấn giải pháp (Sales IT / EdTech)",
+    roleTitle: "Thực tập sinh Tư vấn giải pháp Công nghệ (Sales Engineer / Tech Consultant)",
+    companyType: "Doanh nghiệp Phần mềm quản trị (ERP/CRM), Viễn thông & EdTech",
+    matchCount: "5/5 tiêu chí đạt",
+    defaultObjective:
+      "Sinh viên năm 3 ngành Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, Điểm rèn luyện 82/100) ứng tuyển vị trí Thực tập sinh Tư vấn giải pháp CNTT (Sales Engineer). Kết hợp kiến thức kỹ thuật thực tế về phần mềm, cơ sở dữ liệu với kỹ năng trình bày, hướng dẫn người dùng tích lũy từ hoạt động Ban chuyên môn CLB Tin học Sao Đỏ. Mong muốn tư vấn giải pháp công nghệ hiệu quả và mở rộng tập khách hàng doanh nghiệp.",
+    recruiterVerdict:
+      "Theo danh mục mẫu CV TopCV, vị trí Sales Engineer / Kinh doanh phần mềm rất chuộng sinh viên CNTT nắm rõ kỹ thuật sản phẩm và có kỹ năng giao tiếp, hoạt động CLB năng nổ.",
+    checklist: [
+      {
+        label: "Hiểu rõ cấu trúc sản phẩm phần mềm, Web & Cơ sở dữ liệu",
+        detail: "GPA 3.22/4.0 · Đã xây dựng hoàn chỉnh 3 đồ án phần mềm & CSDL",
+        status: "ready",
+      },
+      {
+        label: "Kỹ năng trình bày demo sản phẩm & hướng dẫn người dùng",
+        detail: "Thành viên Ban chuyên môn CLB Tin học · Điểm rèn luyện 82/100",
+        status: "ready",
+      },
+      {
+        label: "Ngoại ngữ & Tin học văn phòng chuẩn bị hồ sơ thầu / báo giá",
+        detail: "Tiếng Anh B1 (8.9/10) · Thành thạo soạn thảo tài liệu kỹ thuật",
+        status: "ready",
+      },
+    ],
+    cvSkills: [
+      {
+        group: "Tư vấn & Demo Giải pháp",
+        items: ["Trình bày Demo phần mềm", "Khảo sát nhu cầu khách hàng", "Soạn thảo tài liệu giải pháp"],
+      },
+      {
+        group: "Nền tảng kỹ thuật",
+        items: ["Ứng dụng Web & CSDL SQL", "Quy trình vận hành phần mềm", "Xử lý thắc mắc kỹ thuật"],
+      },
+      {
+        group: "Ngoại ngữ & Hoạt động",
+        items: ["Tiếng Anh B1 (8.9/10)", "Ban chuyên môn CLB Tin học Sao Đỏ"],
+      },
+    ],
+  },
+];
 
-  const toPolygon = (values: number[]) =>
-    values
-      .map((v, idx) => {
-        const pt = pointAt(idx, v);
-        return `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
-      })
-      .join(" ");
+type AiFocusStyle = "ats" | "project" | "intern" | "fresher";
 
-  const studentPoly = toPolygon(axes.map((a) => a.studentScore));
-  const cohortPoly = toPolygon(axes.map((a) => a.cohortAvg));
-  const targetPoly = toPolygon(benchmarkScores);
-
-  return (
-    <div className="pf-radar-wrap">
-      <svg
-        viewBox={`0 0 ${size} ${size}`}
-        className="pf-radar-svg"
-        role="img"
-        aria-label="Biểu đồ đối sánh 6 trục năng lực"
-      >
-        {rings.map((r) => {
-          const pts = axes
-            .map((_, idx) => {
-              const p = pointAt(idx, r * 100);
-              return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-            })
-            .join(" ");
-          return <polygon key={r} points={pts} className="pf-radar-ring" />;
-        })}
-
-        {axes.map((axis, idx) => {
-          const outer = pointAt(idx, 100);
-          return (
-            <g key={axis.id}>
-              <line x1={cx} y1={cy} x2={outer.x} y2={outer.y} className="pf-radar-axis" />
-              <text
-                x={outer.labelX}
-                y={outer.labelY}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="pf-radar-label"
-              >
-                {axis.shortLabel}
-              </text>
-            </g>
-          );
-        })}
-
-        <polygon points={cohortPoly} className="pf-radar-poly is-cohort" />
-        <polygon points={targetPoly} className="pf-radar-poly is-target" />
-        <polygon points={studentPoly} className="pf-radar-poly is-student" />
-
-        {axes.map((axis, idx) => {
-          const pt = pointAt(idx, axis.studentScore);
-          return (
-            <circle key={axis.id} cx={pt.x} cy={pt.y} r={3.5} className="pf-radar-dot">
-              <title>{`${axis.label}: ${axis.studentScore}/100 (TB lớp ${axis.cohortAvg} · Mẫu ${benchmarkScores[idx] ?? axis.targetBenchmark})`}</title>
-            </circle>
-          );
-        })}
-      </svg>
-
-      <div className="pf-radar-legend" aria-label="Chú giải biểu đồ">
-        <span>
-          <i className="is-student" aria-hidden="true" /> Bạn
-        </span>
-        <span>
-          <i className="is-target" aria-hidden="true" /> {benchmarkLabel}
-        </span>
-        <span>
-          <i className="is-cohort" aria-hidden="true" /> TB lớp DK13
-        </span>
-      </div>
-    </div>
-  );
-}
+const aiFocusOptions: { id: AiFocusStyle; label: string; promptHint: string }[] = [
+  {
+    id: "ats",
+    label: "Chuẩn TopCV / ATS (Ngắn gọn, súc tích)",
+    promptHint: "Viết theo chuẩn TopCV/ATS trong 3-4 câu ngắn gọn, có số liệu GPA, điểm môn cốt lõi và từ khóa kỹ năng của vị trí ứng tuyển.",
+  },
+  {
+    id: "project",
+    label: "Nhấn mạnh Đồ án & Kỹ năng thực hành",
+    promptHint: "Tập trung làm nổi bật 3 đồ án thực hành phòng Lab (OOP 9.2, CSDL 3NF 9.0, CTDL-GT Điểm A) và khả năng bắt nhịp công việc ngay.",
+  },
+  {
+    id: "intern",
+    label: "Mục tiêu Thực tập sinh (Ham học hỏi, kỷ luật)",
+    promptHint: "Nhấn mạnh tinh thần kỷ luật (chuyên cần 97.5%), nền tảng kiến thức vững và mục tiêu hoàn thành xuất sắc kỳ thực tập doanh nghiệp.",
+  },
+  {
+    id: "fresher",
+    label: "Mục tiêu gắn bó lâu dài (Fresher / Junior)",
+    promptHint: "Chia rõ mục tiêu ngắn hạn (3-6 tháng nắm vững quy trình và đóng góp vào dự án) và mục tiêu dài hạn (1-2 năm trở thành nhân sự nòng cốt).",
+  },
+];
 
 export default function StudentPortfolioPage() {
   const router = useRouter();
@@ -223,16 +423,23 @@ export default function StudentPortfolioPage() {
     return accounts.find((a) => a.role === "class_student") ?? account;
   }, [account, accounts]);
 
-  const [lens, setLens] = useState<LensMode>("all");
-  const [archetypeId, setArchetypeId] = useState<string>("arch-current");
+  const [cvStyleId, setCvStyleId] = useState<CvLayoutStyleId>("modern-split");
+  const [roleTrackId, setRoleTrackId] = useState<string>("role-fullstack");
+  const [aiFocus, setAiFocus] = useState<AiFocusStyle>("ats");
+  const [customCompanyHint, setCustomCompanyHint] = useState<string>("");
+  const [aiGenerating, setAiGenerating] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string>("");
+
   const [joinedClubs] = useDemoState("clubs", () => initialClubs);
   const [, setProposals] = useDemoState<ProfileUpdateProposal[]>(
     "profile-updates",
     () => initialProfileUpdates,
   );
 
-  const selectedArchetype =
-    sampleArchetypes.find((a) => a.id === archetypeId) ?? sampleArchetypes[0]!;
+  const selectedTrack =
+    jobRoleTracks.find((r) => r.id === roleTrackId) ?? jobRoleTracks[0]!;
+  const selectedLayout =
+    cvLayoutStyles.find((s) => s.id === cvStyleId) ?? cvLayoutStyles[0]!;
 
   const allGradeRows = useMemo(() => terms.flatMap((term) => term.rows), []);
   const overallGpa = useMemo(() => gpa(allGradeRows), [allGradeRows]);
@@ -257,6 +464,15 @@ export default function StudentPortfolioPage() {
   const attendancePct = totalPeriods
     ? ((totalAttended / totalPeriods) * 100).toFixed(1)
     : "100.0";
+
+  const topCourses = useMemo(
+    () =>
+      [...allGradeRows]
+        .map((r) => ({ ...r, score10: total(r) }))
+        .sort((a, b) => b.score10 - a.score10)
+        .slice(0, 4),
+    [allGradeRows],
+  );
 
   const baseTemplates = useMemo(
     () =>
@@ -308,6 +524,86 @@ export default function StudentPortfolioPage() {
     ...(customOverrides[activeTemplate.id] ?? {}),
   };
 
+  // Current career objective displayed on the CV sheet and synchronized with Mẫu 01-CVTT
+  const currentCareerObjective =
+    customOverrides["tpl-internship-cv"]?.objectivePitch ?? selectedTrack.defaultObjective;
+
+  function setCareerObjectiveText(nextText: string) {
+    setCustomOverrides((prev) => ({
+      ...prev,
+      "tpl-internship-cv": {
+        ...(prev["tpl-internship-cv"] ?? {}),
+        targetRole: selectedTrack.roleTitle,
+        objectivePitch: nextText,
+      },
+    }));
+  }
+
+  async function generateCareerObjectiveWithAi() {
+    if (aiGenerating) return;
+    setAiGenerating(true);
+    setAiError("");
+
+    const focusMeta = aiFocusOptions.find((f) => f.id === aiFocus) ?? aiFocusOptions[0]!;
+    const prompt = [
+      `Hãy viết mục "Mục tiêu nghề nghiệp" (Career Objective) cho CV xin việc/thực tập theo chuẩn TopCV Việt Nam.`,
+      `- Họ tên ứng viên: ${studentIdentity.displayName} (Sinh viên năm 3, Lớp ${studentIdentity.cohortClass}, ${studentIdentity.department}, Trường Đại học Sao Đỏ).`,
+      `- Vị trí ứng tuyển: ${selectedTrack.roleTitle} (${selectedTrack.companyType}).`,
+      customCompanyHint.trim()
+        ? `- Yêu cầu/Công ty mục tiêu cụ thể: ${customCompanyHint.trim()}.`
+        : "",
+      `- Dữ liệu học thuật khách quan: GPA ${overallGpa.value.toFixed(2)}/4.0 (Xếp loại ${standingText}, Top 18% lớp), tích lũy ${earnedCredits}/${program.requiredCredits} tín chỉ, chuyên cần phòng Lab ${attendancePct}%, điểm rèn luyện ${conduct.score}/100.`,
+      `- Các học phần và dự án nổi bật: Lập trình hướng đối tượng (đồ án Quản lý Thư viện 9.2/10), Cơ sở dữ liệu (thiết kế 14 bảng 3NF, 25 truy vấn SQL < 8ms, 9.0/10), Cấu trúc dữ liệu & Giải thuật (8.5 - Điểm A), Tiếng Anh 2 (8.9 - Điểm A, chuẩn B1).`,
+      `- Phong cách yêu cầu: ${focusMeta.promptHint}`,
+      `Chỉ trả về đúng đoạn văn Mục tiêu nghề nghiệp hoàn chỉnh (khoảng 60-110 từ, không dùng markdown heading, không mở bài hay giải thích thêm) để đưa thẳng vào CV.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const controller = new AbortController();
+    let streamed = "";
+
+    try {
+      await streamChat(
+        data.session.accessToken,
+        {
+          conversationId: null,
+          mode: "summarize",
+          content: prompt,
+          assignmentId: null,
+          reasoningEffort: "low",
+        },
+        crypto.randomUUID(),
+        (event) => {
+          if (event.type === "delta") {
+            streamed += event.text;
+            setCareerObjectiveText(streamed.trimStart());
+          } else if (event.type === "error") {
+            setAiError("Không thể kết nối máy chủ AI, đã áp dụng mẫu mục tiêu nghề nghiệp tối ưu.");
+          }
+        },
+        controller.signal,
+      );
+      if (streamed.trim()) {
+        setCareerObjectiveText(streamed.trim().replace(/^["“]|["”]$/g, ""));
+        setBannerNotice(
+          `Trợ lý AI đã tạo Mục tiêu nghề nghiệp cho vị trí ${selectedTrack.shortLabel} và đồng bộ vào Mẫu 01-CVTT`,
+        );
+      }
+    } catch {
+      // Fallback synthesis if offline or quota reached
+      const fallback = `${selectedTrack.defaultObjective}${
+        customCompanyHint.trim()
+          ? ` Định hướng đóng góp trực tiếp cho ${customCompanyHint.trim()} với cam kết kỷ luật và hiệu suất cao.`
+          : ""
+      }`;
+      setCareerObjectiveText(fallback);
+      setBannerNotice("Đã tạo Mục tiêu nghề nghiệp theo dữ liệu học thuật và vị trí ứng tuyển");
+    } finally {
+      setAiGenerating(false);
+    }
+  }
+
   function updateDraftField(key: string, nextValue: string) {
     setCustomOverrides((prev) => ({
       ...prev,
@@ -346,6 +642,19 @@ export default function StudentPortfolioPage() {
     setTimeout(() => {
       formStudioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
+  }
+
+  function handleSelectRoleTrack(track: JobRoleTrack) {
+    setRoleTrackId(track.id);
+    setCustomOverrides((prev) => ({
+      ...prev,
+      "tpl-internship-cv": {
+        ...(prev["tpl-internship-cv"] ?? {}),
+        targetRole: track.roleTitle,
+        objectivePitch: track.defaultObjective,
+        coreSkills: track.cvSkills.map((g) => `${g.group}: ${g.items.join(", ")}`).join(" · "),
+      },
+    }));
   }
 
   function handleSaveAndRoute(event: FormEvent) {
@@ -401,14 +710,20 @@ export default function StudentPortfolioPage() {
     setBannerNotice(`Đã lưu bản chỉnh sửa ${activeTemplate.code} vào bộ nhớ trình duyệt`);
   }
 
-  function exportFormAsWordDoc() {
-    const rowsHtml = activeTemplate.fields
+  function exportFormAsWordDoc(templateOverride?: EditableDossierTemplate) {
+    const targetTpl = templateOverride ?? activeTemplate;
+    const values: Record<string, string> = {
+      ...Object.fromEntries(targetTpl.fields.map((f) => [f.key, f.value])),
+      ...(customOverrides[targetTpl.id] ?? {}),
+    };
+
+    const rowsHtml = targetTpl.fields
       .map(
         (field) => `
           <tr>
             <td style="padding:8px 12px;border:1px solid #ccc;font-weight:bold;width:32%;vertical-align:top;background:#f9f5f0;">${field.label}</td>
             <td style="padding:8px 12px;border:1px solid #ccc;white-space:pre-line;">${(
-              activeDraftValues[field.key] ?? ""
+              values[field.key] ?? ""
             )
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")
@@ -421,14 +736,14 @@ export default function StudentPortfolioPage() {
 <html lang="vi">
 <head>
 <meta charset="utf-8" />
-<title>${activeTemplate.code} - ${studentIdentity.displayName}</title>
+<title>${targetTpl.code} - ${studentIdentity.displayName}</title>
 </head>
 <body style="font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12pt;line-height:1.5;color:#111;max-width:760px;margin:24px auto;">
   <div style="text-align:center;margin-bottom:18px;">
     <strong>TRƯỜNG ĐẠI HỌC SAO ĐỎ · CỔNG HỌC TẬP SINH VIÊN</strong><br/>
-    <span>Mã biểu mẫu: ${activeTemplate.code} · Hồ sơ sinh viên</span>
-    <h2 style="margin:12px 0 4px;">${activeTemplate.title}</h2>
-    <p style="margin:0;">Kính gửi: ${activeTemplate.recipient}</p>
+    <span>Mã biểu mẫu: ${targetTpl.code} · Mẫu thiết kế: ${selectedLayout.name}</span>
+    <h2 style="margin:12px 0 4px;">${targetTpl.title}</h2>
+    <p style="margin:0;">Kính gửi: ${targetTpl.recipient}</p>
   </div>
   <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
     <tbody>${rowsHtml}</tbody>
@@ -445,15 +760,17 @@ export default function StudentPortfolioPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${activeTemplate.code.toLowerCase().replace(/\s+/g, "-")}-${studentIdentity.code}.doc`;
+    a.download = `${targetTpl.code.toLowerCase().replace(/\s+/g, "-")}-${studentIdentity.code}.doc`;
     a.click();
     URL.revokeObjectURL(url);
-    setBannerNotice(`Đã tải tệp ${activeTemplate.code}.doc`);
+    setBannerNotice(`Đã tải tệp ${targetTpl.code}.doc (${selectedLayout.name})`);
   }
 
   function exportFormAsJson() {
     const payload = {
       exportedAt: new Date().toISOString(),
+      cvLayoutStyle: selectedLayout.id,
+      jobRoleTrack: selectedTrack.roleTitle,
       templateCode: activeTemplate.code,
       templateTitle: activeTemplate.title,
       recipient: activeTemplate.recipient,
@@ -497,20 +814,8 @@ export default function StudentPortfolioPage() {
     }
   }
 
-  const visibleObservations = objectiveObservations.filter(
-    (item) => lens === "all" || item.perspective === lens,
-  );
-
-  const compositeIndex = Math.round(
-    portfolioCompetencies.reduce((sum, item) => sum + item.studentScore, 0) /
-      portfolioCompetencies.length,
-  );
-  const cohortComposite = Math.round(
-    portfolioCompetencies.reduce((sum, item) => sum + item.cohortAvg, 0) /
-      portfolioCompetencies.length,
-  );
-
   const activeClubsList = clubs.filter((c) => joinedClubs.includes(c.id));
+  const cvTemplate = baseTemplates[0]!;
 
   return (
     <>
@@ -518,31 +823,38 @@ export default function StudentPortfolioPage() {
 
       <PageTitle
         title="Hồ sơ của bạn"
-        lead="Đối sánh kết quả học tập, chuyên cần và rèn luyện với mặt bằng khóa DK13, trích xuất trực tiếp sang biểu mẫu học vụ"
+        lead="Thư viện mẫu CV theo vị trí công việc (chuẩn TopCV), kết hợp Trợ lý AI viết mục tiêu nghề nghiệp từ dữ liệu học tập thực tế"
       >
         <div className="pf-top-actions">
           <button
             type="button"
             className="button button-primary button-sm"
+            onClick={() => exportFormAsWordDoc(cvTemplate)}
+          >
+            <Icon name="file" /> Tải CV Word (.doc)
+          </button>
+          <button
+            type="button"
+            className="button button-outline button-sm"
             onClick={() => openTemplateInStudio("tpl-internship-cv")}
           >
-            <Icon name="pen" /> Xuất sang biểu mẫu chỉnh sửa
+            <Icon name="pen" /> Mở khung chỉnh sửa biểu mẫu
           </button>
           <button
             type="button"
             className="button button-outline button-sm"
             onClick={() => window.print()}
           >
-            <Icon name="file" /> In hồ sơ A4
+            In / Lưu PDF A4
           </button>
         </div>
       </PageTitle>
 
       {bannerNotice && (
-        <div className="notice ok" role="status" style={{ marginBottom: 16 }}>
+        <div className="notice ok" role="status">
           <Icon name="checkCircle" />
           <div>
-            <strong>Đồng bộ biểu mẫu</strong>
+            <strong>Đồng bộ hồ sơ & CV</strong>
             <p>{bannerNotice}</p>
           </div>
           <button
@@ -555,10 +867,70 @@ export default function StudentPortfolioPage() {
         </div>
       )}
 
-      {/* Top Split: Student Dossier Sheet (Left) + One Bright Moment: 6-Axis Radar & Archetype Switcher (Right) */}
-      <div className="pf-hero-grid">
-        <article className="pf-dossier-card" aria-label="Hồ sơ định vị sinh viên">
-          <header className="pf-dossier-head">
+      {/* Step 1: Choose CV Template Style & Job Position (Inspired by TopCV mau-cv-theo-vi-tri-cong-viec) */}
+      <section className="pf-gallery-bar" aria-label="Chọn mẫu thiết kế CV và vị trí công việc">
+        <div className="pf-gallery-row">
+          <div className="pf-gallery-head">
+            <span className="pf-section-eyebrow">1. Chọn kiểu bố cục CV (4 phong cách chuẩn TopCV)</span>
+          </div>
+          <div className="pf-style-grid" role="tablist" aria-label="Phong cách thiết kế CV">
+            {cvLayoutStyles.map((style) => {
+              const active = style.id === cvStyleId;
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`pf-style-card${active ? " is-active" : ""}`}
+                  onClick={() => setCvStyleId(style.id)}
+                >
+                  <div className="pf-style-card-top">
+                    <strong>{style.name}</strong>
+                    <code>{style.tag}</code>
+                  </div>
+                  <p>{style.summary}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="pf-gallery-row">
+          <div className="pf-gallery-head">
+            <span className="pf-section-eyebrow">
+              2. Chọn mẫu CV theo vị trí công việc ({jobRoleTracks.length} vị trí thực tập & fresher)
+            </span>
+          </div>
+          <div className="pf-role-pills" role="tablist" aria-label="Mẫu CV theo vị trí công việc">
+            {jobRoleTracks.map((track) => {
+              const active = track.id === selectedTrack.id;
+              return (
+                <button
+                  key={track.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`pf-role-pill${active ? " is-active" : ""}`}
+                  onClick={() => handleSelectRoleTrack(track)}
+                >
+                  <span className="pf-role-sector">{track.sector}</span>
+                  <strong>{track.shortLabel}</strong>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Split: Live TopCV-Style Resume Preview (Left) + AI Career Objective & Job Readiness (Right) */}
+      <div className="pf-cv-workspace">
+        {/* Left: Printable, Recruiter-Ready Student CV Sheet */}
+        <article
+          className={`pf-cv-sheet is-layout-${cvStyleId}`}
+          aria-label="Bản xem trước CV ứng tuyển theo vị trí công việc"
+        >
+          <header className="pf-cv-header">
             <div className="pf-dossier-identity">
               <div className="pf-dossier-avatar" aria-hidden="true">
                 {avatarUrl && account.role !== "teacher" ? (
@@ -569,85 +941,188 @@ export default function StudentPortfolioPage() {
               </div>
               <div className="pf-dossier-meta">
                 <span className="pf-record-id">
-                  Hồ sơ học vụ · <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
+                  {selectedLayout.name} · Mã xác thực{" "}
+                  <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
                 </span>
                 <h2>{studentIdentity.displayName}</h2>
-                <p className="pf-dossier-sub">
-                  MSSV <code>{studentIdentity.code}</code> · Lớp {studentIdentity.cohortClass} ·{" "}
-                  {studentIdentity.department}
-                </p>
+                <p className="pf-cv-role">{selectedTrack.roleTitle}</p>
               </div>
             </div>
 
             <div className="pf-score-stamp">
-              <span className="pf-score-label">Chỉ số tổng hợp</span>
+              <span className="pf-score-label">GPA tích lũy</span>
               <strong className="pf-score-value">
-                {compositeIndex}
-                <small>/100</small>
+                {overallGpa.value.toFixed(2)}
+                <small>/4.0</small>
               </strong>
-              <span className="pf-score-delta">
-                +{compositeIndex - cohortComposite} vs TB khóa ({cohortComposite})
-              </span>
+              <span className="pf-score-delta">Xếp loại {standingText}</span>
             </div>
           </header>
 
-          <dl className="pf-key-metrics">
+          {/* Contact & Verification Bar */}
+          <dl className="pf-cv-contact">
             <div>
-              <dt>GPA tích lũy (Hệ 4)</dt>
+              <dt>Email</dt>
+              <dd>{studentIdentity.email}</dd>
+            </div>
+            <div>
+              <dt>Điện thoại</dt>
+              <dd>{studentIdentity.phone}</dd>
+            </div>
+            <div>
+              <dt>Lớp & Khoa</dt>
               <dd>
-                <strong>{overallGpa.value.toFixed(2)}</strong>
-                <span className="pf-delta is-good">+0.39 vs lớp (2.83)</span>
-                <small>Xếp loại {standingText}</small>
+                {studentIdentity.cohortClass} · {studentIdentity.department}
               </dd>
             </div>
             <div>
-              <dt>Tín chỉ hoàn thành</dt>
-              <dd>
-                <strong>
-                  {earnedCredits}/{program.requiredCredits}
-                </strong>
-                <span className="pf-delta">+{currentCredits} TC kỳ này</span>
-                <small>{semester.short}</small>
-              </dd>
-            </div>
-            <div>
-              <dt>Tỷ lệ chuyên cần</dt>
-              <dd>
-                <strong>{attendancePct}%</strong>
-                <span className="pf-delta is-good">+6.3% vs lớp (91.2%)</span>
-                <small>
-                  {totalAttended}/{totalPeriods} tiết có mặt
-                </small>
-              </dd>
-            </div>
-            <div>
-              <dt>Điểm rèn luyện</dt>
-              <dd>
-                <strong>{conduct.score}</strong>
-                <span className="pf-delta is-good">+6 vs lớp (76)</span>
-                <small>
-                  Xếp loại {conduct.rank} · {activeClubsList.length} CLB
-                </small>
-              </dd>
+              <dt>Địa điểm</dt>
+              <dd>Chí Linh, Hải Dương (Thực tập Hà Nội / Hải Dương / Bắc Ninh)</dd>
             </div>
           </dl>
 
-          <div className="pf-objective-quote">
-            <div className="pf-quote-head">
-              <strong>Đối sánh với {selectedArchetype.badge}</strong>
-              <code>
-                Mẫu GPA {selectedArchetype.gpa} · ĐRL {selectedArchetype.conduct} · Chỉ số{" "}
-                {selectedArchetype.composite}/100
-              </code>
+          <div className="pf-cv-body-grid">
+            {/* Sidebar column (used in 2-column Modern Split layout, flows naturally in 1-column layouts) */}
+            <div className="pf-cv-side-col">
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Kỹ năng chuyên môn</h3>
+                  <span>{selectedTrack.shortLabel}</span>
+                </div>
+                <div className="pf-skill-groups">
+                  {selectedTrack.cvSkills.map((grp) => (
+                    <div key={grp.group} className="pf-skill-row">
+                      <span className="pf-skill-label">{grp.group}</span>
+                      <div className="pf-skill-items">
+                        {grp.items.map((item) => (
+                          <span key={item} className="pf-skill-chip">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Chứng chỉ & Ngoại ngữ</h3>
+                  <span>Đã xác thực</span>
+                </div>
+                <ul className="pf-cv-compact-list">
+                  <li>
+                    <strong>Chuẩn Ngoại ngữ B1</strong>
+                    <span>Tiếng Anh 1 (8.0) · Tiếng Anh 2 (8.9 - Điểm A)</span>
+                  </li>
+                  <li>
+                    <strong>Kỷ luật & Chuyên cần Lab</strong>
+                    <span>{attendancePct}% tiết có mặt ({totalAttended}/{totalPeriods} tiết)</span>
+                  </li>
+                  <li>
+                    <strong>Điểm rèn luyện học kỳ</strong>
+                    <span>{conduct.score}/100 điểm · Xếp loại {conduct.rank}</span>
+                  </li>
+                </ul>
+              </section>
+
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Hoạt động & Giải thưởng</h3>
+                  <span>{activeClubsList.length} CLB</span>
+                </div>
+                <ul className="pf-cv-compact-list">
+                  <li>
+                    <strong>Ban chuyên môn — CLB Tin học Sao Đỏ</strong>
+                    <span>Phụ đạo Cấu trúc dữ liệu & xây dựng kho bài mẫu C++20</span>
+                  </li>
+                  <li>
+                    <strong>Tình nguyện & Cộng đồng</strong>
+                    <span>Hiến máu &ldquo;Giọt hồng Sao Đỏ&rdquo; · Chủ nhật xanh KTX</span>
+                  </li>
+                </ul>
+              </section>
             </div>
-            <p>{selectedArchetype.summary}</p>
-            <p className="pf-quote-action">
-              <strong>Trọng tâm tiếp theo:</strong> {selectedArchetype.keyTakeaway}
-            </p>
+
+            {/* Main column: Career Objective + Education + Verified Projects */}
+            <div className="pf-cv-main-col">
+              {/* Career Objective Section (with live AI rewrite) */}
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Mục tiêu nghề nghiệp</h3>
+                  <span>{aiGenerating ? "Trợ lý AI đang viết…" : "Có thể chỉnh sửa trực tiếp"}</span>
+                </div>
+                <textarea
+                  className="pf-cv-objective-input"
+                  rows={4}
+                  value={currentCareerObjective}
+                  onChange={(e) => setCareerObjectiveText(e.target.value)}
+                  aria-label="Mục tiêu nghề nghiệp trên CV"
+                />
+              </section>
+
+              {/* Education & Verified Academic Standing */}
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Học vấn & Thành tích học thuật</h3>
+                  <span>2022 – 2026</span>
+                </div>
+                <div className="pf-cv-edu-row">
+                  <div>
+                    <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
+                    <p>
+                      Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
+                    </p>
+                  </div>
+                  <code>
+                    GPA {overallGpa.value.toFixed(2)}/4.0 · {earnedCredits}/{program.requiredCredits} TC
+                  </code>
+                </div>
+
+                <div className="pf-cv-top-courses">
+                  <span className="pf-cv-sublabel">Học phần cốt lõi đạt điểm cao:</span>
+                  <div className="pf-course-pills">
+                    {topCourses.map((c) => (
+                      <span key={c.code} className="pf-course-tag">
+                        <code>{c.code}</code> {c.name}: <strong>{c.score10.toFixed(1)}</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {/* Verified Projects */}
+              <section className="pf-cv-block">
+                <div className="pf-cv-block-head">
+                  <h3>Kinh nghiệm dự án & Đồ án thực hành</h3>
+                  <span>Giảng viên bộ môn xác nhận</span>
+                </div>
+                <div className="pf-cv-projects">
+                  {portfolioProjects.map((proj) => (
+                    <div key={proj.id} className="pf-cv-project-item">
+                      <div className="pf-cv-project-head">
+                        <div>
+                          <strong>{proj.title}</strong>
+                          <span className="pf-cv-project-role">
+                            {proj.role} · <code>{proj.courseCode}</code>
+                          </span>
+                        </div>
+                        <code className="pf-cv-project-score">{proj.score}</code>
+                      </div>
+                      <p>{proj.highlight}</p>
+                      <div className="pf-cv-project-meta">
+                        <span>Công nghệ: {proj.stack.join(", ")}</span>
+                        <span>Xác nhận: {proj.verifiedBy}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
           </div>
 
           <footer className="pf-quick-export-bar" aria-label="Chọn nhanh biểu mẫu cần xuất">
-            <span className="pf-quick-export-label">Xuất sang form:</span>
+            <span className="pf-quick-export-label">Xuất hồ sơ sang form để sửa:</span>
             <div className="pf-export-links">
               <button
                 type="button"
@@ -661,14 +1136,14 @@ export default function StudentPortfolioPage() {
                 className="pf-export-btn"
                 onClick={() => openTemplateInStudio("tpl-scholarship")}
               >
-                Mẫu 02 · Học bổng & SV 5 Tốt
+                Mẫu 02 · Xét Học bổng
               </button>
               <button
                 type="button"
                 className="pf-export-btn"
                 onClick={() => openTemplateInStudio("tpl-profile-correction")}
               >
-                Mẫu 03 · Sửa dữ liệu gốc
+                Mẫu 03 · Sửa hồ sơ gốc
               </button>
               <button
                 type="button"
@@ -681,217 +1156,168 @@ export default function StudentPortfolioPage() {
           </footer>
         </article>
 
-        <section className="pf-radar-card" aria-label="Biểu đồ đối sánh 6 trục năng lực">
-          <div className="pf-radar-card-head">
-            <div>
-              <span className="pf-section-eyebrow">Định vị khách quan 6 trục</span>
-              <h3>So sánh với mặt bằng lớp & hồ sơ mẫu</h3>
+        {/* Right Column: AI Career Objective Generator + Job Readiness Checklist */}
+        <aside className="pf-side-column" aria-label="Trợ lý AI viết Mục tiêu nghề nghiệp và kiểm tra CV">
+          <section className="pf-ai-card">
+            <div className="pf-radar-card-head">
+              <div>
+                <span className="pf-section-eyebrow">Tích hợp Trợ lý AI học tập SDU</span>
+                <h3>AI viết Mục tiêu nghề nghiệp</h3>
+              </div>
+              <Link href="/student/ai" className="pf-rank-tag">
+                Mở Trợ lý AI
+              </Link>
             </div>
-            <code className="pf-rank-tag">Top 18% {studentIdentity.cohortClass}</code>
-          </div>
 
-          <div className="pf-archetype-segmented" role="tablist" aria-label="Chọn hồ sơ mẫu đối sánh">
-            {sampleArchetypes.map((arch) => {
-              const active = arch.id === selectedArchetype.id;
-              return (
-                <button
-                  key={arch.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`pf-seg-btn${active ? " is-active" : ""}`}
-                  onClick={() => setArchetypeId(arch.id)}
+            <p className="pf-ai-desc">
+              Sử dụng hệ thống AI sẵn có để tổng hợp GPA ({overallGpa.value.toFixed(2)}/4.0), đồ án
+              phòng Lab và vị trí <strong>{selectedTrack.shortLabel}</strong> thành đoạn Mục tiêu
+              nghề nghiệp chuẩn TopCV.
+            </p>
+
+            <div className="pf-ai-controls">
+              <label className="field">
+                <span>Phong cách viết Mục tiêu nghề nghiệp</span>
+                <select
+                  value={aiFocus}
+                  onChange={(e) => setAiFocus(e.target.value as AiFocusStyle)}
                 >
-                  {arch.shortLabel}
+                  {aiFocusOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Công ty hoặc yêu cầu JD cụ thể (tùy chọn)</span>
+                <input
+                  type="text"
+                  value={customCompanyHint}
+                  onChange={(e) => setCustomCompanyHint(e.target.value)}
+                  placeholder="Ví dụ: FPT Software, Viettel, yêu cầu biết SQL & Git…"
+                />
+              </label>
+
+              <div className="pf-ai-btn-row">
+                <button
+                  type="button"
+                  className="button button-primary button-sm"
+                  disabled={aiGenerating}
+                  onClick={() => void generateCareerObjectiveWithAi()}
+                >
+                  <Icon name="sparkle" />
+                  <span>
+                    {aiGenerating
+                      ? "Đang viết mục tiêu nghề nghiệp…"
+                      : "Dùng AI tạo Mục tiêu nghề nghiệp"}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
+                <button
+                  type="button"
+                  className="button button-quiet button-xs"
+                  onClick={() => setCareerObjectiveText(selectedTrack.defaultObjective)}
+                >
+                  Khôi phục mẫu chuẩn
+                </button>
+              </div>
 
-          <RadarHexagon
-            axes={portfolioCompetencies}
-            benchmarkScores={selectedArchetype.scores}
-            benchmarkLabel={selectedArchetype.shortLabel}
-          />
-        </section>
-      </div>
+              {aiError && <p className="pf-ai-note">{aiError}</p>}
+            </div>
+          </section>
 
-      {/* Main Split: 6-Axis Quantitative Comparison Table (2/3 width) + Multi-Lens Review Notes (1/3 width) */}
-      <div className="pf-analysis-split">
-        <Section
-          title="Đối sánh định lượng 6 trục năng lực"
-          action={<span className="reg-table-meta">Thang 100 · Đối chiếu {selectedArchetype.shortLabel}</span>}
-        >
-          <div className="pf-comp-list">
-            {portfolioCompetencies.map((comp, idx) => {
-              const targetVal = selectedArchetype.scores[idx] ?? comp.targetBenchmark;
-              const diff = comp.studentScore - comp.cohortAvg;
-              const vsTarget = comp.studentScore - targetVal;
-              return (
-                <div key={comp.id} className="pf-comp-item">
-                  <div className="pf-comp-title-row">
-                    <strong>{comp.label}</strong>
-                    <div className="pf-comp-figures">
-                      <span className="pf-comp-score">{comp.studentScore}</span>
-                      <span className="pf-comp-slash">/100</span>
-                      <span className={`pf-comp-delta ${diff >= 0 ? "is-good" : "is-warn"}`}>
-                        {diff >= 0 ? `+${diff}` : diff} vs lớp ({comp.cohortAvg})
-                      </span>
-                      <span className="pf-comp-target">
-                        Mẫu {targetVal} ({vsTarget >= 0 ? `+${vsTarget}` : vsTarget})
+          <section className="pf-readiness-card">
+            <div className="pf-radar-card-head">
+              <div>
+                <span className="pf-section-eyebrow">Đối chiếu yêu cầu tuyển dụng</span>
+                <h3>Checklist hồ sơ vị trí {selectedTrack.shortLabel}</h3>
+              </div>
+              <code className="pf-rank-tag">{selectedTrack.matchCount}</code>
+            </div>
+
+            <div className="pf-verdict-box">
+              <strong>Nhận xét khách quan từ dữ liệu học tập</strong>
+              <p>{selectedTrack.recruiterVerdict}</p>
+            </div>
+
+            <ul className="pf-checklist">
+              {selectedTrack.checklist.map((item) => (
+                <li key={item.label} className={`pf-check-item is-${item.status}`}>
+                  <span className="pf-check-dot" aria-hidden="true" />
+                  <div className="pf-check-body">
+                    <div className="pf-check-head">
+                      <strong>{item.label}</strong>
+                      <span className="pf-check-status">
+                        {item.status === "ready"
+                          ? "Đã đạt"
+                          : item.status === "missing"
+                            ? "Cần bổ sung"
+                            : "Khuyến nghị"}
                       </span>
                     </div>
+                    <p>{item.detail}</p>
+                    {item.templateId && item.actionLabel && (
+                      <button
+                        type="button"
+                        className="pf-inline-link"
+                        onClick={() => openTemplateInStudio(item.templateId!)}
+                      >
+                        {item.actionLabel} <Icon name="arrow" />
+                      </button>
+                    )}
                   </div>
-
-                  <div className="pf-comp-bar-track" aria-hidden="true">
-                    <div
-                      className="pf-comp-bar-fill"
-                      style={{ width: `${comp.studentScore}%` }}
-                    />
-                    <div
-                      className="pf-comp-marker is-cohort"
-                      style={{ left: `${comp.cohortAvg}%` }}
-                      title={`Trung bình lớp: ${comp.cohortAvg}`}
-                    />
-                    <div
-                      className="pf-comp-marker is-target"
-                      style={{ left: `${targetVal}%` }}
-                      title={`${selectedArchetype.shortLabel}: ${targetVal}`}
-                    />
-                  </div>
-
-                  <div className="pf-comp-details">
-                    <p>{comp.evidence}</p>
-                    <p className="pf-comp-hint">{comp.improvementHint}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-
-        <Section
-          title="Nhận xét khách quan đa chiều"
-          action={
-            <div className="pf-lens-tabs" role="group" aria-label="Lọc góc nhìn">
-              <button
-                type="button"
-                aria-pressed={lens === "all"}
-                onClick={() => setLens("all")}
-              >
-                Tất cả
-              </button>
-              <button
-                type="button"
-                aria-pressed={lens === "advisor"}
-                onClick={() => setLens("advisor")}
-              >
-                Cố vấn
-              </button>
-              <button
-                type="button"
-                aria-pressed={lens === "employer"}
-                onClick={() => setLens("employer")}
-              >
-                Doanh nghiệp
-              </button>
-              <button
-                type="button"
-                aria-pressed={lens === "self"}
-                onClick={() => setLens("self")}
-              >
-                Điểm mù
-              </button>
-            </div>
-          }
-        >
-          <div className="pf-obs-stack">
-            {visibleObservations.map((obs) => (
-              <article key={obs.id} className={`pf-obs-card is-${obs.tone}`}>
-                <header className="pf-obs-head">
-                  <span className="pf-obs-badge">{obs.badge}</span>
-                  <code className="pf-obs-metric">{obs.metric}</code>
-                </header>
-                <h4>{obs.title}</h4>
-                <p>{obs.summary}</p>
-                <footer className="pf-obs-foot">
-                  <span>Nguồn: {obs.evidenceRef}</span>
-                  <button
-                    type="button"
-                    className="pf-inline-link"
-                    onClick={() =>
-                      openTemplateInStudio(
-                        obs.suggestedFormId,
-                        obs.suggestedField
-                          ? {
-                              category: obs.suggestedField.category,
-                              fieldLabel: obs.suggestedField.fieldLabel,
-                              oldValue: obs.suggestedField.oldValue,
-                              newValue: obs.suggestedField.newValue,
-                              reason: obs.suggestedField.reason,
-                            }
-                          : undefined,
-                      )
-                    }
-                  >
-                    Đưa vào form chỉnh sửa <Icon name="arrow" />
-                  </button>
-                </footer>
-              </article>
-            ))}
-          </div>
-        </Section>
-      </div>
-
-      {/* Verified Coursework & Projects Table */}
-      <Section
-        title="Học phần thực hành & dự án môn học đã kiểm chứng"
-        action={
-          <button
-            type="button"
-            className="button button-outline button-xs"
-            onClick={() => openTemplateInStudio("tpl-internship-cv")}
-          >
-            Trích xuất vào CV Thực tập
-          </button>
-        }
-      >
-        <div className="ad-table-wrap">
-          <table className="ad-table pf-project-table">
-            <thead>
-              <tr>
-                <th scope="col">Học phần</th>
-                <th scope="col">Đề tài / Dự án thực hành</th>
-                <th scope="col">Vai trò & Công nghệ</th>
-                <th scope="col">Kết quả</th>
-                <th scope="col">Giảng viên xác nhận</th>
-              </tr>
-            </thead>
-            <tbody>
-              {portfolioProjects.map((proj) => (
-                <tr key={proj.id}>
-                  <td className="ad-code">
-                    <strong>{proj.courseCode}</strong>
-                    <div className="pt-muted">{proj.semester}</div>
-                  </td>
-                  <td>
-                    <strong>{proj.title}</strong>
-                    <div className="pt-muted">{proj.highlight}</div>
-                  </td>
-                  <td>
-                    <div>{proj.role}</div>
-                    <div className="pf-inline-tags">{proj.stack.join(" · ")}</div>
-                  </td>
-                  <td className="ad-code">
-                    <strong>{proj.score}</strong>
-                  </td>
-                  <td>{proj.verifiedBy}</td>
-                </tr>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+            </ul>
+          </section>
+
+          <section className="pf-readiness-card">
+            <div className="pf-radar-card-head">
+              <div>
+                <span className="pf-section-eyebrow">Góc nhìn khách quan đa chiều</span>
+                <h3>Điểm mạnh & điểm mù học thuật</h3>
+              </div>
+            </div>
+
+            <div className="pf-obs-stack">
+              {objectiveObservations.slice(0, 3).map((obs) => (
+                <article key={obs.id} className={`pf-obs-card is-${obs.tone}`}>
+                  <header className="pf-obs-head">
+                    <span className="pf-obs-badge">{obs.badge}</span>
+                    <code className="pf-obs-metric">{obs.metric}</code>
+                  </header>
+                  <h4>{obs.title}</h4>
+                  <p>{obs.summary}</p>
+                  <footer className="pf-obs-foot">
+                    <span>Nguồn: {obs.evidenceRef}</span>
+                    <button
+                      type="button"
+                      className="pf-inline-link"
+                      onClick={() =>
+                        openTemplateInStudio(
+                          obs.suggestedFormId,
+                          obs.suggestedField
+                            ? {
+                                category: obs.suggestedField.category,
+                                fieldLabel: obs.suggestedField.fieldLabel,
+                                oldValue: obs.suggestedField.oldValue,
+                                newValue: obs.suggestedField.newValue,
+                                reason: obs.suggestedField.reason,
+                              }
+                            : undefined,
+                        )
+                      }
+                    >
+                      Đưa vào form <Icon name="arrow" />
+                    </button>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </div>
 
       {/* Master-Detail Editable Form Studio */}
       <div ref={formStudioRef} id="xuat-bieu-mau">
@@ -899,7 +1325,7 @@ export default function StudentPortfolioPage() {
           title="Xuất hồ sơ sang biểu mẫu cần thiết để chỉnh sửa"
           action={
             <span className="reg-table-meta">
-              Dữ liệu tự động điền từ hệ thống học vụ · Chỉnh sửa trực tiếp trước khi tải hoặc gửi duyệt
+              Dữ liệu tự động điền từ hệ thống học vụ · Chỉnh sửa trực tiếp trước khi tải Word/JSON hoặc gửi duyệt
             </span>
           }
         >
@@ -944,7 +1370,7 @@ export default function StudentPortfolioPage() {
                   <button
                     type="button"
                     className="button button-outline button-xs"
-                    onClick={exportFormAsWordDoc}
+                    onClick={() => exportFormAsWordDoc()}
                   >
                     <Icon name="file" /> Tải Word (.doc)
                   </button>
