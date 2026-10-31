@@ -1037,6 +1037,11 @@
   align-items: center;
   gap: 8px;
 }
+.mp017-actions .button-primary {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
 .mp017-stage-wrap {
   padding: 16px;
   display: grid;

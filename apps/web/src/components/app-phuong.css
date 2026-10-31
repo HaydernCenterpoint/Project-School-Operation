@@ -147,3 +147,18 @@
 }
 .theme-toggle svg { transition: transform .4s cubic-bezier(.16, 1, .3, 1); }
 .theme-toggle:active svg { transform: rotate(-30deg) scale(.9); }
+
+/* Motion Prompt #017 — Mask transition (マスクトランジション) View Transitions API wiring */
+html.is-mask-transitioning::view-transition-old(root),
+html.is-mask-transitioning::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.is-mask-transitioning::view-transition-old(root) {
+  z-index: 1;
+}
+html.is-mask-transitioning::view-transition-new(root) {
+  z-index: 2;
+  clip-path: var(--mask-clip-path);
+}
+
