@@ -2270,10 +2270,12 @@
 .cm-stat-card {
   position: relative;
   overflow: hidden;
-  border-left: 3px solid var(--t-study);
+  background: radial-gradient(240px circle at 0% 0%, var(--t-study-bg), transparent 70%), var(--paper);
+  border-color: var(--t-study-border);
 }
 .cm-stat-card[data-tone="social"] {
-  border-left-color: var(--t-social);
+  background: radial-gradient(240px circle at 0% 0%, var(--t-social-bg), transparent 70%), var(--paper);
+  border-color: var(--t-social-border);
 }
 .cm-stat-head {
   display: flex;
@@ -2303,11 +2305,10 @@
   align-items: flex-start;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--topic-bg, var(--mist)) 42%, var(--paper)) 0%,
+    color-mix(in srgb, var(--topic-bg, var(--mist)) 48%, var(--paper)) 0%,
     var(--mist) 100%
   );
-  border: 1px solid color-mix(in srgb, var(--topic-bd, var(--border)) 65%, var(--border));
-  border-left: 4px solid var(--topic-c, var(--red));
+  border: 1px solid color-mix(in srgb, var(--topic-bd, var(--border)) 80%, var(--border));
   border-radius: 12px;
   transition:
     transform 160ms var(--cm-ease),
@@ -2514,7 +2515,6 @@
     var(--mist) 100%
   );
   border: 1px solid var(--topic-bd, var(--border));
-  border-left: 4px solid var(--topic-c, var(--red));
   border-radius: 12px;
 }
 .cm-log-banner-copy {
@@ -2579,7 +2579,8 @@
   box-shadow: 0 10px 22px -12px rgba(230, 57, 70, 0.75);
 }
 .cm-quote {
-  border-left: 3px solid var(--topic-c, var(--red));
+  background: color-mix(in srgb, var(--topic-bg, var(--paper)) 55%, var(--paper));
+  border-color: var(--topic-bd, var(--border));
 }
 
 /* Message Reactions & Emoji Toolbar */
