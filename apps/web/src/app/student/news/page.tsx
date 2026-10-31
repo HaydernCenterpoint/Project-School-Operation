@@ -306,7 +306,7 @@ export default function NewsPage() {
             aria-expanded={agentOpen}
             onClick={() => setAgentOpen((open) => !open)}
           >
-            <Icon name="globe" />
+            <Icon name="news" />
             <span>TinyFish Agent</span>
           </button>
         </div>
