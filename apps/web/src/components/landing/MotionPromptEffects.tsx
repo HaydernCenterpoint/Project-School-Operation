@@ -39,8 +39,9 @@ const eEl = (x: number) => {
  *         clicking glides scroll to 0 over 0.6s with cubic ease-in-out.
  */
 export function ScrollProgressAndBackToTop() {
-  const [progress, setProgress] = useState(0);
-  const [backToTopProgress, setBackToTopProgress] = useState(0);
+  const fillRef = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const animRafRef = useRef<number>(0);
 
   useEffect(() => {
     let raf = 0;
@@ -50,9 +51,18 @@ export function ScrollProgressAndBackToTop() {
         1,
         document.documentElement.scrollHeight - window.innerHeight,
       );
-      setProgress(clamp(y / max, 0, 1));
+      const p = clamp(y / max, 0, 1);
       // #151 formula: tb = eOut(clamp((y - 80) / 60))
-      setBackToTopProgress(eOut(clamp((y - 80) / 60, 0, 1)));
+      const tb = eOut(clamp((y - 80) / 60, 0, 1));
+
+      if (fillRef.current) {
+        fillRef.current.style.transform = `scaleX(${p.toFixed(4)})`;
+      }
+      if (btnRef.current) {
+        btnRef.current.style.opacity = tb.toFixed(4);
+        btnRef.current.style.transform = `translate3d(0, ${(10 * (1 - tb)).toFixed(2)}px, 0)`;
+        btnRef.current.style.pointerEvents = tb > 0.05 ? "auto" : "none";
+      }
     };
     const onScroll = () => {
       cancelAnimationFrame(raf);
@@ -63,46 +73,77 @@ export function ScrollProgressAndBackToTop() {
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(animRafRef.current);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
   }, []);
 
   const scrollToTop = useCallback(() => {
+    cancelAnimationFrame(animRafRef.current);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "instant" });
       return;
     }
-    // #151 spec: 0.6s cubic ease-in-out return to 0
+    // #151 spec: 0.6s cubic ease-in-out return to 0.
+    // Must use behavior: "instant" per frame so global `html { scroll-behavior: smooth }`
+    // does not fight the rAF interpolation and cause stutter.
     const startY = window.scrollY || document.documentElement.scrollTop;
     if (startY <= 0) return;
+    const html = document.documentElement;
+    const prevBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = "auto";
+
     const t0 = performance.now();
     const dur = 600;
+    const stopOnUserInput = () => {
+      cancelAnimationFrame(animRafRef.current);
+      html.style.scrollBehavior = prevBehavior;
+      cleanupListeners();
+    };
+    const cleanupListeners = () => {
+      window.removeEventListener("wheel", stopOnUserInput);
+      window.removeEventListener("touchstart", stopOnUserInput);
+      window.removeEventListener("keydown", stopOnUserInput);
+    };
+    window.addEventListener("wheel", stopOnUserInput, { passive: true });
+    window.addEventListener("touchstart", stopOnUserInput, { passive: true });
+    window.addEventListener("keydown", stopOnUserInput, { passive: true });
+
     const step = (now: number) => {
       const p = clamp((now - t0) / dur, 0, 1);
-      window.scrollTo(0, startY * (1 - eIO(p)));
-      if (p < 1) requestAnimationFrame(step);
+      const nextY = Math.round(startY * (1 - eIO(p)));
+      window.scrollTo({ top: nextY, behavior: "instant" });
+      if (p < 1) {
+        animRafRef.current = requestAnimationFrame(step);
+      } else {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        html.style.scrollBehavior = prevBehavior;
+        cleanupListeners();
+      }
     };
-    requestAnimationFrame(step);
+    animRafRef.current = requestAnimationFrame(step);
   }, []);
 
   return (
     <>
       <div className="mp-scroll-progress" aria-hidden="true">
         <div
+          ref={fillRef}
           className="mp-scroll-progress-fill"
-          style={{ transform: `scaleX(${progress})` }}
+          style={{ transform: "scaleX(0)" }}
         />
       </div>
       <button
+        ref={btnRef}
         type="button"
         className="mp-back-to-top"
         aria-label="Lên đầu trang"
         onClick={scrollToTop}
         style={{
-          opacity: backToTopProgress,
-          transform: `translateY(${10 * (1 - backToTopProgress)}px)`,
-          pointerEvents: backToTopProgress > 0.05 ? "auto" : "none",
+          opacity: 0,
+          transform: "translate3d(0, 10px, 0)",
+          pointerEvents: "none",
         }}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
