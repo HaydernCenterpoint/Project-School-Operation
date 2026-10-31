@@ -1,376 +1,92 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- small static logo and attachment thumbnails */
-import type {
-  AiConversation,
-  AiMessage,
-  AiMode,
-  AiReasoningEffort,
-  AiStreamEvent,
-  AiUsage,
-} from "@sao-do/contracts";
-import type { Route } from "next";
+/* eslint-disable @next/next/no-img-element -- small static logo */
+import type { AiConversation, AiMessage, AiMode, AiStreamEvent, AiUsage } from "@sao-do/contracts";
 import Link from "next/link";
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@/components/app-phuong.css";
 import "@/components/ai-workspace.css";
+import "@/app/landing.css";
+import { useAiIntro } from "@/components/AiIntro";
+import { SceneCurtain } from "@/components/landing/SceneTransition";
 import { Icon, type IconName } from "@/components/Icon";
 import { phuongFonts } from "@/components/landing/fonts";
+import { PhuongFlower } from "@/components/landing/Phuong";
 import { Markdown } from "@/components/Markdown";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
 import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
-import { initials } from "@/lib/format";
-import { courses, program, semester } from "@/lib/portal-demo";
+import { greeting, initials } from "@/lib/format";
+import {
+  courseByCode,
+  courses,
+  exams,
+  gpa,
+  invoices,
+  letter,
+  longDay,
+  money,
+  semester,
+  sessions,
+  sessionTime,
+  standing,
+  terms,
+  total,
+  weekdays,
+} from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
-type CourseWorkbenchSpec = {
-  code: string;
-  name: string;
-  credits: number;
-  lecturer: string;
-  currentTopic: string;
-  labFocus: string;
-  rubricItems: { code: string; criterion: string; weight: string }[];
-  promptsByMode: Record<AiMode, { tag: string; title: string; prompt: string }[]>;
-};
-
-const courseWorkbenches: CourseWorkbenchSpec[] = [
-  {
-    code: "IT3040",
-    name: "Lập trình hướng đối tượng",
-    credits: 3,
-    lecturer: "ThS. Nguyễn Văn Cảnh",
-    currentTopic: "Đa hình động, bảng phương thức ảo (vtable) & quản lý vùng nhớ RAII",
-    labFocus: "Bài thực hành số 2 · Thiết kế cây kế thừa C++17 & nạp chồng toán tử",
-    rubricItems: [
-      { code: "R1", criterion: "Đóng gói dữ liệu & bất biến lớp (class invariants)", weight: "30%" },
-      { code: "R2", criterion: "Đa hình qua hàm ảo & hàm huỷ ảo (virtual destructor)", weight: "40%" },
-      { code: "R3", criterion: "An toàn ngoại lệ & không rò rỉ bộ nhớ (Valgrind / ASan)", weight: "30%" },
-    ],
-    promptsByMode: {
-      explain: [
-        {
-          tag: "IT3040 · Cơ chế C++",
-          title: "Phân tích bố cục bộ nhớ của vptr và vtable trong đa kế thừa",
-          prompt:
-            "Giải thích chi tiết bố cục bộ nhớ của con trỏ vptr và bảng phương thức ảo (vtable) trong C++ khi một lớp dẫn xuất kế thừa từ hai lớp cơ sở có hàm ảo, kèm sơ đồ bộ nhớ và ví dụ minh họa",
-        },
-        {
-          tag: "IT3040 · Quản lý tài nguyên",
-          title: "Quy tắc Rule of Five và ngữ nghĩa di chuyển (move semantics)",
-          prompt:
-            "Phân tích khi nào cần cài đặt đủ 5 hàm đặc biệt (Rule of Five) trong C++ và so sánh chi phí sao chép sâu với hàm tạo di chuyển kèm đoạn mã mẫu",
-        },
-      ],
-      summarize: [
-        {
-          tag: "IT3040 · Đề cương chương 4",
-          title: "Bảng đối chiếu kế thừa public, protected, private và đa hình",
-          prompt:
-            "Tóm tắt toàn bộ quy tắc phạm vi truy cập khi kế thừa public, protected, private và cơ chế liên kết động (dynamic binding) thành bảng tra cứu ngắn gọn để ôn thi giữa kỳ",
-        },
-        {
-          tag: "IT3040 · Kiểm tra mã nguồn",
-          title: "Rà soát lỗi thiết kế hướng đối tượng trong tệp đính kèm",
-          prompt:
-            "Phân tích cấu trúc lớp trong đoạn mã hoặc tệp đính kèm theo 3 tiêu chí chấm điểm của học phần IT3040: đóng gói, đa hình và quản lý bộ nhớ",
-        },
-      ],
-      practice: [
-        {
-          tag: "IT3040 · Đề tự luyện",
-          title: "3 bài toán thiết kế lớp, nạp chồng toán tử và con trỏ thông minh",
-          prompt:
-            "Ra 3 bài tập tự luận môn Lập trình hướng đối tượng (IT3040) từ mức chuẩn đến vận dụng cao, kèm tiêu chí chấm điểm và gợi ý từng bước mà chưa mở toàn bộ lời giải",
-        },
-        {
-          tag: "IT3040 · Tìm lỗi",
-          title: "Bài tập phát hiện rò rỉ bộ nhớ và cắt lát đối tượng (object slicing)",
-          prompt:
-            "Đưa ra 3 đoạn mã C++ có lỗi tiềm ẩn về object slicing, thiếu virtual destructor hoặc shallow copy để mình tự tìm lỗi trước khi xem giải thích",
-        },
-      ],
-      plan: [
-        {
-          tag: "IT3040 · Lộ trình 7 ngày",
-          title: "Kế hoạch hoàn thiện Bài thực hành số 2 và kiểm thử đơn vị",
-          prompt:
-            "Chia lộ trình 7 ngày hoàn thành Bài thực hành số 2 môn IT3040 gồm thiết kế sơ đồ lớp UML, cài đặt các lớp dẫn xuất, viết bộ test biên và chuẩn bị báo cáo",
-        },
-        {
-          tag: "IT3040 · Ôn thi học kỳ",
-          title: "Phân bổ 10 buổi tối ôn tập C++ hướng đối tượng theo trọng số đề thi",
-          prompt:
-            "Lập kế hoạch 10 buổi tối (mỗi buổi 120 phút) ôn tập môn Lập trình hướng đối tượng bám sát trọng số: đóng gói 30%, kế thừa & đa hình 40%, ngoại lệ & tệp 30%",
-        },
-      ],
-    },
-  },
-  {
-    code: "IT3090",
-    name: "Cơ sở dữ liệu",
-    credits: 4,
-    lecturer: "TS. Trần Thị Phương",
-    currentTopic: "Phụ thuộc hàm, bao đóng thuộc tính & chuẩn hóa lược đồ 3NF / BCNF",
-    labFocus: "Bài tập lớn · Thiết kế CSDL quản lý đào tạo tín chỉ & tối ưu chỉ mục",
-    rubricItems: [
-      { code: "R1", criterion: "Mô hình ER / EER & ánh xạ sang lược đồ quan hệ chuẩn", weight: "30%" },
-      { code: "R2", criterion: "Chứng minh phân rã bảo toàn thông tin & phụ thuộc hàm", weight: "35%" },
-      { code: "R3", criterion: "Truy vấn SQL phức hợp, khung nhìn & kế hoạch thực thi", weight: "35%" },
-    ],
-    promptsByMode: {
-      explain: [
-        {
-          tag: "IT3090 · Lý thuyết thiết kế",
-          title: "Phân rã bảo toàn thông tin và so sánh chuẩn 3NF với BCNF",
-          prompt:
-            "Phân tích sự khác biệt giữa dạng chuẩn 3NF và BCNF, cho ví dụ một lược đồ quan hệ thỏa 3NF nhưng vi phạm BCNF và trình bày thuật toán kiểm tra phân rã không mất thông tin",
-        },
-        {
-          tag: "IT3090 · Tối ưu truy vấn",
-          title: "Cách B+Tree index tăng tốc truy vấn khoảng và điều kiện kết nối",
-          prompt:
-            "Giải thích cách chỉ mục B+Tree hoạt động trong hệ quản trị CSDL quan hệ và khi nào bộ tối ưu hóa bỏ qua index để quét tuần tự (Sequential Scan)",
-        },
-      ],
-      summarize: [
-        {
-          tag: "IT3090 · Tổng hợp thuật toán",
-          title: "Quy trình tìm khóa tối tiểu, phủ tối tiểu và chuẩn hóa 1NF–BCNF",
-          prompt:
-            "Cô đọng từng bước thuật toán tìm bao đóng thuộc tính X+, tìm tất cả khóa dự tuyển và kiểm tra 1NF, 2NF, 3NF, BCNF thành bảng quy trình một trang",
-        },
-        {
-          tag: "IT3090 · Hệ thống hóa SQL",
-          title: "Bảng tổng hợp thứ tự thực thi mệnh đề SELECT và hàm cửa sổ",
-          prompt:
-            "Tóm tắt thứ tự thực thi logic của câu lệnh SELECT (FROM, JOIN, WHERE, GROUP BY, HAVING, SELECT, ORDER BY) kèm quy tắc dùng hàm tổng hợp và khung nhìn",
-        },
-      ],
-      practice: [
-        {
-          tag: "IT3090 · Bài tập chuẩn hóa",
-          title: "Bài toán cho tập phụ thuộc hàm F, tìm khóa và tách về 3NF",
-          prompt:
-            "Cho lược đồ R(A,B,C,D,E,G) cùng một tập phụ thuộc hàm F có độ khó tương đương đề thi học kỳ IT3090 để mình tự tìm khóa dự tuyển và phân rã về 3NF",
-        },
-        {
-          tag: "IT3090 · Luyện viết SQL",
-          title: "5 câu hỏi truy vấn GROUP BY, HAVING, EXISTS và phép chia quan hệ",
-          prompt:
-            "Đưa ra lược đồ CSDL quản lý học vụ gồm 4 bảng (SinhVien, HocPhan, LopHocPhan,KetQua) và 5 câu truy vấn SQL tăng dần độ khó có câu dùng phép chia quan hệ",
-        },
-      ],
-      plan: [
-        {
-          tag: "IT3090 · Tiến độ Bài tập lớn",
-          title: "Kế hoạch 3 tuần hoàn thiện CSDL quản lý đào tạo từ ER đến SQL",
-          prompt:
-            "Chia lộ trình 3 tuần thực hiện Bài tập lớn môn Cơ sở dữ liệu (IT3090): khảo sát nghiệp vụ, vẽ sơ đồ ER, chuẩn hóa 3NF, nạp dữ liệu mẫu và viết 15 truy vấn báo cáo",
-        },
-        {
-          tag: "IT3090 · Ôn thi cuối kỳ",
-          title: "Lộ trình 8 ngày nắm chắc cả đại số quan hệ, SQL và chuẩn hóa",
-          prompt:
-            "Thiết kế lịch ôn tập 8 ngày cho môn Cơ sở dữ liệu (4 tín chỉ) chia đều cho 3 mảng: đại số quan hệ & SQL, phụ thuộc hàm & chuẩn hóa, giao dịch & khóa đồng thời",
-        },
-      ],
-    },
-  },
-  {
-    code: "IT3080",
-    name: "Mạng máy tính",
-    credits: 3,
-    lecturer: "ThS. Lê Hoàng Nam",
-    currentTopic: "Tầng giao vận TCP/UDP, kiểm soát tắc nghẽn & chia mạng con VLSM/CIDR",
-    labFocus: "Báo cáo Wireshark · Phân tích bắt tay 3 bước TCP & định tuyến OSPF",
-    rubricItems: [
-      { code: "R1", criterion: "Quy hoạch địa chỉ IPv4 VLSM / CIDR không chồng lấn", weight: "30%" },
-      { code: "R2", criterion: "Phân tích biểu đồ tuần tự gói tin TCP (Seq, Ack, cwnd)", weight: "40%" },
-      { code: "R3", criterion: "Bảng định tuyến tĩnh & hội tụ khoảng cách vector / link-state", weight: "30%" },
-    ],
-    promptsByMode: {
-      explain: [
-        {
-          tag: "IT3080 · Tầng giao vận",
-          title: "Biến thiên cửa sổ tắc nghẽn cwnd trong TCP Reno và TCP Cubic",
-          prompt:
-            "Giải thích cơ chế Slow Start, Congestion Avoidance và Fast Recovery của TCP; minh họa cách cwnd và ssthresh thay đổi qua từng RTT khi nhận 3 ACK trùng lặp so với khi hết thời gian chờ timeout",
-        },
-        {
-          tag: "IT3080 · Tầng mạng",
-          title: "So sánh thuật toán định tuyến Distance Vector (Bellman-Ford) và Link State",
-          prompt:
-            "Phân tích nguyên lý cập nhật bảng định tuyến của Distance Vector và Link State, giải thích hiện tượng đếm tới vô cùng (count-to-infinity) và kỹ thuật Poisoned Reverse",
-        },
-      ],
-      summarize: [
-        {
-          tag: "IT3080 · Bảng công thức",
-          title: "Tổng hợp công thức tính độ trễ truyền dẫn, thông lượng và chia VLSM",
-          prompt:
-            "Hệ thống hóa các công thức tính độ trễ xử lý, hàng đợi, truyền dẫn (L/R), lan truyền (d/s), tích băng thông-độ trễ và bảng tra nhanh CIDR /24 đến /30",
-        },
-        {
-          tag: "IT3080 · Phân tích gói tin",
-          title: "Tóm tắt các trường đầu mục IPv4, TCP và cờ điều khiển SYN/ACK/FIN",
-          prompt:
-            "Tóm tắt ý nghĩa từng trường trong header TCP 20 byte và IPv4 20 byte phục vụ bài thực hành đọc vết gói tin Wireshark",
-        },
-      ],
-      practice: [
-        {
-          tag: "IT3080 · Bài toán VLSM",
-          title: "Bài tập chia mạng con VLSM cho 4 phòng ban từ khối /20",
-          prompt:
-            "Ra một bài toán quy hoạch địa chỉ IPv4 bằng VLSM cho 4 phân mạng có số lượng máy trạm khác nhau và 3 liên kết điểm-điểm WAN để mình tự tính địa chỉ mạng, broadcast và dải host",
-        },
-        {
-          tag: "IT3080 · Tính toán TCP",
-          title: "Bài tập xác định số thứ tự Sequence, Acknowledgment và kích thước cwnd",
-          prompt:
-            "Cho kịch bản trao đổi 4 phân đoạn TCP giữa máy khách và máy chủ kèm kích thước dữ liệu và sự kiện mất gói, yêu cầu xác định Seq, Ack và giá trị cwnd ở từng bước",
-        },
-      ],
-      plan: [
-        {
-          tag: "IT3080 · Thực hành Wireshark",
-          title: "Quy trình 4 bước hoàn thành báo cáo bắt gói tin HTTP, DNS và TCP",
-          prompt:
-            "Lập danh sách kiểm tra từng bước để thực hiện và viết báo cáo thực hành Wireshark môn IT3080: bộ lọc hiển thị, ảnh chụp gói tin, biểu đồ luồng và nhận xét kết quả",
-        },
-        {
-          tag: "IT3080 · Ôn tập 5 tầng",
-          title: "Lộ trình 6 ngày ôn tập từ tầng Ứng dụng xuống tầng Liên kết dữ liệu",
-          prompt:
-            "Chia kế hoạch 6 ngày ôn thi môn Mạng máy tính theo mô hình 5 tầng TCP/IP kèm danh sách dạng bài tập tính toán trọng tâm ở mỗi tầng",
-        },
-      ],
-    },
-  },
-  {
-    code: "MI1140",
-    name: "Toán rời rạc",
-    credits: 3,
-    lecturer: "PGS.TS. Đỗ Minh Tuấn",
-    currentTopic: "Lý thuyết đồ thị, cây khung nhỏ nhất & thuật toán đường đi ngắn nhất",
-    labFocus: "Bài tập chương 5 · Chứng minh quy nạp, hệ thức truy hồi & đồ thị Euler/Hamilton",
-    rubricItems: [
-      { code: "R1", criterion: "Chặt chẽ trong biến đổi tương đương logic & quy nạp toán học", weight: "30%" },
-      { code: "R2", criterion: "Giải hệ thức truy hồi tuyến tính & nguyên lý bù trừ", weight: "35%" },
-      { code: "R3", criterion: "Bảng vết từng bước thuật toán Dijkstra, Bellman-Ford, Prim, Kruskal", weight: "35%" },
-    ],
-    promptsByMode: {
-      explain: [
-        {
-          tag: "MI1140 · Lý thuyết đồ thị",
-          title: "Thuật toán Dijkstra, bất biến vòng lặp và vì sao thất bại với cạnh âm",
-          prompt:
-            "Trình bày thuật toán Dijkstra tìm đường đi ngắn nhất từ một đỉnh nguồn, chứng minh tính đúng đắn bằng bất biến vòng lặp và chỉ ra phản ví dụ có trọng số âm làm thuật toán chọn sai",
-        },
-        {
-          tag: "MI1140 · Bài toán đếm",
-          title: "Phương pháp phương trình đặc trưng giải hệ thức truy hồi không thuần nhất",
-          prompt:
-            "Giải thích phương pháp tìm nghiệm tổng quát của hệ thức truy hồi tuyến tính hệ số hằng không thuần nhất qua cả hai trường hợp nghiệm đơn và nghiệm bội",
-        },
-      ],
-      summarize: [
-        {
-          tag: "MI1140 · Đồ thị & Cây",
-          title: "Bảng điều kiện cần và đủ của đồ thị Euler, Hamilton, đồ thị phẳng",
-          prompt:
-            "Tổng hợp các định lý Euler, Dirac, Ore, Kuratowski và công thức Euler V - E + F = 2 kèm điều kiện áp dụng để ôn thi tự luận",
-        },
-        {
-          tag: "MI1140 · Tổ hợp & Logic",
-          title: "Tóm tắt các luật tương đương logic, nguyên lý Dirichlet và bù trừ",
-          prompt:
-            "Hệ thống hóa các luật tương đương mệnh đề, quy tắc suy diễn và công thức nguyên lý bù trừ cho 3 và 4 tập hợp",
-        },
-      ],
-      practice: [
-        {
-          tag: "MI1140 · Chạy tay thuật toán",
-          title: "Bài tập lập bảng vết Dijkstra và Kruskal trên đồ thị 7 đỉnh",
-          prompt:
-            "Cho ma trận trọng số của một đồ thị vô hướng liên thông 7 đỉnh, yêu cầu mình lập bảng chạy từng bước thuật toán Dijkstra và tìm cây khung nhỏ nhất bằng Kruskal",
-        },
-        {
-          tag: "MI1140 · Đếm & Truy hồi",
-          title: "3 bài toán nguyên lý bù trừ, Dirichlet và hệ thức truy hồi",
-          prompt:
-            "Ra 3 bài toán tự luận chương Đếm và Hệ thức truy hồi có phân câu a, b, c kèm gợi ý thiết lập công thức",
-        },
-      ],
-      plan: [
-        {
-          tag: "MI1140 · Kế hoạch 5 ngày",
-          title: "Lộ trình luyện giải 4 dạng toán trọng tâm trong đề thi cuối kỳ",
-          prompt:
-            "Lập kế hoạch 5 ngày luyện đề môn Toán rời rạc (MI1140) tập trung vào 4 câu trong cấu trúc đề thi: rút gọn hàm đại số Boole, bài toán đếm, giải hệ thức truy hồi và thuật toán trên đồ thị",
-        },
-        {
-          tag: "MI1140 · Ôn tập theo chương",
-          title: "Danh sách kiểm tra các dạng chứng minh và bảng vết thuật toán cần thuộc",
-          prompt:
-            "Xây dựng bảng kiểm tra kiến thức tự đánh giá cho môn Toán rời rạc gồm các định lý cần nhớ và các mẫu bảng trình bày thuật toán đồ thị đạt điểm tối đa",
-        },
-      ],
-    },
-  },
-];
-
-const modes: {
-  key: AiMode;
-  label: string;
-  desc: string;
-  icon: IconName;
-  hint: string;
-}[] = [
+const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggestions: string[] }[] = [
   {
     key: "explain",
     label: "Giải thích",
-    desc: "Phân tích bản chất thuật toán, công thức và cơ chế hoạt động từng bước",
     icon: "book",
-    hint: "Nhập khái niệm, định lý hoặc dán đoạn mã cần phân tích",
+    hint: "Hỏi về môn học, lịch học, điểm số hoặc khái niệm bạn chưa hiểu…",
+    suggestions: [
+      "Tóm tắt lịch học trong tuần và các bài tập sắp đến hạn của mình",
+      "Giải thích đệ quy và chuẩn hoá cơ sở dữ liệu 3NF kèm ví dụ thực tế",
+    ],
   },
   {
     key: "summarize",
     label: "Tóm tắt",
-    desc: "Cô đọng giáo trình, tài liệu PDF hoặc ghi chép thành hệ thống luận điểm",
     icon: "list",
-    hint: "Dán nội dung bài giảng hoặc đính kèm tệp PDF và mã nguồn cần tóm tắt",
+    hint: "Dán ghi chép hoặc hỏi tổng hợp bảng điểm, học phí, lịch thi…",
+    suggestions: [
+      "Tổng hợp kết quả học tập (GPA), tiến độ tín chỉ và học phí kỳ này của mình",
+      "Tóm tắt nội dung trọng tâm các môn đang học trong học kỳ HK1 2026-2027",
+    ],
   },
   {
     key: "practice",
     label: "Luyện tập",
-    desc: "Tạo bộ câu hỏi tự kiểm tra có phân bậc độ khó và gợi ý suy luận",
     icon: "question",
-    hint: "Nhập học phần hoặc chủ đề muốn tạo đề tự kiểm tra",
+    hint: "Nhập chủ đề hoặc mã học phần muốn luyện tập…",
+    suggestions: [
+      "Ra 5 câu hỏi ôn tập môn IT3080 (Mạng máy tính) và IT3090 (Cơ sở dữ liệu)",
+      "Đố 3 bài toán tự lượng giá về Lập trình hướng đối tượng (IT3040)",
+    ],
   },
   {
     key: "plan",
     label: "Lập kế hoạch",
-    desc: "Chia lộ trình ôn thi học kỳ và tiến độ thực hiện bài tập lớn theo tuần",
     icon: "calendar",
-    hint: "Nêu học phần, hạn nộp bài tập lớn và quỹ thời gian mỗi ngày",
+    hint: "Mô tả mục tiêu ôn thi hoặc bài tập cần lập tiến độ…",
+    suggestions: [
+      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ dựa trên lịch thi thật của mình",
+      "Chia nhỏ tiến độ hoàn thành các bài tập đang mở trong lớp học phần",
+    ],
   },
 ];
 
+const consentKey = "sao-do:ai-consent";
 const sideKey = "sao-do:ai-side-collapsed";
-const threadsStorageKey = "sao-do:ai-threads:v2";
+const localThreadsKey = "sao-do:ai-threads:v2";
+const localUsageKey = "sao-do:ai-usage:v1";
 
 type StoredThread = {
   conversation: AiConversation;
-  messages: Message[];
-};
-
-type Message = AiMessage & {
-  error?: string;
-  retryContent?: string;
-  files?: Pick<Attachment, "id" | "name" | "kind" | "preview">[];
+  messages: AiMessage[];
 };
 
 function readFlag(key: string) {
@@ -389,25 +105,49 @@ function writeFlag(key: string, value: boolean) {
   }
 }
 
-function readStoredThreads(): StoredThread[] {
+function readLocalThreads(): StoredThread[] {
   try {
-    const raw = localStorage.getItem(threadsStorageKey);
+    const raw = localStorage.getItem(localThreadsKey);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as StoredThread[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as StoredThread[]) : [];
   } catch {
     return [];
   }
 }
 
-function writeStoredThreads(threads: StoredThread[]) {
+function writeLocalThreads(threads: StoredThread[]) {
   try {
-    localStorage.setItem(threadsStorageKey, JSON.stringify(threads.slice(0, 40)));
+    localStorage.setItem(localThreadsKey, JSON.stringify(threads.slice(0, 60)));
   } catch {
-    // Ignore storage quota errors.
+    // Storage quota or private browsing.
   }
 }
 
+function readLocalUsageCount(): number {
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem(localUsageKey);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { date?: string; used?: number };
+    return parsed.date === todayKey && typeof parsed.used === "number" ? parsed.used : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementLocalUsageCount(): number {
+  const next = readLocalUsageCount() + 1;
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(localUsageKey, JSON.stringify({ date: todayKey, used: next }));
+  } catch {
+    // Ignore storage error.
+  }
+  return next;
+}
+
+/** Sidebar groups by last activity, like most chat apps: today, the past week, older. */
 function groupByRecency(items: AiConversation[], now: number) {
   const day = 24 * 3600 * 1000;
   const groups: { label: string; items: AiConversation[] }[] = [
@@ -416,133 +156,40 @@ function groupByRecency(items: AiConversation[], now: number) {
     { label: "Trước đó", items: [] },
   ];
   for (const item of items) {
-    const age = Math.max(0, now - Date.parse(item.updatedAt));
+    const age = now - Date.parse(item.updatedAt);
     groups[age < day ? 0 : age < 7 * day ? 1 : 2]!.items.push(item);
   }
   return groups.filter((group) => group.items.length);
 }
 
-/** Extracts the latest bold headline from a streaming reasoning trace (e.g. `**Computing integral**`). */
-function extractLatestThoughtHeadline(reasoning?: string, steps?: string[]) {
-  if (reasoning) {
-    const matches = [...reasoning.matchAll(/\*\*([^*]+)\*\*/g)];
-    if (matches.length > 0) {
-      return matches.at(-1)![1]!.trim();
-    }
-  }
-  if (steps && steps.length > 0) {
-    return steps.at(-1)!;
-  }
-  return "Đang phân tích ngữ cảnh học phần và đối chiếu tiêu chí";
-}
-
-function ReasoningBlock({
-  message,
-  isStreaming,
-}: {
-  message: Message;
-  isStreaming: boolean;
-}) {
-  const isThinkingNow = isStreaming && message.status === "pending" && !message.content;
-  const [open, setOpen] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(400);
-
-  useEffect(() => {
-    if (!isThinkingNow) return;
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsedMs(Date.now() - started);
-    }, 100);
-    return () => window.clearInterval(timer);
-  }, [isThinkingNow]);
-
-  const hasTrace = Boolean(
-    (message.reasoning && message.reasoning.trim().length > 0) ||
-      (message.steps && message.steps.length > 0),
-  );
-  if (!hasTrace && !isThinkingNow) return null;
-
-  const durationSec = ((message.reasoningMs ?? elapsedMs) / 1000).toFixed(1);
-  const liveHeadline = extractLatestThoughtHeadline(message.reasoning, message.steps);
-  const cleanedReasoning = (message.reasoning ?? "")
-    .replace(/\*\*([^*]+)\*\*/g, "\n• $1\n")
-    .trim();
-
-  return (
-    <div className={`aw-thought${isThinkingNow ? " is-active" : ""}${open ? " is-open" : ""}`}>
-      <button
-        type="button"
-        className="aw-thought-toggle"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className="aw-thought-dot" aria-hidden="true" />
-        <span className="aw-thought-summary">
-          {isThinkingNow ? (
-            <>
-              <strong>Đang suy luận</strong>
-              <span className="aw-thought-step">{liveHeadline}</span>
-            </>
-          ) : (
-            <strong>Đã suy luận trong {durationSec} giây</strong>
-          )}
-        </span>
-        <span className="aw-thought-time">{durationSec}s</span>
-        <span className="aw-thought-chev" aria-hidden="true">
-          <Icon name="chevron" />
-        </span>
-      </button>
-
-      {(open || isThinkingNow) && (
-        <div className="aw-thought-body">
-          {message.steps && message.steps.length > 0 && (
-            <ul className="aw-thought-steps" aria-label="Các bước xử lý">
-              {message.steps.map((step, idx) => (
-                <li key={`${idx}-${step}`}>
-                  <Icon name="check" />
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {cleanedReasoning && (
-            <div className="aw-thought-trace">{cleanedReasoning}</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+type Message = AiMessage & {
+  error?: string;
+  retryContent?: string;
+  /** Files sent with this turn, shown on the bubble (this session only; history keeps their names). */
+  files?: Pick<Attachment, "id" | "name" | "kind" | "preview">[];
+};
 
 export default function AiWorkspace() {
-  const { data, account, error: loadError, avatarUrl, refresh } = useStudent();
-  const { theme } = usePhuongTheme();
-  const token = data?.token ?? "local-multi-role-session";
-  const [now, setNow] = useState(Date.now);
+  const { data, account, roster, error: loadError, avatarUrl, refresh } = useStudent();
+  const { theme, toggleTheme } = usePhuongTheme();
+  const token = data?.token || "local-multi-role-session";
+  const [now] = useState(Date.now);
+  const [consent, setConsent] = useState<boolean | null>(null);
+  const intro = useAiIntro(Boolean(data || loadError) && consent !== null);
   const [sideCollapsed, setSideCollapsed] = useState(false);
-  const [sideOpen, setSideOpen] = useState(false);
-  const [usage, setUsage] = useState<AiUsage | null>({
-    enabled: true,
-    used: 14,
-    limit: 100,
-    resetsAt: null,
-    model: "gpt-6-luna",
-  });
+  const [sideOpen, setSideOpen] = useState(false); // phones: drawer
+  const [usage, setUsage] = useState<AiUsage | null>(null);
   const [conversations, setConversations] = useState<AiConversation[]>([]);
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [mode, setMode] = useState<AiMode>("explain");
-  const [activeCourseCode, setActiveCourseCode] = useState<string>(courseWorkbenches[0]!.code);
-  const [reasoningEffort, setReasoningEffort] = useState<AiReasoningEffort>("high");
   const [draft, setDraft] = useState("");
   const [assignmentId, setAssignmentId] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [notice, setNotice] = useState("");
   const [status, setStatus] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loadingThread, setLoadingThread] = useState(false);
-
   const controller = useRef<AbortController | null>(null);
   const thread = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -553,76 +200,132 @@ export default function AiWorkspace() {
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
 
-  const syncConversationsList = useCallback((remoteList: AiConversation[]) => {
-    const localThreads = readStoredThreads();
-    const byId = new Map<string, AiConversation>();
-    for (const item of localThreads) byId.set(item.conversation.id, item.conversation);
-    for (const item of remoteList) byId.set(item.id, item);
-    const merged = [...byId.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    setConversations(merged);
-  }, []);
+  // Build real portal data context so the AI knows the user's real profile, schedule, exams, grades, assignments, and tuition.
+  const studentContext = useMemo(() => {
+    if (!data) return "";
+    const allGradeRows = terms.flatMap((term) => term.rows);
+    const cumulativeGpa = gpa(allGradeRows);
+    const currentInvoices = invoices(now);
+    const activeInvoice = currentInvoices[0];
+    const invoiceTotal = activeInvoice
+      ? activeInvoice.items.reduce((sum, item) => sum + item.amount, 0)
+      : 0;
+    const invoiceRemaining = activeInvoice ? Math.max(0, invoiceTotal - activeInvoice.paid) : 0;
+
+    const scheduleLines = sessions.map((s) => {
+      const c = courseByCode.get(s.course);
+      return `- ${weekdays[s.day]}: ${s.course} (${c?.name ?? s.course}) · Tiết ${s.from}-${s.to} (${sessionTime(s)}) · Phòng ${s.room} · ${s.kind} · GV: ${c?.lecturer ?? ""}`;
+    });
+
+    const examLines = exams(now).map((ex) => {
+      const c = courseByCode.get(ex.course);
+      return `- ${ex.round} ${ex.course} (${c?.name ?? ex.course}): ${longDay(ex.at)} lúc ${new Date(ex.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} · Phòng ${ex.room} · ${ex.seat} · ${ex.form} (${ex.minutes} phút)`;
+    });
+
+    const gradeLines = terms.map((term) => {
+      const termGpa = gpa(term.rows);
+      const rowDetails = term.rows
+        .map((r) => {
+          const score = total(r);
+          const l = letter(score);
+          return `${r.code} ${r.name} (${r.credits} TC): Điểm TK ${score} (${l.grade})`;
+        })
+        .join("; ");
+      return `- ${term.name} (GPA ${termGpa.value}/4.0): ${rowDetails}`;
+    });
+
+    const assignmentLines = data.assignments.map((a) => {
+      const sub = data.submissions.find((s) => s.assignmentId === a.id);
+      const dueStr = a.dueAt ? new Date(a.dueAt).toLocaleDateString("vi-VN") : "Không giới hạn";
+      const subStr = sub
+        ? `Đã nộp (${sub.status === "reviewed" ? `Đã chấm${sub.feedback ? ` - Nhận xét: ${sub.feedback}` : ""}` : "Đang chờ chấm"})`
+        : "Chưa nộp";
+      return `- [${a.id}] ${a.title} (Hạn: ${dueStr}) · Trạng thái: ${subStr} · Yêu cầu: ${a.instructions}`;
+    });
+
+    const rosterSummary = roster
+      .map((acc) => `${acc.fullName} (${acc.studentCode} · GPA ${acc.gpa})`)
+      .join(", ");
+
+    return [
+      `Hồ sơ người dùng đang đăng nhập: ${account.displayName} (Mã: ${account.code})`,
+      `Vai trò: ${account.roleTitle} · Lớp hành chính: ${account.cohortClass} · Khoa: ${account.department} · Email: ${account.email} · Cố vấn học tập: ${account.advisorName}`,
+      `Học kỳ hiện tại: ${semester.name} (${semester.short})`,
+      `Tổng kết học tập tích lũy: GPA ${cumulativeGpa.value}/4.0 (${standing(cumulativeGpa.value)}) · Đã tích lũy ${cumulativeGpa.credits}/150 tín chỉ`,
+      `Học phí kỳ ${semester.short}: Tổng ${money(invoiceTotal)}, đã đóng ${money(activeInvoice?.paid ?? 0)}, còn cần đóng ${money(invoiceRemaining)} (Hạn: ${activeInvoice ? new Date(activeInvoice.due).toLocaleDateString("vi-VN") : "N/A"})`,
+      `Các học phần đang học kỳ này (${courses.reduce((s, c) => s + c.credits, 0)} tín chỉ):\n${courses.map((c) => `- ${c.code}: ${c.name} (${c.credits} tín chỉ) · Giảng viên: ${c.lecturer}`).join("\n")}`,
+      `Thời khóa biểu trong tuần:\n${scheduleLines.join("\n")}`,
+      `Lịch thi sắp tới:\n${examLines.join("\n")}`,
+      `Bài tập & Đồ án trên hệ thống:\n${assignmentLines.join("\n")}`,
+      `Bảng điểm các học kỳ trước:\n${gradeLines.join("\n")}`,
+      `Danh sách thành viên lớp ${account.cohortClass}: ${rosterSummary}`,
+    ].join("\n\n");
+  }, [account, data, now, roster]);
 
   const loadMeta = useCallback(async () => {
-    syncConversationsList([]);
-    if (!token || token === "local-multi-role-session") return;
     try {
       const [nextUsage, list] = await Promise.all([
         aiRequest<AiUsage>("/api/ai/usage", token),
         aiRequest<{ conversations: AiConversation[] }>("/api/ai/conversations", token),
       ]);
-      setUsage(nextUsage);
-      syncConversationsList(list.conversations);
-    } catch {
-      // Keep local threads when offline or using local multi-role session.
+      const localUsed = readLocalUsageCount();
+      setUsage({
+        ...nextUsage,
+        used: Math.max(nextUsage.used, localUsed),
+      });
+      const localThreads = readLocalThreads().map((item) => item.conversation);
+      const byId = new Map<string, AiConversation>();
+      for (const conv of [...list.conversations, ...localThreads]) {
+        if (!byId.has(conv.id)) byId.set(conv.id, conv);
+      }
+      const merged = [...byId.values()].sort(
+        (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+      );
+      setConversations(merged);
+    } catch (error) {
+      const localThreads = readLocalThreads().map((item) => item.conversation);
+      setConversations(localThreads);
+      setUsage({
+        enabled: true,
+        used: readLocalUsageCount(),
+        limit: 100,
+        resetsAt: new Date(new Date().setHours(24, 0, 0, 0)).toISOString(),
+      });
+      if (error instanceof Error && !localThreads.length) {
+        setNotice(error.message);
+      }
     }
-  }, [syncConversationsList, token]);
+  }, [token]);
 
   useEffect(() => {
     queueMicrotask(() => {
+      setConsent(readFlag(consentKey));
       setSideCollapsed(readFlag(sideKey));
       const preset = new URLSearchParams(location.search).get("assignment");
       if (preset) setAssignmentId(preset);
-      void loadMeta();
     });
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadMeta());
   }, [loadMeta]);
 
   useEffect(() => () => controller.current?.abort(), []);
 
+  // Follow the answer while it streams, unless the reader scrolled up to read.
   useEffect(() => {
     const element = thread.current;
-    if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 180) {
+    if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 160) {
       element.scrollTop = element.scrollHeight;
     }
   }, [messages]);
 
   const title =
     conversations.find((item) => item.id === activeId)?.title ??
-    (messages.length ? "Phiên suy luận" : "Bàn làm việc học thuật");
-
+    (messages.length ? "Cuộc trò chuyện" : "Cuộc trò chuyện mới");
   useEffect(() => {
-    document.title = `${title} | Sao Đỏ AI`;
+    document.title = `${title} | Trợ lý AI Sao Đỏ`;
   }, [title]);
-
-  const saveThreadToLocal = useCallback(
-    (convId: string, convTitle: string, convMode: AiMode, nextMessages: Message[]) => {
-      const cleanMessages = nextMessages.map(({ files: _files, ...rest }) => rest);
-      const updated: StoredThread = {
-        conversation: {
-          id: convId,
-          title: convTitle,
-          mode: convMode,
-          updatedAt: new Date().toISOString(),
-        },
-        messages: cleanMessages,
-      };
-      const existing = readStoredThreads().filter((t) => t.conversation.id !== convId);
-      const nextAll = [updated, ...existing];
-      writeStoredThreads(nextAll);
-      setConversations(nextAll.map((t) => t.conversation));
-      setNow(Date.now());
-    },
-    [],
-  );
 
   const newConversation = useCallback(() => {
     if (streaming) return;
@@ -633,6 +336,7 @@ export default function AiWorkspace() {
     requestAnimationFrame(() => composer.current?.focus());
   }, [streaming]);
 
+  // Ctrl/⌘ + Shift + O starts a new conversation, as in other chat tools.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "o") {
@@ -649,17 +353,15 @@ export default function AiWorkspace() {
     setActiveId(id);
     setNotice("");
     setSideOpen(false);
-
-    const localMatch = readStoredThreads().find((t) => t.conversation.id === id);
-    if (localMatch) {
-      setMessages(localMatch.messages);
-      setMode(localMatch.conversation.mode);
+    const cached = readLocalThreads().find((item) => item.conversation.id === id);
+    if (cached) {
+      setMessages(cached.messages);
+      setMode(cached.conversation.mode);
       requestAnimationFrame(() => {
         if (thread.current) thread.current.scrollTop = thread.current.scrollHeight;
       });
       return;
     }
-
     setLoadingThread(true);
     try {
       const result = await aiRequest<{ conversation: AiConversation; messages: AiMessage[] }>(
@@ -680,42 +382,43 @@ export default function AiWorkspace() {
   }
 
   async function deleteConversation(id: string) {
-    const nextLocal = readStoredThreads().filter((t) => t.conversation.id !== id);
-    writeStoredThreads(nextLocal);
-    setConversations((items) => items.filter((item) => item.id !== id));
-    if (activeId === id) newConversation();
-    setStatus("Đã xoá phiên làm việc");
+    if (!window.confirm("Xoá vĩnh viễn cuộc trò chuyện này?")) return;
     try {
-      await aiRequest(`/api/ai/conversations/${id}`, token, { method: "DELETE" });
-    } catch {
-      // Already removed locally.
+      const remainingLocal = readLocalThreads().filter((item) => item.conversation.id !== id);
+      writeLocalThreads(remainingLocal);
+      await aiRequest(`/api/ai/conversations/${id}`, token, { method: "DELETE" }).catch(() => undefined);
+      setConversations((items) => items.filter((item) => item.id !== id));
+      if (activeId === id) newConversation();
+      setStatus("Đã xoá cuộc trò chuyện.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : aiErrorMessage("unknown"));
     }
   }
 
-  const activeWorkbench =
-    courseWorkbenches.find((item) => item.code === activeCourseCode) ?? courseWorkbenches[0]!;
-
   async function send(content: string) {
     const files = attachments;
-    const text = content.trim() || (files.length ? "Phân tích giúp mình các tệp đính kèm này" : "");
-    if (!text || streaming || !data) return;
-
+    // Files alone are a valid question; give the model something to answer.
+    const text = content.trim() || (files.length ? "Hãy xem giúp mình các tệp đính kèm." : "");
+    if (!text || streaming || !token) return;
     setAttachments([]);
     const requestId = crypto.randomUUID();
-    const convId = activeId ?? crypto.randomUUID();
-    const convTitle =
-      conversations.find((c) => c.id === convId)?.title ?? text.replace(/\s+/g, " ").slice(0, 56);
     const assistantId = `pending-${requestId}`;
     const abort = new AbortController();
     controller.current = abort;
-
     setStreaming(true);
     setNotice("");
     setDraft("");
     if (composer.current) composer.current.style.height = "auto";
-    setStatus("Đang suy luận và tổng hợp câu trả lời");
+    setStatus("Trợ lý đang soạn câu trả lời…");
 
-    const userTurn: Message = {
+    const priorHistory = messages
+      .filter(
+        (m): m is Message & { role: "user" | "assistant" } =>
+          (m.role === "user" || m.role === "assistant") && Boolean(m.content.trim()),
+      )
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const userMsg: Message = {
       id: `user-${requestId}`,
       role: "user",
       content: text,
@@ -723,81 +426,43 @@ export default function AiWorkspace() {
       createdAt: new Date().toISOString(),
       files: files.map(({ id, name, kind, preview }) => ({ id, name, kind, preview })),
     };
-    const initialAssistant: Message = {
+    const pendingAssistantMsg: Message = {
       id: assistantId,
       role: "assistant",
       content: "",
-      reasoning: "",
-      steps: [],
-      model: usage?.model ?? "gpt-6-luna",
       status: "pending",
       createdAt: new Date().toISOString(),
     };
 
-    const priorHistory = messages
-      .filter((m) => m.status === "complete" && m.content.trim())
-      .map((m) => ({ role: m.role, content: m.content }));
+    setMessages((items) => [...items, userMsg, pendingAssistantMsg]);
+    const patch = (update: (message: Message) => Message) =>
+      setMessages((items) => items.map((item) => (item.id === assistantId ? update(item) : item)));
 
-    const nextThread = [...messages, userTurn, initialAssistant];
-    setActiveId(convId);
-    setMessages(nextThread);
-
-    const studentContextStr = [
-      `Họ tên: ${account.displayName} (Mã: ${account.code}, Vai trò: ${account.roleTitle})`,
-      `Lớp niên chế: ${account.cohortClass} · Khoa: ${account.department} · Ngành: ${program.name}`,
-      `Học kỳ hiện tại: ${semester.name}`,
-      `Học phần đang ghim tại bàn làm việc: ${activeWorkbench.code} — ${activeWorkbench.name} (${activeWorkbench.credits} TC, GV: ${activeWorkbench.lecturer})`,
-      `Chuyên đề hiện tại của học phần ${activeWorkbench.code}: ${activeWorkbench.currentTopic}`,
-      `Tiêu chí đánh giá học phần ${activeWorkbench.code}: ${activeWorkbench.rubricItems.map((r) => `${r.code} ${r.criterion} (${r.weight})`).join("; ")}`,
-      `Tất cả học phần trong kỳ: ${courses.map((c) => `${c.code} (${c.name}, ${c.credits} TC, GV: ${c.lecturer})`).join("; ")}`,
-    ].join("\n");
-
-    let latestMessages = nextThread;
-    const patch = (update: (message: Message) => Message) => {
-      latestMessages = latestMessages.map((item) => (item.id === assistantId ? update(item) : item));
-      setMessages(latestMessages);
-    };
+    let resolvedConversationId = activeId ?? crypto.randomUUID();
+    let streamedText = "";
 
     try {
       await streamChat(
         token,
         {
-          conversationId: convId,
+          conversationId: activeId,
           mode,
           content: text,
           assignmentId: assignmentId || null,
-          reasoningEffort,
           history: priorHistory,
-          studentContext: studentContextStr,
+          studentContext,
         },
         requestId,
         (event: AiStreamEvent) => {
           if (event.type === "start") {
+            resolvedConversationId = event.conversationId;
             setActiveId(event.conversationId);
-            if (event.model) {
-              patch((item) => ({ ...item, model: event.model }));
-            }
-          } else if (event.type === "step") {
-            patch((item) => ({
-              ...item,
-              steps: item.steps?.includes(event.label)
-                ? item.steps
-                : [...(item.steps ?? []), event.label],
-            }));
-          } else if (event.type === "reasoning") {
-            patch((item) => ({
-              ...item,
-              reasoning: (item.reasoning ?? "") + event.text,
-            }));
           } else if (event.type === "delta") {
+            streamedText += event.text;
             patch((item) => ({ ...item, content: item.content + event.text }));
           } else if (event.type === "complete") {
-            patch((item) => ({
-              ...item,
-              status: "complete",
-              reasoningMs: event.reasoningMs ?? item.reasoningMs,
-            }));
-          } else {
+            patch((item) => ({ ...item, status: "complete" }));
+          } else if (event.type === "error") {
             patch((item) => ({
               ...item,
               status: event.code === "cancelled" || item.content ? "interrupted" : "failed",
@@ -809,9 +474,70 @@ export default function AiWorkspace() {
         abort.signal,
         files.map((file) => ({ blob: file.blob, name: file.name })),
       );
-      saveThreadToLocal(convId, convTitle, mode, latestMessages);
-      setStatus("Đã hoàn tất câu trả lời");
+
+      // Persist the conversation and usage locally so history and quota stay accurate in real time.
+      const nowIso = new Date().toISOString();
+      const existingThreads = readLocalThreads();
+      const existingIdx = existingThreads.findIndex(
+        (item) => item.conversation.id === resolvedConversationId,
+      );
+      const convTitle =
+        existingIdx >= 0
+          ? existingThreads[existingIdx]!.conversation.title
+          : text.replace(/\s+/g, " ").slice(0, 60);
+      const updatedConv: AiConversation = {
+        id: resolvedConversationId,
+        title: convTitle,
+        mode,
+        updatedAt: nowIso,
+      };
+      const completedAssistant: AiMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: streamedText,
+        status: "complete",
+        createdAt: nowIso,
+      };
+      const nextStoredMessages: AiMessage[] = [
+        ...(existingIdx >= 0
+          ? existingThreads[existingIdx]!.messages
+          : messages.map(({ id, role, content: c, status: s, createdAt }) => ({
+              id,
+              role,
+              content: c,
+              status: s,
+              createdAt,
+            }))),
+        {
+          id: userMsg.id,
+          role: "user",
+          content: userMsg.content,
+          status: "complete",
+          createdAt: userMsg.createdAt,
+        },
+        completedAssistant,
+      ];
+      const nextThreads = [
+        { conversation: updatedConv, messages: nextStoredMessages },
+        ...existingThreads.filter((item) => item.conversation.id !== resolvedConversationId),
+      ];
+      writeLocalThreads(nextThreads);
+      const nextUsed = incrementLocalUsageCount();
+      setUsage((prev) =>
+        prev
+          ? {
+              ...prev,
+              used: Math.max(prev.used + 1, nextUsed),
+            }
+          : null,
+      );
+      setConversations((prev) => [
+        updatedConv,
+        ...prev.filter((item) => item.id !== resolvedConversationId),
+      ]);
+      setStatus("Trợ lý đã trả lời xong.");
     } catch (error) {
+      // Nothing was generated: restore the draft and drop the optimistic turn.
       setMessages((items) => items.filter((item) => item.id !== assistantId && item.id !== `user-${requestId}`));
       setDraft(content);
       setAttachments(files);
@@ -820,9 +546,11 @@ export default function AiWorkspace() {
     } finally {
       controller.current = null;
       setStreaming(false);
+      void loadMeta();
     }
   }
 
+  /** Adds picked, dropped or pasted files to the tray; reports skipped types and broken limits. */
   async function attach(files: File[], pathOf?: (file: File) => string) {
     if (!files.length || streaming) return;
     setAttaching(true);
@@ -830,10 +558,10 @@ export default function AiWorkspace() {
     setAttaching(false);
     setAttachments((items) => [...items, ...result.added]);
     const skipped = result.skipped.length
-      ? `Bỏ qua ${result.skipped.length} tệp chưa hỗ trợ (${result.skipped[0]})`
+      ? `Bỏ qua ${result.skipped.length} tệp chưa hỗ trợ (ví dụ: ${result.skipped[0]}). Word/Excel hãy xuất ra PDF.`
       : "";
     setNotice([result.error, skipped].filter(Boolean).join(" "));
-    if (result.added.length) setStatus(`Đã đính kèm ${result.added.length} tệp`);
+    if (result.added.length) setStatus(`Đã đính kèm ${result.added.length} tệp.`);
     composer.current?.focus();
   }
 
@@ -849,7 +577,6 @@ export default function AiWorkspace() {
     document.getElementById("aw-attach-menu")?.hidePopover();
     input?.click();
   };
-
   const onPicked = (event: React.ChangeEvent<HTMLInputElement>) => {
     void attach([...(event.target.files ?? [])]);
     event.target.value = "";
@@ -878,37 +605,68 @@ export default function AiWorkspace() {
     });
   }
 
+  const root = (children: React.ReactNode, extra = "") => (
+    <div className={`aw ${phuongFonts} ${extra}${intro.arrived ? " aw-arrive" : ""}`} data-theme={theme}>
+      {children}
+      {intro.splash}
+      <SceneCurtain to="/student" />
+    </div>
+  );
+
   if (loadError) {
-    return (
-      <div className={`aw ${phuongFonts}`} data-theme={theme}>
-        <div className="aw-center">
-          <div className="notice error" role="alert">
-            <Icon name="alert" />
-            <div>
-              <strong>Không thể mở bàn làm việc AI</strong>
-              <p>{loadError}</p>
-            </div>
-            <button className="button button-outline button-xs" type="button" onClick={() => void refresh()}>
-              <Icon name="retry" /> Thử lại
-            </button>
+    return root(
+      <div className="aw-center">
+        <div className="notice error" role="alert">
+          <Icon name="alert" />
+          <div>
+            <strong>Không thể mở trợ lý</strong>
+            <p>{loadError}</p>
           </div>
+          <button className="button button-outline button-xs" type="button" onClick={() => void refresh()}>
+            <Icon name="retry" /> Thử lại
+          </button>
         </div>
-      </div>
+      </div>,
     );
   }
 
-  if (!data) {
-    return (
-      <div className={`aw ${phuongFonts}`} data-theme={theme}>
-        <div className="aw-center" aria-busy="true">
-          <p className="aw-loading-text">Đang mở bàn làm việc suy luận học thuật</p>
+  if (!data || consent === null) {
+    return root(
+      <div className="aw-center" aria-busy="true">
+        <PhuongFlower size={56} className="aw-loading-flower" />
+        <p className="aw-loading-text">Đang mở trợ lý học tập…</p>
+      </div>,
+    );
+  }
+
+  if (!consent) {
+    return root(
+      <div className="aw-center">
+        <div className="aw-consent">
+          <PhuongFlower size={44} />
+          <h1>Trước khi dùng trợ lý AI</h1>
+          <ul>
+            <li>Nội dung bạn nhập (và bài tập bạn chọn đính kèm) được gửi tới nhà cung cấp AI của nhà trường để tạo câu trả lời.</li>
+            <li>Không nhập mật khẩu, số giấy tờ hay thông tin cá nhân nhạy cảm.</li>
+            <li>Cuộc trò chuyện chỉ bạn xem được và tự động xoá sau 30 ngày không dùng; bạn có thể xoá bất kỳ lúc nào.</li>
+            <li>AI có thể sai. Câu trả lời là gợi ý học tập, không thay thế nhận xét của giảng viên và không tự động nộp bài.</li>
+          </ul>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={() => {
+              writeFlag(consentKey, true);
+              setConsent(true);
+            }}
+          >
+            Tôi đã hiểu, bắt đầu
+          </button>
         </div>
-      </div>
+      </div>,
     );
   }
 
   const currentMode = modes.find((item) => item.key === mode)!;
-  const currentPrompts = activeWorkbench.promptsByMode[mode];
   const enabled = usage?.enabled ?? true;
   const exhausted = usage ? usage.used >= usage.limit : false;
   const name = account.displayName || data.session.user.displayName;
@@ -916,21 +674,22 @@ export default function AiWorkspace() {
     ? conversations.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()))
     : conversations;
   const empty = !messages.length && !loadingThread;
-  const selectedAssignment = data.assignments.find((item) => item.id === assignmentId);
-  const activeModelName = usage?.model ?? "gpt-6-luna";
+  const usedPercent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
 
   const composerForm = (
     <form className="aw-composer" onSubmit={submit}>
       {notice && (
-        <div className="aw-alert" role="alert">
+        <div className="notice error" role="alert">
           <Icon name="alert" />
-          <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")} aria-label="Đóng thông báo">
-            <Icon name="close" />
-          </button>
+          <p style={{ margin: 0 }}>{notice}</p>
         </div>
       )}
-
+      {exhausted && enabled && (
+        <div className="notice" role="status">
+          <Icon name="info" />
+          <p style={{ margin: 0 }}>{aiErrorMessage("ai_quota_exceeded")}</p>
+        </div>
+      )}
       <div className="aw-box">
         {(attachments.length > 0 || attaching) && (
           <ul className="aw-tray" aria-label="Tệp đính kèm">
@@ -939,45 +698,39 @@ export default function AiWorkspace() {
                 {item.preview ? (
                   <img src={item.preview} alt="" />
                 ) : (
-                  <span className="aw-file-icon" aria-hidden="true">
-                    <Icon name={item.kind === "pdf" ? "file" : "list"} />
-                  </span>
+                  <span className="aw-file-icon" aria-hidden="true"><Icon name={item.kind === "pdf" ? "file" : "list"} /></span>
                 )}
                 <span className="aw-file-text">
                   <strong title={item.name}>{item.name.split("/").at(-1)}</strong>
-                  <small>{formatSize(item.size)}</small>
+                  <small>{item.name.includes("/") ? `${item.name.split("/")[0]}/ · ` : ""}{formatSize(item.size)}</small>
                 </span>
-                <button
-                  type="button"
-                  className="aw-file-remove"
-                  aria-label={`Bỏ ${item.name}`}
-                  onClick={() => detach(item.id)}
-                  disabled={streaming}
-                >
-                  <Icon name="close" />
+                <button type="button" className="aw-file-remove" aria-label={`Bỏ ${item.name}`} onClick={() => detach(item.id)} disabled={streaming}>
+                  ×
                 </button>
               </li>
             ))}
-            {attaching && <li className="aw-file is-loading">Đang đọc tệp đính kèm</li>}
+            {attaching && <li className="aw-file is-loading">Đang xử lý tệp…</li>}
+            {attachments.length > 1 && (
+              <li className="aw-tray-total">
+                {attachments.length} tệp · {formatSize(attachments.reduce((sum, item) => sum + item.size, 0))} / 30 MB
+              </li>
+            )}
           </ul>
         )}
-
-        <label className="sr-only" htmlFor="ai-input">
-          Nội dung câu hỏi cho AI
-        </label>
+        <label className="sr-only" htmlFor="ai-input">Tin nhắn cho trợ lý AI</label>
         <textarea
           id="ai-input"
           ref={composer}
-          rows={empty ? 2 : 1}
+          rows={empty ? 3 : 1}
           value={draft}
           maxLength={8000}
-          placeholder={`${currentMode.hint} (${activeWorkbench.code} · ${activeWorkbench.name})`}
+          placeholder={enabled ? currentMode.hint : usage ? "Trợ lý AI chưa được bật" : "Đang kiểm tra trợ lý…"}
           disabled={!enabled || exhausted}
           autoFocus
           onChange={(event) => {
             setDraft(event.target.value);
             event.target.style.height = "auto";
-            event.target.style.height = `${Math.min(event.target.scrollHeight, 220)}px`;
+            event.target.style.height = `${Math.min(event.target.scrollHeight, 240)}px`;
           }}
           onKeyDown={onKeyDown}
           onPaste={(event) => {
@@ -987,211 +740,89 @@ export default function AiWorkspace() {
             void attach(pasted, (file) => (file.name === "image.png" ? `anh-dan-${Date.now()}.png` : file.name));
           }}
         />
-
         <div className="aw-box-bar">
-          <div className="aw-tools">
-            <button
-              type="button"
-              className="aw-tool-btn is-icon"
-              popoverTarget="aw-attach-menu"
-              aria-label="Đính kèm tệp hoặc ảnh"
-              title="Đính kèm ảnh, PDF, mã nguồn"
-              disabled={!enabled || exhausted || streaming}
-            >
-              <Icon name="plus" />
+          <button
+            type="button"
+            className="aw-attach"
+            popoverTarget="aw-attach-menu"
+            aria-label="Đính kèm ảnh, tệp hoặc thư mục"
+            title="Đính kèm ảnh, tệp hoặc thư mục (dưới 30 MB)"
+            disabled={!enabled || exhausted || streaming}
+          >
+            <Icon name="paperclip" />
+          </button>
+          <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
+            <button type="button" onClick={() => pick(imagePicker.current)}>
+              <Icon name="sparkle" />
+              <span><strong>Ảnh</strong><small>Chụp màn hình, ảnh bài làm</small></span>
             </button>
-            <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
-              <button type="button" onClick={() => pick(imagePicker.current)}>
-                <Icon name="image" />
-                <span>
-                  <strong>Hình ảnh & bài giải viết tay</strong>
-                  <small>PNG, JPEG, WebP</small>
-                </span>
-              </button>
-              <button type="button" onClick={() => pick(filePicker.current)}>
-                <Icon name="file" />
-                <span>
-                  <strong>Giáo trình PDF & mã nguồn</strong>
-                  <small>PDF, C++, Java, Python, SQL</small>
-                </span>
-              </button>
-              <button type="button" onClick={() => pick(folderPicker.current)}>
-                <Icon name="class" />
-                <span>
-                  <strong>Thư mục đồ án</strong>
-                  <small>Tải toàn bộ cây thư mục mã nguồn</small>
-                </span>
-              </button>
-            </div>
-            <input ref={imagePicker} type="file" hidden multiple accept="image/png,image/jpeg,image/gif,image/webp" onChange={onPicked} />
-            <input ref={filePicker} type="file" hidden multiple onChange={onPicked} />
-            <input
-              ref={folderPicker}
-              type="file"
-              hidden
-              multiple
-              {...({ webkitdirectory: "" } as Record<string, string>)}
-              onChange={onPicked}
-            />
-
-            <label className="aw-tool-select is-active" title="Học phần đang ghim vào ngữ cảnh">
-              <Icon name="book" />
-              <select
-                aria-label="Học phần đang ghim"
-                value={activeCourseCode}
-                onChange={(event) => setActiveCourseCode(event.target.value)}
-                disabled={streaming}
-              >
-                {courseWorkbenches.map((courseItem) => (
-                  <option key={courseItem.code} value={courseItem.code}>
-                    {courseItem.code}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <button
-              type="button"
-              className={`aw-tool-btn${reasoningEffort === "high" ? " is-active" : ""}`}
-              aria-pressed={reasoningEffort === "high"}
-              onClick={() => setReasoningEffort((prev) => (prev === "high" ? "medium" : "high"))}
-              disabled={streaming}
-              title="Bật Suy luận sâu để kiểm chứng từng bước trước khi trả lời"
-            >
-              <Icon name="clock" />
-              <span>{reasoningEffort === "high" ? "Suy luận sâu" : "Suy luận chuẩn"}</span>
+            <button type="button" onClick={() => pick(filePicker.current)}>
+              <Icon name="file" />
+              <span><strong>Tệp</strong><small>PDF, văn bản, mã nguồn</small></span>
             </button>
-
-            <label className="aw-tool-select" title="Chế độ làm việc">
-              <Icon name={currentMode.icon} />
-              <select
-                aria-label="Chế độ làm việc"
-                value={mode}
-                onChange={(event) => setMode(event.target.value as AiMode)}
-                disabled={streaming}
-              >
-                {modes.map((item) => (
-                  <option key={item.key} value={item.key}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className={`aw-tool-select${assignmentId ? " is-active" : ""}`} title="Gắn bài tập học phần vào ngữ cảnh">
-              <Icon name="assignment" />
-              <select
-                aria-label="Gắn bài tập học phần"
-                value={assignmentId}
-                onChange={(event) => setAssignmentId(event.target.value)}
-                disabled={streaming}
-              >
-                <option value="">Không gắn bài tập</option>
-                {data.assignments.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <button type="button" onClick={() => pick(folderPicker.current)}>
+              <Icon name="class" />
+              <span><strong>Thư mục</strong><small>Cả thư mục tài liệu hoặc dự án</small></span>
+            </button>
+            <p>Tổng dưới 30 MB · tối đa 100 tệp · có thể kéo thả hoặc dán ảnh</p>
           </div>
-
+          <input ref={imagePicker} type="file" hidden multiple accept="image/png,image/jpeg,image/gif,image/webp" onChange={onPicked} />
+          <input ref={filePicker} type="file" hidden multiple onChange={onPicked} />
+          <input ref={folderPicker} type="file" hidden multiple {...({ webkitdirectory: "" } as Record<string, string>)} onChange={onPicked} />
           {streaming ? (
-            <button
-              className="aw-send is-stop"
-              type="button"
-              aria-label="Dừng suy luận"
-              onClick={() => controller.current?.abort()}
-            >
+            <button className="aw-send stop" type="button" aria-label="Dừng tạo câu trả lời" onClick={() => controller.current?.abort()}>
               <Icon name="stop" />
             </button>
           ) : (
-            <button
-              className="aw-send"
-              type="submit"
-              aria-label="Gửi yêu cầu"
-              disabled={!enabled || exhausted || attaching || (!draft.trim() && !attachments.length)}
-            >
-              <Icon name="arrow" />
+            <button className="aw-send" type="submit" aria-label="Gửi" disabled={!enabled || exhausted || attaching || (!draft.trim() && !attachments.length)}>
+              <Icon name="send" />
             </button>
           )}
         </div>
       </div>
-
-      <div className="aw-composer-foot">
-        <span>
-          Ngữ cảnh học vụ: <code>{activeWorkbench.code}</code> · Lớp <code>{account.cohortClass}</code>
-        </span>
-        <span>
-          Nhấn <kbd className="aw-kbd">Enter</kbd> để gửi · <kbd className="aw-kbd">Shift + Enter</kbd> xuống dòng
-        </span>
-      </div>
+      <p className="aw-disclaimer">Trợ lý AI có thể sai. Hãy tự kiểm chứng trước khi dùng cho bài tập.</p>
     </form>
   );
 
-  return (
-    <div
-      className={`aw ${phuongFonts}${sideCollapsed ? " is-collapsed" : ""}${sideOpen ? " is-open" : ""}`}
-      data-theme={theme}
-    >
-      <aside className="aw-side" aria-label="Lịch sử phiên làm việc" id="aw-side">
+  return root(
+    <>
+      <aside className="aw-side" aria-label="Lịch sử trò chuyện" id="aw-side">
         <div className="aw-side-head">
-          <div className="aw-side-brand">
-            <span className="aw-seal" aria-hidden="true">SDU</span>
-            <div className="aw-side-brand-text">
-              <strong>Sao Đỏ AI</strong>
-              <span>{semester.short}</span>
-            </div>
-          </div>
-          <button
-            className="aw-icon-btn"
-            type="button"
-            onClick={toggleSide}
-            aria-label="Thu gọn thanh bên"
-            aria-controls="aw-side"
-            title="Thu gọn thanh bên"
-          >
+          <Link href="/student" className="aw-brand" aria-label="Về cổng học tập">
+            <img src="/sao-do-logo.png" alt="" width={30} height={32} />
+            <span>
+              <strong>Trợ lý Sao Đỏ</strong>
+              <small>Học cùng AI</small>
+            </span>
+          </Link>
+          <button className="icon-button" type="button" onClick={toggleSide} aria-label="Đóng thanh bên" aria-controls="aw-side">
             <Icon name="panel" />
           </button>
         </div>
-
-        <button className="aw-new-row" type="button" onClick={newConversation} disabled={streaming}>
-          <Icon name="plus" />
-          <span>Phiên suy luận mới</span>
-          <kbd className="aw-kbd">Ctrl ⇧ O</kbd>
+        <button className="aw-new" type="button" onClick={newConversation} disabled={streaming}>
+          <Icon name="plus" /> Cuộc trò chuyện mới
+          <kbd>Ctrl ⇧ O</kbd>
         </button>
-
         <label className="aw-search">
           <Icon name="search" />
-          <span className="sr-only">Tìm phiên làm việc</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm phiên làm việc"
-          />
+          <span className="sr-only">Tìm cuộc trò chuyện</span>
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm cuộc trò chuyện" />
         </label>
-
-        <nav className="aw-history" aria-label="Lịch sử phiên làm việc">
+        <nav className="aw-history" aria-label="Các cuộc trò chuyện">
           {filtered.length ? (
             groupByRecency(filtered, now).map((group) => (
-              <div key={group.label} className="aw-group-block">
+              <div key={group.label}>
                 <p className="aw-group">{group.label}</p>
                 <ul>
                   {group.items.map((item) => (
                     <li key={item.id} aria-current={item.id === activeId ? "true" : undefined}>
-                      <button
-                        type="button"
-                        title={item.title}
-                        onClick={() => void openConversation(item.id)}
-                        disabled={streaming}
-                      >
+                      <button type="button" title={item.title} onClick={() => void openConversation(item.id)} disabled={streaming}>
                         <span className="aw-title">{item.title}</span>
                       </button>
                       <button
                         className="aw-delete"
                         type="button"
-                        aria-label={`Xoá ${item.title}`}
+                        aria-label={`Xoá cuộc trò chuyện ${item.title}`}
                         onClick={() => void deleteConversation(item.id)}
                         disabled={streaming}
                       >
@@ -1203,50 +834,44 @@ export default function AiWorkspace() {
               </div>
             ))
           ) : (
-            <div className="aw-history-empty">
-              <p className="aw-muted">
-                {query ? "Không có phiên khớp từ khóa" : "Chưa có phiên lưu trong trình duyệt"}
-              </p>
-              <span>Mỗi phiên tự động gắn ngữ cảnh học phần và lưu cục bộ để tra cứu lại</span>
-            </div>
+            <p className="aw-muted">{query ? "Không tìm thấy cuộc trò chuyện." : "Chưa có cuộc trò chuyện nào."}</p>
           )}
         </nav>
-
         <div className="aw-side-foot">
+          {usage?.enabled && (
+            <div className="aw-usage">
+              <span>Lượt hỏi hôm nay</span>
+              <strong>{usage.used}/{usage.limit}</strong>
+              <div className="meter" role="meter" aria-label="Lượt hỏi AI đã dùng hôm nay" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
+                <span style={{ width: `${usedPercent}%` }} />
+              </div>
+            </div>
+          )}
           <div className="aw-user">
-            <span className="aw-user-avatar">
-              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
+            <span className="avatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" className="avatar-img" /> : initials(name)}
             </span>
-            <span className="aw-user-meta">
+            <span>
               <strong>{name}</strong>
-              <small>
-                {account.code} · {account.roleBadge}
-              </small>
+              <small>{account.roleTitle} · {account.cohortClass}</small>
             </span>
-            <Link
-              href={"/student/settings" as Route}
-              className="aw-icon-btn"
-              aria-label="Mở cài đặt giao diện"
-              title="Cài đặt giao diện & hiển thị"
+            <button
+              className="icon-button"
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Chế độ tối"
+              aria-pressed={theme === "dark"}
+              title={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
             >
-              <Icon name="user" />
-            </Link>
+              <Icon name={theme === "dark" ? "sun" : "moon"} />
+            </button>
           </div>
           <Link href="/student" className="aw-back">
-            <Icon name="back" />
-            <span>Về cổng học tập</span>
+            <Icon name="back" /> Về cổng học tập
           </Link>
         </div>
       </aside>
-
-      {sideOpen && (
-        <button
-          className="aw-scrim"
-          type="button"
-          aria-label="Đóng thanh bên"
-          onClick={() => setSideOpen(false)}
-        />
-      )}
+      {sideOpen && <button className="aw-scrim" type="button" aria-label="Đóng thanh bên" onClick={() => setSideOpen(false)} />}
 
       <main
         className={`aw-main${dragging ? " is-dragging" : ""}`}
@@ -1266,219 +891,86 @@ export default function AiWorkspace() {
           if (!enabled || exhausted) return;
           void filesFromDrop(event.dataTransfer.items).then((dropped) => {
             const paths = new Map(dropped.map(({ file, path }) => [file, path]));
-            return attach(
-              dropped.map(({ file }) => file),
-              (file) => paths.get(file) ?? file.name,
-            );
+            return attach(dropped.map(({ file }) => file), (file) => paths.get(file) ?? file.name);
           });
         }}
       >
         {dragging && (
           <div className="aw-drop" aria-hidden="true">
             <Icon name="paperclip" />
-            <strong>Thả tệp, ảnh hoặc thư mục mã nguồn vào bàn làm việc</strong>
-            <span>Hỗ trợ tối đa 30 MB mỗi phiên</span>
+            <strong>Thả ảnh, tệp hoặc thư mục vào đây</strong>
+            <span>Tổng dưới 30 MB · ảnh, PDF, văn bản và mã nguồn</span>
           </div>
         )}
-
         <header className="aw-top">
-          <div className="aw-top-left">
-            <button
-              className="aw-icon-btn aw-open-side"
-              type="button"
-              onClick={toggleSide}
-              aria-label="Mở thanh bên"
-              aria-controls="aw-side"
-            >
-              <Icon name="panel" />
-            </button>
-            <div className="aw-model-pill">
-              <span className="aw-live-dot" aria-hidden="true" />
-              <strong>Sao Đỏ AI</strong>
-              <code>{activeModelName}</code>
-            </div>
-            <span className="aw-context-tag">
-              <Icon name="book" />
-              <span>
-                {activeWorkbench.code} · {activeWorkbench.name}
-              </span>
-            </span>
-          </div>
-
-          <div className="aw-top-right">
-            {selectedAssignment && (
-              <span className="aw-context-tag" title={selectedAssignment.title}>
-                <Icon name="assignment" />
-                <span>{selectedAssignment.title}</span>
-              </span>
-            )}
-            {usage && (
-              <span className="aw-quota-meta" title="Hạn mức lượt suy luận trong kỳ">
-                Hạn mức <code>{usage.used}/{usage.limit}</code>
-              </span>
-            )}
-            <button
-              className="aw-icon-btn"
-              type="button"
-              onClick={newConversation}
-              disabled={streaming}
-              aria-label="Phiên suy luận mới"
-              title="Phiên suy luận mới (Ctrl+Shift+O)"
-            >
-              <Icon name="plus" />
-            </button>
-          </div>
+          <button className="icon-button aw-open-side" type="button" onClick={toggleSide} aria-label="Mở thanh bên" aria-controls="aw-side" aria-expanded={sideOpen}>
+            <Icon name="panel" />
+          </button>
+          <h1>{title}</h1>
+          <button className="icon-button aw-top-new" type="button" onClick={newConversation} disabled={streaming} aria-label="Cuộc trò chuyện mới">
+            <Icon name="plus" />
+          </button>
         </header>
 
         {empty ? (
-          <div className="aw-empty-stage">
-            <div className="aw-empty-inner">
-              <header className="aw-empty-head">
-                <div className="aw-empty-eyebrow">
-                  <span className="aw-eyebrow-code">{account.cohortClass}</span>
-                  <span>{account.department} · {semester.name}</span>
-                </div>
-                <h1>Bàn làm việc học thuật & phân tích học phần</h1>
-                <p>
-                  Chọn học phần bên dưới để nạp đề cương, trọng số chấm bài và tiêu chí đánh giá của giảng viên vào phiên suy luận
-                </p>
-              </header>
-
-              {/* Product Moment: Interactive SDU Academic Context & Rubric Workbench */}
-              <section className="aw-workbench" aria-label="Hồ sơ ngữ cảnh học phần đang nạp">
-                <div className="aw-course-tabs" role="tablist" aria-label="Chọn học phần kỳ này">
-                  {courseWorkbenches.map((courseItem) => {
-                    const isSelected = courseItem.code === activeWorkbench.code;
-                    return (
-                      <button
-                        key={courseItem.code}
-                        type="button"
-                        role="tab"
-                        aria-selected={isSelected}
-                        className={`aw-course-tab${isSelected ? " is-active" : ""}`}
-                        onClick={() => setActiveCourseCode(courseItem.code)}
-                      >
-                        <code>{courseItem.code}</code>
-                        <span>{courseItem.name}</span>
-                        <small>{courseItem.credits} TC</small>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="aw-workbench-body">
-                  <div className="aw-workbench-Primary">
-                    <div className="aw-workbench-meta">
-                      <span className="aw-workbench-badge">Đang nạp vào hệ thống</span>
-                      <code>GV: {activeWorkbench.lecturer}</code>
-                    </div>
-                    <h2>
-                      <span>{activeWorkbench.code}</span> · {activeWorkbench.name}
-                    </h2>
-                    <p className="aw-workbench-topic">{activeWorkbench.currentTopic}</p>
-                    <div className="aw-workbench-lab">
-                      <Icon name="assignment" />
-                      <span>{activeWorkbench.labFocus}</span>
-                    </div>
-                  </div>
-
-                  <div className="aw-workbench-rubric" aria-label="Tiêu chí kiểm chứng của học phần">
-                    <div className="aw-rubric-head">
-                      <span>Tiêu chí đối chiếu đầu ra</span>
-                      <code>3 mốc kiểm chứng</code>
-                    </div>
-                    <dl className="aw-rubric-list">
-                      {activeWorkbench.rubricItems.map((item) => (
-                        <div key={item.code}>
-                          <dt>
-                            <code>{item.code}</code>
-                            <span>{item.criterion}</span>
-                          </dt>
-                          <dd>{item.weight}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                </div>
-              </section>
-
-              {composerForm}
-
-              <div className="aw-bottom-grid">
-                <div className="aw-modes-bar">
-                  <span className="aw-section-label">Chế độ suy luận</span>
-                  <div className="aw-modes-strip" role="group" aria-label="Chế độ làm việc">
-                    {modes.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        aria-pressed={item.key === mode}
-                        onClick={() => setMode(item.key)}
-                      >
-                        <Icon name={item.icon} />
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="aw-starters" aria-label="Đề xuất bài toán theo học phần">
-                  {currentPrompts.map((item) => (
-                    <button
-                      key={item.title}
-                      type="button"
-                      className="aw-starter-card"
-                      onClick={() => {
-                        setDraft(item.prompt);
-                        composer.current?.focus();
-                      }}
-                    >
-                      <div className="aw-starter-top">
-                        <code>{item.tag}</code>
-                        <Icon name="arrow" />
-                      </div>
-                      <strong>{item.title}</strong>
-                      <p>{item.prompt}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="aw-welcome">
+            <h2>
+              <PhuongFlower size={34} /> {greeting(new Date(now))}, {name}
+            </h2>
+            <p>
+              {enabled
+                ? "Hôm nay bạn muốn học gì? Trợ lý trả lời bằng tiếng Việt và đã kết nối dữ liệu học tập thật của bạn."
+                : usage
+                  ? aiErrorMessage("ai_disabled")
+                  : "Đang kiểm tra trạng thái trợ lý…"}
+            </p>
+            {composerForm}
+            <div className="aw-modes" role="group" aria-label="Chế độ học">
+              {modes.map((item) => (
+                <button key={item.key} type="button" aria-pressed={item.key === mode} onClick={() => setMode(item.key)}>
+                  <Icon name={item.icon} /> {item.label}
+                </button>
+              ))}
             </div>
+            {enabled && !exhausted && (
+              <div className="aw-suggestions">
+                {currentMode.suggestions.map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => {
+                      setDraft(text.endsWith(":") ? `${text}\n` : text);
+                      composer.current?.focus();
+                    }}
+                  >
+                    {text} <Icon name="arrow" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>
             <div className="aw-thread" ref={thread}>
               <div className="aw-column">
-                <div className="aw-thread-banner">
-                  <div>
-                    <code>{activeWorkbench.code}</code>
-                    <strong>{activeWorkbench.name}</strong>
-                    <span>· {activeWorkbench.currentTopic}</span>
-                  </div>
-                  <code>{ currentMode.label }</code>
-                </div>
-
                 {loadingThread ? (
-                  <div className="aw-skeleton-stack" aria-label="Đang tải phiên làm việc">
-                    <div className="aw-skel is-user" />
-                    <div className="aw-skel is-assistant" />
+                  <div aria-label="Đang tải cuộc trò chuyện">
+                    <div className="skeleton" style={{ height: 44, width: "55%", marginLeft: "auto", marginBottom: 24 }} />
+                    <div className="skeleton" style={{ height: 140 }} />
                   </div>
                 ) : (
-                  messages.map((message, index) =>
+                  messages.map((message) =>
                     message.role === "user" ? (
-                      <article key={message.id} className="aw-turn is-user">
-                        <div className="aw-user-stack">
+                      <div key={message.id} className="aw-msg user">
+                        <div className="aw-user-turn">
                           {message.files?.length ? (
-                            <ul className="aw-sent-files" aria-label="Tệp đã đính kèm">
+                            <ul className="aw-sent-files" aria-label="Tệp đã gửi">
                               {message.files.map((file) => (
                                 <li key={file.id}>
                                   {file.preview ? (
                                     <img src={file.preview} alt={file.name} />
                                   ) : (
-                                    <span>
-                                      <Icon name={file.kind === "pdf" ? "file" : "list"} />{" "}
-                                      {file.name.split("/").at(-1)}
-                                    </span>
+                                    <span><Icon name={file.kind === "pdf" ? "file" : "list"} /> {file.name.split("/").at(-1)}</span>
                                   )}
                                 </li>
                               ))}
@@ -1486,70 +978,48 @@ export default function AiWorkspace() {
                           ) : null}
                           <div className="aw-user-bubble">{message.content}</div>
                         </div>
-                      </article>
+                      </div>
                     ) : (
-                      <article key={message.id} className="aw-turn is-assistant">
-                        <div className="aw-assistant-head">
-                          <span className="aw-assistant-mark" aria-hidden="true">
-                            <img src="/sao-do-logo.png" alt="" width={18} height={18} />
-                          </span>
-                          <strong>Sao Đỏ AI</strong>
-                          <code>{message.model ?? activeModelName}</code>
-                          <span className="aw-assistant-course">{activeWorkbench.code}</span>
-                        </div>
-
-                        <div className="aw-assistant-body">
-                          <ReasoningBlock
-                            message={message}
-                            isStreaming={streaming && index === messages.length - 1}
-                          />
-
-                          {message.content ? (
-                            <div className="aw-prose bubble">
-                              <Markdown text={message.content} />
-                            </div>
-                          ) : message.status === "pending" ? null : (
-                            <p className="aw-error-inline">
-                              {message.error ?? "Không nhận được phản hồi từ mô hình"}
-                            </p>
+                      <div key={message.id} className="aw-msg assistant">
+                        <span className="aw-avatar" aria-hidden="true"><PhuongFlower size={20} /></span>
+                        <div className="aw-answer">
+                          {message.status === "pending" && !message.content ? (
+                            <span className="typing" aria-label="Đang soạn"><i /><i /><i /></span>
+                          ) : (
+                            <div className="bubble"><Markdown text={message.content} /></div>
                           )}
-
                           {message.status !== "pending" && (
-                            <footer className="aw-turn-foot">
+                            <div className="aw-actions">
+                              {message.status !== "complete" && (
+                                <span className="chip danger">
+                                  {message.error ?? (message.status === "interrupted" ? "Câu trả lời bị gián đoạn" : "Không tạo được câu trả lời")}
+                                </span>
+                              )}
                               {message.content && (
                                 <button
-                                  className="aw-foot-btn"
+                                  className="icon-button"
                                   type="button"
+                                  aria-label="Sao chép câu trả lời"
+                                  title="Sao chép"
                                   onClick={() => {
-                                    void navigator.clipboard?.writeText(message.content).then(() => {
-                                      setCopiedId(message.id);
-                                      window.setTimeout(() => setCopiedId(null), 1800);
-                                    });
+                                    void navigator.clipboard?.writeText(message.content).then(
+                                      () => setStatus("Đã sao chép câu trả lời."),
+                                      () => setStatus("Không thể sao chép. Hãy chọn và sao chép thủ công."),
+                                    );
                                   }}
                                 >
-                                  <Icon name={copiedId === message.id ? "check" : "copy"} />
-                                  <span>{copiedId === message.id ? "Đã chép" : "Sao chép"}</span>
+                                  <Icon name="copy" />
                                 </button>
                               )}
                               {message.retryContent && !streaming && (
-                                <button
-                                  className="aw-foot-btn"
-                                  type="button"
-                                  onClick={() => void send(message.retryContent!)}
-                                >
-                                  <Icon name="retry" />
-                                  <span>Thử lại</span>
+                                <button className="button button-ghost button-small" type="button" onClick={() => void send(message.retryContent!)}>
+                                  <Icon name="retry" /> Thử lại
                                 </button>
                               )}
-                              {message.reasoningMs && (
-                                <span className="aw-foot-meta">
-                                  {(message.reasoningMs / 1000).toFixed(1)}s suy luận
-                                </span>
-                              )}
-                            </footer>
+                            </div>
                           )}
                         </div>
-                      </article>
+                      </div>
                     ),
                   )
                 )}
@@ -1558,10 +1028,9 @@ export default function AiWorkspace() {
             <div className="aw-dock">{composerForm}</div>
           </>
         )}
-        <p className="sr-only" role="status" aria-live="polite">
-          {status}
-        </p>
+        <p className="sr-only" role="status" aria-live="polite">{status}</p>
       </main>
-    </div>
+    </>,
+    `${sideCollapsed ? "is-collapsed" : ""} ${sideOpen ? "is-open" : ""}`,
   );
 }

@@ -19,13 +19,7 @@ export function useAiIntro(ready: boolean) {
   const [arrived, setArrived] = useState(false);
 
   useEffect(() => {
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(seenKey) === "1";
-    } catch {
-      // No storage: play it.
-    }
-    const skip = seen || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const skip = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     queueMicrotask(() => setPhase(skip ? "done" : "show"));
     if (skip) return;
     const timer = window.setTimeout(() => setMinElapsed(true), 900);

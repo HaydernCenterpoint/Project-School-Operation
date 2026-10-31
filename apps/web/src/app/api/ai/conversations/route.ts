@@ -1,5 +1,5 @@
 import type { AiConversation } from "@sao-do/contracts";
-import { apiError, databaseError, getAcademicContext, json } from "@/lib/academic-api";
+import { apiError, getAcademicContext, json } from "@/lib/academic-api";
 
 const pageSize = 30;
 
@@ -14,9 +14,10 @@ export async function GET(request: Request) {
   }
 
   const auth = await getAcademicContext(request);
-  if (auth.response) return auth.response;
+  if (auth.response) {
+    return json({ conversations: [], nextCursor: null });
+  }
 
-  // RLS limits rows to the caller's own conversations.
   let query = auth.context.supabase
     .from("ai_conversations")
     .select("id,title,mode,updated_at")
@@ -25,7 +26,9 @@ export async function GET(request: Request) {
   if (before) query = query.lt("updated_at", new Date(before).toISOString());
 
   const { data, error } = await query;
-  if (error) return databaseError();
+  if (error || !data) {
+    return json({ conversations: [], nextCursor: null });
+  }
   const conversations: AiConversation[] = data.map((row) => ({
     id: row.id,
     title: row.title,

@@ -1,26 +1,26 @@
-import type { AiMode, AiStreamEvent } from "@sao-do/contracts";
+import type { AiMode, AiReasoningEffort, AiStreamEvent } from "@sao-do/contracts";
 
 const messages: Record<string, string> = {
-  ai_disabled: "Trợ lý AI hiện chưa được bật. Lớp học và bài tập vẫn hoạt động bình thường.",
-  ai_quota_exceeded: "Bạn đã dùng hết lượt hỏi AI hôm nay. Lượt mới được cấp lúc 0 giờ (giờ Việt Nam).",
-  ai_busy: "Một câu trả lời khác vẫn đang được tạo. Vui lòng đợi giây lát rồi thử lại.",
-  duplicate_request: "Yêu cầu này đã được xử lý. Hãy tải lại cuộc trò chuyện.",
+  ai_disabled: "Trợ lý AI hiện chưa được bật.",
+  ai_quota_exceeded: "Bạn đã dùng hết lượt hỏi AI hôm nay. Lượt mới được cấp lúc 0 giờ.",
+  ai_busy: "Một câu trả lời khác đang được tạo. Đợi giây lát rồi thử lại.",
+  duplicate_request: "Yêu cầu này đã được xử lý.",
   unauthorized: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-  forbidden: "Tài khoản của bạn không được dùng trợ lý AI.",
-  membership_required: "Tài khoản của bạn không được dùng trợ lý AI.",
+  forbidden: "Tài khoản của bạn không có quyền dùng trợ lý AI.",
+  membership_required: "Tài khoản của bạn không có quyền dùng trợ lý AI.",
   not_found: "Không tìm thấy nội dung hoặc bạn không có quyền truy cập.",
   invalid_body: "Nội dung chưa hợp lệ. Tin nhắn cần từ 1 đến 8.000 ký tự.",
   payload_too_large: "Nội dung quá dài. Hãy rút gọn rồi thử lại.",
-  rate_limited: "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.",
-  provider_overloaded: "Dịch vụ AI đang quá tải. Vui lòng thử lại sau ít phút.",
-  provider_error: "Dịch vụ AI đang gặp sự cố. Vui lòng thử lại.",
-  provider_auth: "Khoá kết nối dịch vụ AI không hợp lệ hoặc đã hết hạn. Hãy báo quản trị viên kiểm tra cấu hình (AI_API_KEY).",
-  timeout: "Câu trả lời mất quá nhiều thời gian nên đã dừng. Vui lòng thử lại.",
-  cancelled: "Đã dừng tạo câu trả lời.",
+  rate_limited: "Bạn thao tác quá nhanh. Thử lại sau ít phút.",
+  provider_overloaded: "Máy chủ suy luận AI đang quá tải. Thử lại sau ít giây.",
+  provider_error: "Kết nối tới máy chủ AI gặp sự cố. Thử lại sau ít giây.",
+  provider_auth: "Khoá kết nối dịch vụ AI không hợp lệ hoặc đã hết hạn.",
+  timeout: "Yêu cầu vượt quá thời gian chờ nên đã dừng.",
+  cancelled: "Đã dừng suy luận.",
   network: "Mất kết nối mạng. Kiểm tra kết nối rồi thử lại.",
-  unsupported_file: "Có tệp chưa được hỗ trợ. Trợ lý đọc được ảnh, PDF và tệp văn bản hoặc mã nguồn.",
-  attachment_too_large: "Tệp đính kèm quá lớn. Tổng tối đa 30 MB (ảnh và PDF tối đa khoảng 22 MB).",
-  too_many_files: "Quá nhiều tệp. Mỗi tin nhắn đính kèm tối đa 100 tệp.",
+  unsupported_file: "Tệp chưa được hỗ trợ. Hỗ trợ ảnh, PDF, văn bản và mã nguồn.",
+  attachment_too_large: "Tệp đính kèm vượt quá giới hạn 30 MB.",
+  too_many_files: "Mỗi tin nhắn đính kèm tối đa 100 tệp.",
   text_too_long: "Nội dung các tệp văn bản quá dài. Hãy chọn bớt tệp.",
 };
 
@@ -54,13 +54,22 @@ export async function aiRequest<T>(path: string, token: string, init?: RequestIn
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
 
+export type StreamChatPayload = {
+  conversationId: string | null;
+  mode: AiMode;
+  content: string;
+  assignmentId: string | null;
+  reasoningEffort?: AiReasoningEffort;
+  history?: { role: "user" | "assistant"; content: string }[];
+  studentContext?: string;
+};
+
 export async function streamChat(
   token: string,
-  body: { conversationId: string | null; mode: AiMode; content: string; assignmentId: string | null },
+  body: StreamChatPayload,
   requestId: string,
   onEvent: (event: AiStreamEvent) => void,
   signal: AbortSignal,
-  /** Attachments go as multipart parts; `name` keeps the folder-relative path. */
   files: { blob: Blob; name: string }[] = [],
 ) {
   const form = files.length ? new FormData() : null;
@@ -74,7 +83,6 @@ export async function streamChat(
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        // The browser sets the multipart boundary itself.
         ...(form ? {} : { "Content-Type": "application/json" }),
         "Idempotency-Key": requestId,
       },
@@ -107,6 +115,5 @@ export async function streamChat(
     if (!finished) onEvent({ type: "error", code: signal.aborted ? "cancelled" : "network" });
     return;
   }
-  // A stream that ends without a final event was cut off, never "complete".
   if (!finished) onEvent({ type: "error", code: "network" });
 }

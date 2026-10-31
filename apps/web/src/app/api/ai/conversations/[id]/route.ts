@@ -56,7 +56,9 @@ export async function DELETE(request: Request, route: RouteContext) {
   const { id } = await route.params;
   if (!isUuid(id)) return apiError(404, "not_found", "Resource not found.");
   const auth = await getAcademicContext(request);
-  if (auth.response) return auth.response;
+  if (auth.response) {
+    return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  }
 
   const { data, error } = await auth.context.supabase
     .from("ai_conversations")

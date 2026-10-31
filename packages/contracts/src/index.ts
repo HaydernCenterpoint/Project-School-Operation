@@ -110,6 +110,13 @@ export function isAiMode(value: unknown): value is AiMode {
   return typeof value === "string" && aiModes.includes(value as AiMode);
 }
 
+export const aiReasoningEfforts = ["low", "medium", "high"] as const;
+export type AiReasoningEffort = (typeof aiReasoningEfforts)[number];
+
+export function isAiReasoningEffort(value: unknown): value is AiReasoningEffort {
+  return typeof value === "string" && aiReasoningEfforts.includes(value as AiReasoningEffort);
+}
+
 export type AiConversation = {
   id: string;
   title: string;
@@ -121,6 +128,10 @@ export type AiMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  reasoning?: string;
+  reasoningMs?: number;
+  steps?: string[];
+  model?: string;
   status: "pending" | "complete" | "interrupted" | "failed";
   createdAt: string;
 };
@@ -130,11 +141,14 @@ export type AiUsage = {
   used: number;
   limit: number;
   resetsAt: string | null;
+  model?: string;
 };
 
 /** One JSON object per line of the `POST /api/ai/chat` response stream. */
 export type AiStreamEvent =
-  | { type: "start"; conversationId: string; requestId: string }
+  | { type: "start"; conversationId: string; requestId: string; model?: string }
+  | { type: "step"; label: string }
+  | { type: "reasoning"; text: string }
   | { type: "delta"; text: string }
-  | { type: "complete" }
+  | { type: "complete"; reasoningMs?: number }
   | { type: "error"; code: string };
