@@ -516,6 +516,8 @@ export default function StudentPortfolioPage() {
 
   if (!data) return null;
 
+  const accessToken = data.session.accessToken;
+
   const activeTemplate: EditableDossierTemplate =
     baseTemplates.find((tpl) => tpl.id === selectedTemplateId) ?? baseTemplates[0]!;
 
@@ -565,7 +567,7 @@ export default function StudentPortfolioPage() {
 
     try {
       await streamChat(
-        data.session.accessToken,
+        accessToken,
         {
           conversationId: null,
           mode: "summarize",
