@@ -372,3 +372,92 @@
 @media (prefers-reduced-motion: reduce) {
   .sd-curtain { display: none; }
 }
+
+/* Multi-role quick login selector on /login */
+.auth-role-Section {
+  margin-top: 8px;
+  padding-top: 16px;
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--sd-line);
+}
+.auth-role-head {
+  display: grid;
+  gap: 2px;
+}
+.auth-role-head strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sd-ink);
+}
+.auth-role-head small {
+  font-size: 12px;
+  color: var(--sd-muted);
+}
+.auth-role-grid {
+  display: grid;
+  gap: 8px;
+}
+.auth-role-card {
+  width: 100%;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  color: var(--sd-ink);
+  background: var(--sd-raise);
+  border: 1px solid var(--sd-line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.auth-role-card:hover {
+  background: #fff;
+  border-color: var(--sd-red);
+}
+.auth-role-card .role-badge {
+  min-width: 36px;
+  height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--sd-red);
+  border-radius: 6px;
+}
+.auth-role-card.is-club_leader .role-badge {
+  background: #b45309;
+}
+.auth-role-card.is-class_student .role-badge {
+  background: #1d4ed8;
+}
+.auth-role-body {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.auth-role-body strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-role-body span {
+  font-size: 12px;
+  color: var(--sd-muted);
+}
+.auth-role-body code {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--sd-muted);
+}
+.auth-role-card svg {
+  width: 16px;
+  height: 16px;
+  color: var(--sd-muted);
+}
+

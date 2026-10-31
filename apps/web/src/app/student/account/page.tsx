@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { type ChangeEvent, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { MaskTransitionShowcase } from "@/components/MaskTransition";
 import { centerOf } from "@/components/landing/SceneTransition";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
+import { ROLE_PERMISSION_LABELS } from "@/lib/accounts";
 import { avatarPresets, cropAvatarFile } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { courses, profile, semester, terms, type Field } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
+import { usePhuongTheme } from "@/lib/theme";
 
 /** Keeps the last 3 characters of a sensitive value visible, e.g. •••••••••642. */
 const mask = (value: string) => `${"•".repeat(Math.max(0, value.length - 3))}${value.slice(-3)}`;
@@ -44,7 +47,8 @@ function DossierFields({ fields, reveal }: { fields: Field[]; reveal: boolean })
 }
 
 export default function AccountPage() {
-  const { data, avatarUrl, setAvatarUrl, signOut } = useStudent();
+  const { data, avatarUrl, setAvatarUrl, account, accounts, switchAccount, roster, signOut } = useStudent();
+  const { theme, toggleTheme } = usePhuongTheme();
   const [leaving, setLeaving] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [avatarNotice, setAvatarNotice] = useState("");
@@ -54,8 +58,7 @@ export default function AccountPage() {
 
   if (!data) return null;
 
-  const { user, classes } = data.session;
-  const studentId = user.email?.split("@")[0] ?? "2200286";
+  const { classes } = data.session;
   const pick = (label: string) => profile.education.find((field) => field.label === label)?.value;
 
   const completedCredits = terms
@@ -63,13 +66,40 @@ export default function AccountPage() {
     .reduce((sum, row) => sum + row.credits, 0);
   const currentTermCredits = courses.reduce((sum, course) => sum + course.credits, 0);
 
+  const educationFields: Field[] =
+    account.role === "teacher"
+      ? [
+          { label: "Trạng thái công tác", value: "Đang giảng dạy" },
+          { label: "Mã giảng viên", value: account.code, mono: true },
+          { label: "Học vị / Chức danh", value: "Thạc sĩ · Giảng viên chính" },
+          { label: "Lớp cố vấn học tập", value: account.cohortClass, mono: true },
+          { label: "Cơ sở công tác", value: "Cơ sở 1 · Chí Linh, Hải Dương" },
+          { label: "Đơn vị quản lý", value: account.department },
+          { label: "Học phần phụ trách", value: "IT3040 (Lập trình hướng đối tượng), IT3160 (Kiểm thử phần mềm)" },
+          { label: "Sĩ số lớp chủ nhiệm", value: `${roster.length} sinh viên thuộc lớp ${account.cohortClass}`, mono: true },
+        ]
+      : profile.education.map((field) => {
+          if (field.label === "Mã hồ sơ") return { ...field, value: `22SDU.CNTT.${account.code.slice(-4)}` };
+          if (field.label === "Lớp niên chế") return { ...field, value: account.cohortClass };
+          if (field.label === "Cố vấn học tập") return { ...field, value: account.advisorName };
+          return field;
+        });
+
+  const personalFields: Field[] = profile.personal.map((field) => {
+    if (field.label === "Điện thoại liên hệ") return { ...field, value: account.phone };
+    return field;
+  });
+
   const allFields = [
-    ...profile.education,
-    ...profile.personal,
+    ...educationFields,
+    ...personalFields,
     ...profile.family.flatMap((person) => person.fields),
   ];
   const filledCount = allFields.filter((field) => Boolean(field.value)).length;
   const completionPct = Math.round((filledCount / allFields.length) * 100);
+
+  const grantedCount = Object.values(account.permissions).filter(Boolean).length;
+  const totalPermCount = Object.keys(account.permissions).length;
 
   async function onAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -127,30 +157,113 @@ export default function AccountPage() {
       <DemoBanner />
 
       <PageTitle
-        title="Hồ sơ sinh viên"
-        lead="Hồ sơ học vụ, căn cước định danh và liên hệ gia đình lưu trữ tại Phòng Công tác sinh viên"
+        title={account.role === "teacher" ? "Hồ sơ giảng viên & Phân quyền" : "Hồ sơ tài khoản & Phân quyền"}
+        lead={`${account.positionLabel} · Chuyển đổi trực tiếp giữa Giảng viên, Trưởng CLB và các Sinh viên thuộc lớp ${account.cohortClass}`}
       >
         <div className="reg-window is-open" role="note">
           <span className="reg-window-dot" aria-hidden="true" />
           <span>
-            Hồ sơ chính quy · <strong>{semester.short}</strong>
+            Vai trò hiện tại · <strong>{account.roleTitle}</strong>
           </span>
         </div>
       </PageTitle>
 
+      <Section
+        title="Hệ thống tài khoản & Phân quyền vai trò (RBAC)"
+        action={
+          <span className="reg-table-meta">
+            {grantedCount}/{totalPermCount} quyền được cấp cho {account.displayName}
+          </span>
+        }
+      >
+        <div className="rbac-panel">
+          <div className="rbac-accounts" role="radiogroup" aria-label="Chọn tài khoản phân quyền">
+            {accounts.map((item) => {
+              const isSelected = item.id === account.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={`rbac-account-card is-${item.role}${isSelected ? " is-active" : ""}`}
+                  onClick={() => switchAccount(item.id)}
+                >
+                  <div className="rbac-account-top">
+                    <span className={`role-badge is-${item.role}`}>{item.roleBadge}</span>
+                    <span className="rbac-account-code">{item.code}</span>
+                    {isSelected && <span className="rbac-active-pill">Đang sử dụng</span>}
+                  </div>
+                  <strong>{item.displayName}</strong>
+                  <span className="rbac-account-role">{item.roleTitle}</span>
+                  <p>{item.bio}</p>
+                  <div className="rbac-account-foot">
+                    <span>Lớp: <strong>{item.cohortClass}</strong></span>
+                    <span>Cố vấn: <strong>{item.advisorName}</strong></span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rbac-matrix">
+            <div className="rbac-matrix-head">
+              <div>
+                <span className="reg-label">Ma trận quyền hạn của {account.displayName}</span>
+                <h4>{account.positionLabel}</h4>
+              </div>
+              <div className="rbac-quick-links">
+                <Link className="button button-outline button-xs" href="/student/classes">
+                  <Icon name="class" /> {account.role === "teacher" ? "Quản lý lớp & chấm bài" : "Xem lớp của giảng viên"}
+                </Link>
+                <Link className="button button-outline button-xs" href="/student/clubs">
+                  <Icon name="users" /> {account.role === "club_leader" ? "Quản trị CLB Tin học" : "Câu lạc bộ sinh viên"}
+                </Link>
+                <Link className="button button-outline button-xs" href="/student/assignments">
+                  <Icon name="assignment" /> {account.role === "teacher" ? "Giao & duyệt bài tập" : "Bài tập được giao"}
+                </Link>
+              </div>
+            </div>
+
+            <ul className="rbac-perm-grid">
+              {ROLE_PERMISSION_LABELS.map((perm) => {
+                const allowed = account.permissions[perm.key];
+                return (
+                  <li key={perm.key} className={`rbac-perm-item${allowed ? " is-allowed" : " is-denied"}`}>
+                    <span className="rbac-perm-icon" aria-hidden="true">
+                      <Icon name={allowed ? "check" : "close"} />
+                    </span>
+                    <div className="rbac-perm-text">
+                      <strong>{perm.label}</strong>
+                      <small>{perm.group} · {allowed ? "Được cấp quyền" : "Giới hạn theo vai trò"}</small>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      </Section>
+
       <div className="acc-overview">
-        <article className="acc-id-card" aria-label="Thẻ sinh viên điện tử">
+        <article className="acc-id-card" aria-label="Thẻ định danh điện tử">
           <header className="acc-id-head">
             <div className="acc-id-school">
               <span className="acc-id-seal" aria-hidden="true">SDU</span>
               <div>
                 <strong>Trường Đại học Sao Đỏ</strong>
-                <span>Thẻ sinh viên điện tử · hệ chính quy</span>
+                <span>
+                  {account.role === "teacher"
+                    ? "Thẻ giảng viên & cố vấn học tập"
+                    : account.role === "club_leader"
+                      ? "Thẻ sinh viên · Ban chủ nhiệm CLB"
+                      : "Thẻ sinh viên điện tử · hệ chính quy"}
+                </span>
               </div>
             </div>
             <span className="acc-id-status">
               <i aria-hidden="true" />
-              {pick("Trạng thái học vụ") ?? "Đang học"}
+              {account.role === "teacher" ? "Giảng viên cơ hữu" : pick("Trạng thái học vụ") ?? "Đang học"}
             </span>
           </header>
 
@@ -164,9 +277,9 @@ export default function AccountPage() {
               aria-label="Đổi ảnh đại diện từ máy tính"
             >
               {avatarUrl ? (
-                <img src={avatarUrl} alt={`Ảnh đại diện của ${user.displayName}`} className="acc-id-photo-img" />
+                <img src={avatarUrl} alt={`Ảnh đại diện của ${account.displayName}`} className="acc-id-photo-img" />
               ) : (
-                <span>{initials(user.displayName)}</span>
+                <span>{initials(account.displayName)}</span>
               )}
               <small>
                 <Icon name="image" /> Đổi ảnh
@@ -181,24 +294,24 @@ export default function AccountPage() {
             />
 
             <div className="acc-id-identity">
-              <h3>{user.displayName}</h3>
-              <p className="acc-id-email">{user.email}</p>
+              <h3>{account.displayName}</h3>
+              <p className="acc-id-email">{account.email}</p>
               <dl className="acc-id-grid">
                 <div>
-                  <dt>Mã sinh viên</dt>
-                  <dd>{studentId}</dd>
+                  <dt>{account.role === "teacher" ? "Mã giảng viên" : "Mã sinh viên"}</dt>
+                  <dd>{account.code}</dd>
                 </div>
                 <div>
-                  <dt>Lớp niên chế</dt>
-                  <dd>{pick("Lớp niên chế")}</dd>
+                  <dt>{account.role === "teacher" ? "Lớp chủ nhiệm" : "Lớp niên chế"}</dt>
+                  <dd>{account.cohortClass}</dd>
                 </div>
                 <div>
-                  <dt>Ngành học</dt>
-                  <dd className="is-sans">{pick("Ngành đào tạo")}</dd>
+                  <dt>Vai trò</dt>
+                  <dd className="is-sans">{account.roleTitle}</dd>
                 </div>
                 <div>
-                  <dt>Niên khoá</dt>
-                  <dd>{pick("Niên khoá")}</dd>
+                  <dt>Cố vấn học tập</dt>
+                  <dd className="is-sans">{account.advisorName}</dd>
                 </div>
               </dl>
             </div>
@@ -253,7 +366,7 @@ export default function AccountPage() {
 
           <footer className="acc-id-foot">
             <span>
-              Mã hồ sơ: <code>{pick("Mã hồ sơ")}</code>
+              Mã định danh: <code>{account.code}</code>
             </span>
             <span>{pick("Cơ sở đào tạo")}</span>
           </footer>
@@ -268,7 +381,7 @@ export default function AccountPage() {
                 <span>/ {allFields.length} trường thông tin ({completionPct}%)</span>
               </p>
             </div>
-            <span className="reg-standing good">Đã đối chiếu</span>
+            <span className="reg-standing good">{account.roleBadge} · {semester.short}</span>
           </div>
 
           <div
@@ -281,64 +394,77 @@ export default function AccountPage() {
 
           <dl className="acc-stat-strip">
             <div>
-              <dt>Lớp đang học</dt>
+              <dt>{account.role === "teacher" ? "Lớp phụ trách" : "Lớp đang học"}</dt>
               <dd>{classes.length}</dd>
             </div>
             <div>
-              <dt>Tín chỉ kỳ này</dt>
-              <dd>{currentTermCredits} TC</dd>
+              <dt>{account.role === "teacher" ? "SV thuộc lớp" : "Tín chỉ kỳ này"}</dt>
+              <dd>{account.role === "teacher" ? `${roster.length} SV` : `${currentTermCredits} TC`}</dd>
             </div>
             <div>
-              <dt>Tín chỉ tích lũy</dt>
-              <dd>{completedCredits} TC</dd>
+              <dt>{account.role === "club_leader" ? "CLB quản lý" : "Tín chỉ tích lũy"}</dt>
+              <dd>{account.role === "club_leader" ? "CLB Tin học" : `${completedCredits} TC`}</dd>
             </div>
             <div>
-              <dt>Bài tập đã nộp</dt>
+              <dt>{account.role === "teacher" ? "Bài nộp của lớp" : "Bài tập đã nộp"}</dt>
               <dd>{data.submissions.length}</dd>
             </div>
           </dl>
 
           <div className="acc-summary-actions">
             {revealButton}
-            <Link href="/student/services" className="acc-edit-link">
-              <Icon name="pen" />
-              <span>Đề xuất cập nhật hồ sơ</span>
+            <Link href="/student/classes" className="acc-edit-link">
+              <Icon name="class" />
+              <span>{account.role === "teacher" ? "Mở bảng quản lý lớp" : "Xem lớp của giảng viên"}</span>
             </Link>
           </div>
         </section>
       </div>
 
       <Section
-        title="Thông tin học vấn"
-        action={<span className="reg-table-meta">{profile.education.length} mục</span>}
+        title="Giao diện Sáng / Tối · Mask transition (マスクトランジション)"
+        action={
+          <span className="reg-table-meta">
+            Đang dùng: {theme === "dark" ? "Giao diện Tối" : "Giao diện Sáng"}
+          </span>
+        }
       >
-        <DossierFields fields={profile.education} reveal />
-      </Section>
-
-      <Section title="Thông tin cá nhân" action={revealButton}>
-        <DossierFields fields={profile.personal} reveal={reveal} />
+        <MaskTransitionShowcase theme={theme} onToggleTheme={toggleTheme} />
       </Section>
 
       <Section
-        title="Quan hệ gia đình"
-        action={<span className="reg-table-meta">{profile.family.length} người thân</span>}
+        title={account.role === "teacher" ? "Thông tin công tác & lớp chủ nhiệm" : "Thông tin học vấn"}
+        action={<span className="reg-table-meta">{educationFields.length} mục</span>}
       >
-        <div className="acc-family-ledger">
-          {profile.family.map((person) => (
-            <article key={person.relation} className="acc-family-col">
-              <header className="acc-family-head">
-                <div className="acc-family-title">
-                  <span className="acc-family-dot" aria-hidden="true" />
-                  <strong>{person.relation}</strong>
-                  <span className="acc-family-role">{person.role}</span>
-                </div>
-                <code className="acc-family-year">Sinh năm {person.birthYear}</code>
-              </header>
-              <DossierFields fields={person.fields} reveal={reveal} />
-            </article>
-          ))}
-        </div>
+        <DossierFields fields={educationFields} reveal />
       </Section>
+
+      <Section title="Thông tin cá nhân" action={revealButton}>
+        <DossierFields fields={personalFields} reveal={reveal} />
+      </Section>
+
+      {account.role !== "teacher" && (
+        <Section
+          title="Quan hệ gia đình"
+          action={<span className="reg-table-meta">{profile.family.length} người thân</span>}
+        >
+          <div className="acc-family-ledger">
+            {profile.family.map((person) => (
+              <article key={person.relation} className="acc-family-col">
+                <header className="acc-family-head">
+                  <div className="acc-family-title">
+                    <span className="acc-family-dot" aria-hidden="true" />
+                    <strong>{person.relation}</strong>
+                    <span className="acc-family-role">{person.role}</span>
+                  </div>
+                  <code className="acc-family-year">Sinh năm {person.birthYear}</code>
+                </header>
+                <DossierFields fields={person.fields} reveal={reveal} />
+              </article>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <section className="acc-security" aria-label="Bảo mật và phiên đăng nhập">
         <div className="acc-security-main">
@@ -347,12 +473,12 @@ export default function AccountPage() {
             <h3>Bảo mật & quyền riêng tư</h3>
           </div>
           <p>
-            Số CCCD và điện thoại liên hệ được che mặc định trên màn hình; lịch sử hội thoại trợ lý AI chỉ hiển thị với tài khoản của bạn
+            Số CCCD và điện thoại liên hệ được che mặc định trên màn hình; quyền thao tác trên lớp học và câu lạc bộ được kiểm soát theo vai trò <strong>{account.roleTitle}</strong>.
           </p>
           <ul className="acc-security-meta">
             <li>
               <span>Định danh</span>
-              <code>{user.email}</code>
+              <code>{account.email}</code>
             </li>
             <li>
               <span>Chế độ hiển thị</span>

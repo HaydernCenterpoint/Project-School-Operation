@@ -600,3 +600,488 @@
   .popover-panel, .more-sheet { transition: none; transform: none; }
   .popover-panel:popover-open li, .popover-panel:popover-open > p, .popover-panel:popover-open .popover-all, .more-sheet:popover-open .more-group, .bell:has(+ .popover-panel:popover-open) svg { animation: none; }
 }
+
+/* ---------- Multi-Role Accounts & RBAC Permission System ---------- */
+.role-badge {
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.role-badge.is-teacher {
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+}
+.role-badge.is-club_leader {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--warning) 18%, var(--paper));
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+}
+.role-badge.is-class_student {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--blue) 14%, var(--paper));
+  border-color: color-mix(in srgb, var(--blue) 38%, var(--border));
+}
+
+.role-switcher-wrap {
+  display: flex;
+  align-items: center;
+}
+.role-switcher-pill {
+  position: relative;
+  min-height: 36px;
+  padding: 4px 12px 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 150ms cubic-bezier(.22, 1, .36, 1), background-color 150ms cubic-bezier(.22, 1, .36, 1);
+}
+.role-switcher-pill:hover {
+  background: var(--paper);
+  border-color: var(--red);
+}
+.role-switcher-meta {
+  display: grid;
+  line-height: 1.15;
+}
+.role-switcher-meta strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.role-switcher-meta small {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.role-switcher-pill select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.side-role-card {
+  margin-bottom: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.side-role-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.side-role-head strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.side-role-head small {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.side-role-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.rbac-panel {
+  display: grid;
+  gap: 16px;
+}
+.rbac-accounts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  gap: 12px;
+}
+.rbac-account-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 150ms cubic-bezier(.22, 1, .36, 1), background-color 150ms cubic-bezier(.22, 1, .36, 1);
+}
+.rbac-account-card:hover {
+  background: var(--mist);
+}
+.rbac-account-card.is-active {
+  background: color-mix(in srgb, var(--red) 5%, var(--paper));
+  border-color: var(--red);
+}
+.rbac-account-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rbac-account-code {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rbac-active-pill {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, var(--paper));
+  border-radius: 6px;
+}
+.rbac-account-card strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.rbac-account-role {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--red);
+}
+.rbac-account-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.rbac-account-foot {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+.rbac-matrix {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.rbac-matrix-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rbac-matrix-head h4 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.rbac-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rbac-perm-grid {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  list-style: none;
+}
+.rbac-perm-item {
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.rbac-perm-item.is-allowed {
+  background: color-mix(in srgb, var(--success) 7%, var(--paper));
+  border-color: color-mix(in srgb, var(--success) 32%, var(--border));
+}
+.rbac-perm-item.is-denied {
+  opacity: 0.68;
+}
+.rbac-perm-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border-radius: 4px;
+}
+.rbac-perm-item.is-allowed .rbac-perm-icon {
+  color: var(--success);
+}
+.rbac-perm-text {
+  display: grid;
+  gap: 2px;
+}
+.rbac-perm-text strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.rbac-perm-text small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.role-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rbac-compose-card {
+  margin-bottom: 16px;
+}
+
+.roster-teacher-banner {
+  margin-bottom: 12px;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.roster-teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.roster-teacher-info strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.roster-teacher-info p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.roster-teacher-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-table-wrap {
+  overflow-x: auto;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ad-table th {
+  height: 40px;
+  padding: 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  background: var(--mist);
+  border-bottom: 1px solid var(--border);
+}
+.ad-table td {
+  padding: 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.ad-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.ad-table tbody tr.is-current-row {
+  background: color-mix(in srgb, var(--red) 6%, var(--paper));
+}
+.ad-code {
+  font-family: var(--font-mono), monospace;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ad-name small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ad-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.ad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.cls-notice-list, .teacher-grade-list {
+  display: grid;
+  gap: 12px;
+}
+.cls-notice-card, .teacher-grade-card {
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.cls-notice-head, .teacher-grade-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cls-notice-card h4 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cls-notice-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+@media (max-width: 760px) {
+  .role-switcher-meta small { display: none; }
+}
+
+/* Motion Prompt #017 · Mask transition (マスクトランジション) Showcase */
+.mp017-card {
+  display: grid;
+  gap: 16px;
+}
+.mp017-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mp017-head h4 {
+  margin: 4px 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mp017-head p {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.mp017-head code {
+  padding: 2px 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--mist);
+  border-radius: 4px;
+}
+.mp017-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mp017-stage-wrap {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  background: var(--mist);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.mp017-canvas {
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  aspect-ratio: 540 / 360;
+  margin: 0 auto;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.mp017-controls {
+  display: grid;
+  gap: 8px;
+}
+.mp017-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mp017-meta strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.mp017-meta code {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mp017-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--red);
+  cursor: pointer;
+}
+
+

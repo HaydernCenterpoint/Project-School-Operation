@@ -161,6 +161,7 @@ export function AppShell({
   tag = "SV",
   searchLabel = "Tìm mục, học phần, bài tập",
   searchItems,
+  headerActions,
   children,
 }: {
   nav: NavGroup[];
@@ -177,6 +178,8 @@ export function AppShell({
   searchLabel?: string;
   /** Optional contextual items (assignments, classes, sections) for live autocomplete. */
   searchItems?: SearchSuggestion[];
+  /** Optional role/account switcher rendered in the top bar. */
+  headerActions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -581,6 +584,7 @@ export function AppShell({
             )}
           </form>
           <div className="top-actions">
+            {headerActions}
             <button
               className="icon-button theme-toggle"
               type="button"

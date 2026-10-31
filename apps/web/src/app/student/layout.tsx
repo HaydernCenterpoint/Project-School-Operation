@@ -7,17 +7,18 @@ import { AppShell, studentNav, type Notification, type SearchSuggestion } from "
 import { Icon } from "@/components/Icon";
 import { initials } from "@/lib/format";
 import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
-import { StudentProvider, useStudent } from "@/lib/student-context";
+import { useStudent } from "@/lib/student-context";
+import { StudentProvider } from "@/lib/student-context";
 
 function Frame({ children }: { children: React.ReactNode }) {
-  const { data, error, avatarUrl, refresh, signOut } = useStudent();
+  const { data, error, avatarUrl, account, accounts, switchAccount, refresh, signOut } = useStudent();
   // The AI workspace is its own full-page app (opened in a new tab); it only needs the session.
   if (usePathname().startsWith("/student/ai")) return children;
   const user = data
     ? {
-        name: data.session.user.displayName,
-        role: "Sinh viên",
-        initial: initials(data.session.user.displayName),
+        name: account.displayName,
+        role: account.roleTitle,
+        initial: initials(account.displayName),
         avatarUrl,
       }
     : null;
@@ -63,15 +64,48 @@ function Frame({ children }: { children: React.ReactNode }) {
       <AppShell
         nav={studentNav}
         user={user}
+        tag={account.roleBadge}
         searchAction="/student/assignments"
         searchItems={searchItems}
         notifications={notifications}
         profileHref="/student/account"
         noticesHref="/student/notices"
+        headerActions={
+          <div className="role-switcher-wrap">
+            <label className="role-switcher-pill" title="Chuyển đổi tài khoản & phân quyền">
+              <span className={`role-badge is-${account.role}`}>{account.roleBadge}</span>
+              <span className="role-switcher-meta">
+                <strong>{account.displayName}</strong>
+                <small>{account.roleTitle}</small>
+              </span>
+              <select
+                aria-label="Chuyển đổi tài khoản và vai trò"
+                value={account.id}
+                onChange={(event) => switchAccount(event.target.value)}
+              >
+                {accounts.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    [{item.roleBadge}] {item.displayName} — {item.roleTitle}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        }
         sideCard={
           <div className="side-foot">
+            <div className="side-role-card">
+              <div className="side-role-head">
+                <span className={`role-badge is-${account.role}`}>{account.roleBadge}</span>
+                <div>
+                  <strong>{account.displayName}</strong>
+                  <small>{account.code} · {account.cohortClass}</small>
+                </div>
+              </div>
+              <p className="side-role-desc">{account.positionLabel}</p>
+            </div>
             <div className="side-links">
-              <Link href="/guest"><Icon name="help" /> <span>Xem hướng dẫn</span></Link>
+              <Link href="/student/account"><Icon name="shield" /> <span>Phân quyền & Vai trò</span></Link>
               <button type="button" onClick={(event) => void signOut(centerOf(event.currentTarget))}><Icon name="logout" /> <span>Đăng xuất</span></button>
             </div>
           </div>
