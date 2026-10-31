@@ -2371,7 +2371,7 @@ export default function StudentPortfolioPage() {
                     <span>Nơi tiếp nhận: {activeTemplate.recipient}</span>
                   </div>
                   <h3>{activeTemplate.title}</h3>
-                  <p className="pt-muted">{activeTemplate.usageNote}</p>
+                  <p className="pt-muted">{activeTemplate.description}</p>
                 </div>
 
                 <div className="pf-studio-toolbar">
@@ -2428,7 +2428,7 @@ export default function StudentPortfolioPage() {
                 <div className="pf-studio-primary-actions">
                   <button type="submit" className="button button-primary">
                     <Icon name="send" />
-                    <span>{activeTemplate.targetActionLabel}</span>
+                    <span>Gửi biểu mẫu tới {activeTemplate.recipient}</span>
                   </button>
                 </div>
               </footer>

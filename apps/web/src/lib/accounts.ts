@@ -100,9 +100,40 @@ export type ClubEventRecord = {
   createdAt: string;
 };
 
+export type AttendanceMarkStatus = "present" | "excused" | "unexcused";
+
+export type TeacherSubjectClass = {
+  id: string;
+  classCode: string;
+  courseCode: string;
+  name: string;
+  credits: number;
+  cohortClass: string;
+  schedule: string;
+  room: string;
+  semester: string;
+  totalPeriods: number;
+  completedPeriods: number;
+  teacherId: string;
+  teacherName: string;
+};
+
+export type TeacherAttendanceSessionRecord = {
+  id: string;
+  subjectClassId: string;
+  date: string;
+  periods: string;
+  topic: string;
+  marks: Record<string, AttendanceMarkStatus>;
+  notes: Record<string, string>;
+  createdAt: string;
+};
+
 export type SharedPortalState = {
   activeAccountId: string;
   roster: ClassStudentRosterItem[];
+  subjectClasses: TeacherSubjectClass[];
+  attendanceSessions: TeacherAttendanceSessionRecord[];
   customAssignments: Assignment[];
   submissions: SharedSubmissionRecord[];
   classAnnouncements: ClassAnnouncement[];
@@ -573,6 +604,115 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
   },
 ];
 
+const INITIAL_SUBJECT_CLASSES: TeacherSubjectClass[] = [
+  {
+    id: "11111111-1111-4111-8111-111111111101",
+    classCode: "010110210101",
+    courseCode: "IT3040",
+    name: "Lập trình hướng đối tượng (IT3040)",
+    credits: 3,
+    cohortClass: "DK13-CNTT1",
+    schedule: "Thứ 2 (Tiết 1–3) · Thứ 4 (Tiết 6–9)",
+    room: "A1-301 / B1-Lab 3",
+    semester: "HK1 2026-2027",
+    totalPeriods: 60,
+    completedPeriods: 36,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111104",
+    classCode: "010110230201",
+    courseCode: "IT3160",
+    name: "Kiểm thử và đảm bảo chất lượng phần mềm (IT3160)",
+    credits: 3,
+    cohortClass: "DK13-CNTT1",
+    schedule: "Thứ 5 (Tiết 6–8) · Thứ 6 (Tiết 1–3)",
+    room: "B1-Lab 2",
+    semester: "HK1 2026-2027",
+    totalPeriods: 45,
+    completedPeriods: 27,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111105",
+    classCode: "010110210102",
+    courseCode: "IT3040",
+    name: "Lập trình hướng đối tượng · Nhóm 2 (IT3040)",
+    credits: 3,
+    cohortClass: "DK13-CNTT2",
+    schedule: "Thứ 3 (Tiết 1–3) · Thứ 6 (Tiết 6–9)",
+    room: "A1-302 / B1-Lab 3",
+    semester: "HK1 2026-2027",
+    totalPeriods: 60,
+    completedPeriods: 32,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+];
+
+const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
+  {
+    id: "att-it3040-w9",
+    subjectClassId: "11111111-1111-4111-8111-111111111101",
+    date: "28/10/2026",
+    periods: "Tiết 6 - 9 (Thực hành Lab 3)",
+    topic: "Thực hành đa hình động, bảng phương thức ảo (vtable) & con trỏ thông minh",
+    marks: {
+      "2200286": "present",
+      "2200287": "present",
+      "2200288": "present",
+      "2200289": "present",
+      "2200290": "unexcused",
+      "2200291": "present",
+    },
+    notes: {
+      "2200290": "Vắng buổi thực hành Lab 3 không báo trước",
+    },
+    createdAt: daysFromNow(-3, 16, 30),
+  },
+  {
+    id: "att-it3040-w8",
+    subjectClassId: "11111111-1111-4111-8111-111111111101",
+    date: "21/10/2026",
+    periods: "Tiết 1 - 3 (Lý thuyết A1-301)",
+    topic: "Kế thừa đơn, kế thừa bội và lớp cơ sở trừu tượng trong C++/Java",
+    marks: {
+      "2200286": "excused",
+      "2200287": "present",
+      "2200288": "present",
+      "2200289": "present",
+      "2200290": "unexcused",
+      "2200291": "present",
+    },
+    notes: {
+      "2200286": "Có giấy triệu tập đội tuyển Olympic Tin học cấp trường",
+      "2200290": "Nghỉ không phép",
+    },
+    createdAt: daysFromNow(-10, 10, 0),
+  },
+  {
+    id: "att-it3160-w9",
+    subjectClassId: "11111111-1111-4111-8111-111111111104",
+    date: "29/10/2026",
+    periods: "Tiết 6 - 8 (Thực hành B1-Lab 2)",
+    topic: "Thiết kế ca kiểm thử hộp đen (Phân vùng tương đương & Giá trị biên)",
+    marks: {
+      "2200286": "present",
+      "2200287": "present",
+      "2200288": "excused",
+      "2200289": "present",
+      "2200290": "present",
+      "2200291": "present",
+    },
+    notes: {
+      "2200288": "Xin phép khám sức khỏe định kỳ (có đơn)",
+    },
+    createdAt: daysFromNow(-2, 17, 0),
+  },
+];
+
 const STORAGE_KEY = "sao-do:multi-account-state:v1";
 const SYNC_EVENT = "sao-do:accounts-sync";
 
@@ -580,6 +720,8 @@ function buildDefaultState(): SharedPortalState {
   return {
     activeAccountId: "acc-leader-minh",
     roster: INITIAL_ROSTER,
+    subjectClasses: INITIAL_SUBJECT_CLASSES,
+    attendanceSessions: INITIAL_ATTENDANCE_SESSIONS,
     customAssignments: [],
     submissions: INITIAL_SUBMISSIONS,
     classAnnouncements: INITIAL_CLASS_ANNOUNCEMENTS,
@@ -600,6 +742,14 @@ export function readSharedPortalState(): SharedPortalState {
         ? parsed.activeAccountId!
         : defaults.activeAccountId,
       roster: Array.isArray(parsed.roster) && parsed.roster.length > 0 ? parsed.roster : defaults.roster,
+      subjectClasses:
+        Array.isArray(parsed.subjectClasses) && parsed.subjectClasses.length > 0
+          ? parsed.subjectClasses
+          : defaults.subjectClasses,
+      attendanceSessions:
+        Array.isArray(parsed.attendanceSessions) && parsed.attendanceSessions.length > 0
+          ? parsed.attendanceSessions
+          : defaults.attendanceSessions,
       customAssignments: Array.isArray(parsed.customAssignments)
         ? parsed.customAssignments
         : defaults.customAssignments,
@@ -675,7 +825,13 @@ export function buildSessionForAccount(
 } {
   const account = getAccountById(state.activeAccountId);
   const seenClassIds = new Set<string>();
-  const classes = [...DEFAULT_CLASSES, ...(remote?.session?.classes ?? [])].filter((item) => {
+  const subjectApiClasses: ApiClass[] = (state.subjectClasses ?? INITIAL_SUBJECT_CLASSES).map((sc) => ({
+    id: sc.id,
+    name: sc.name,
+    teacherId: sc.teacherId,
+    createdAt: "2026-09-01T08:00:00.000Z",
+  }));
+  const classes = [...subjectApiClasses, ...DEFAULT_CLASSES, ...(remote?.session?.classes ?? [])].filter((item) => {
     if (seenClassIds.has(item.id)) return false;
     seenClassIds.add(item.id);
     return true;
@@ -990,12 +1146,153 @@ export function usePortalAccounts() {
     [activeAccount],
   );
 
+  const addSubjectClass = useCallback(
+    (input: {
+      classCode: string;
+      courseCode: string;
+      name: string;
+      credits: number;
+      cohortClass: string;
+      schedule: string;
+      room: string;
+      totalPeriods: number;
+    }) => {
+      const created: TeacherSubjectClass = {
+        id: `cls-subj-${Date.now()}`,
+        classCode: input.classCode.trim() || `010110${String(Date.now()).slice(-6)}`,
+        courseCode: input.courseCode.trim().toUpperCase() || "IT3040",
+        name: input.name.trim(),
+        credits: Math.max(1, Math.min(10, Number(input.credits) || 3)),
+        cohortClass: input.cohortClass.trim() || "DK13-CNTT1",
+        schedule: input.schedule.trim() || "Thứ 2 (Tiết 1–3)",
+        room: input.room.trim() || "A1-301",
+        semester: "HK1 2026-2027",
+        totalPeriods: Math.max(15, Number(input.totalPeriods) || 45),
+        completedPeriods: 0,
+        teacherId: activeAccount.id,
+        teacherName: activeAccount.displayName,
+      };
+      writeSharedPortalState((prev) => ({
+        ...prev,
+        subjectClasses: [created, ...prev.subjectClasses],
+      }));
+      return created;
+    },
+    [activeAccount.displayName, activeAccount.id],
+  );
+
+  const createAttendanceSession = useCallback(
+    (input: {
+      subjectClassId: string;
+      date: string;
+      periods: string;
+      topic: string;
+      marks: Record<string, AttendanceMarkStatus>;
+      notes?: Record<string, string>;
+    }) => {
+      const sessionRecord: TeacherAttendanceSessionRecord = {
+        id: `att-${Date.now()}`,
+        subjectClassId: input.subjectClassId,
+        date: input.date.trim(),
+        periods: input.periods.trim(),
+        topic: input.topic.trim(),
+        marks: input.marks,
+        notes: input.notes ?? {},
+        createdAt: new Date().toISOString(),
+      };
+      writeSharedPortalState((prev) => {
+        const nextSessions = [sessionRecord, ...prev.attendanceSessions];
+        // Recompute student attendance percentages based on recorded sessions
+        const nextRoster = prev.roster.map((student) => {
+          const totalTracked = nextSessions.length;
+          if (!totalTracked) return student;
+          const missedUnexcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "unexcused",
+          ).length;
+          const missedExcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "excused",
+          ).length;
+          const computedPct = Math.max(
+            50,
+            Math.min(100, 100 - missedUnexcused * 6 - missedExcused * 2),
+          );
+          return {
+            ...student,
+            attendancePct: computedPct,
+            status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
+          };
+        });
+        return {
+          ...prev,
+          attendanceSessions: nextSessions,
+          roster: nextRoster,
+        };
+      });
+      return sessionRecord;
+    },
+    [],
+  );
+
+  const updateAttendanceSessionMark = useCallback(
+    (
+      sessionId: string,
+      studentCode: string,
+      mark: AttendanceMarkStatus,
+      note?: string,
+    ) => {
+      writeSharedPortalState((prev) => {
+        const nextSessions = prev.attendanceSessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          const nextNotes = { ...session.notes };
+          if (note !== undefined) {
+            if (note.trim()) nextNotes[studentCode] = note.trim();
+            else delete nextNotes[studentCode];
+          }
+          return {
+            ...session,
+            marks: {
+              ...session.marks,
+              [studentCode]: mark,
+            },
+            notes: nextNotes,
+          };
+        });
+        const nextRoster = prev.roster.map((student) => {
+          if (student.studentCode !== studentCode) return student;
+          const missedUnexcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "unexcused",
+          ).length;
+          const missedExcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "excused",
+          ).length;
+          const computedPct = Math.max(
+            50,
+            Math.min(100, 100 - missedUnexcused * 6 - missedExcused * 2),
+          );
+          return {
+            ...student,
+            attendancePct: computedPct,
+            status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
+          };
+        });
+        return {
+          ...prev,
+          attendanceSessions: nextSessions,
+          roster: nextRoster,
+        };
+      });
+    },
+    [],
+  );
+
   return {
     state,
     accounts: PORTAL_ACCOUNTS,
     activeAccount,
     setActiveAccount,
     roster: state.roster,
+    subjectClasses: state.subjectClasses,
+    attendanceSessions: state.attendanceSessions,
     customAssignments: state.customAssignments,
     submissions: state.submissions,
     classAnnouncements: state.classAnnouncements,
@@ -1003,6 +1300,9 @@ export function usePortalAccounts() {
     clubEvents: state.clubEvents,
     updateStudentNote,
     addClassStudent,
+    addSubjectClass,
+    createAttendanceSession,
+    updateAttendanceSessionMark,
     createAssignment,
     submitStudentWork,
     gradeSubmission,

@@ -14,6 +14,7 @@ import {
 import { closeCurtain } from "@/components/landing/SceneTransition";
 import { academicRequest } from "./academic-client";
 import {
+  type AttendanceMarkStatus,
   buildSessionForAccount,
   type ClassAnnouncement,
   type ClassStudentRosterItem,
@@ -21,6 +22,8 @@ import {
   type ClubMemberRecord,
   type PortalAccount,
   type SharedSubmissionRecord,
+  type TeacherAttendanceSessionRecord,
+  type TeacherSubjectClass,
   usePortalAccounts,
 } from "./accounts";
 import { persistAvatar, readStoredAvatar, useAvatarSync } from "./avatar";
@@ -48,6 +51,8 @@ type StudentState = {
   accounts: PortalAccount[];
   switchAccount: (accountId: string) => void;
   roster: ClassStudentRosterItem[];
+  subjectClasses: TeacherSubjectClass[];
+  attendanceSessions: TeacherAttendanceSessionRecord[];
   allSubmissions: SharedSubmissionRecord[];
   classAnnouncements: ClassAnnouncement[];
   clubMembers: ClubMemberRecord[];
@@ -62,6 +67,30 @@ type StudentState = {
     phone: string;
     roleInClass: ClassStudentRosterItem["roleInClass"];
   }) => void;
+  addSubjectClass: (input: {
+    classCode: string;
+    courseCode: string;
+    name: string;
+    credits: number;
+    cohortClass: string;
+    schedule: string;
+    room: string;
+    totalPeriods: number;
+  }) => TeacherSubjectClass;
+  createAttendanceSession: (input: {
+    subjectClassId: string;
+    date: string;
+    periods: string;
+    topic: string;
+    marks: Record<string, AttendanceMarkStatus>;
+    notes?: Record<string, string>;
+  }) => TeacherAttendanceSessionRecord;
+  updateAttendanceSessionMark: (
+    sessionId: string,
+    studentCode: string,
+    mark: AttendanceMarkStatus,
+    note?: string,
+  ) => void;
   createAssignment: (input: {
     classId: string;
     title: string;
@@ -220,12 +249,17 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       accounts: portalAccounts.accounts,
       switchAccount: portalAccounts.setActiveAccount,
       roster: portalAccounts.roster,
+      subjectClasses: portalAccounts.subjectClasses,
+      attendanceSessions: portalAccounts.attendanceSessions,
       allSubmissions: portalAccounts.submissions,
       classAnnouncements: portalAccounts.classAnnouncements,
       clubMembers: portalAccounts.clubMembers,
       clubEvents: portalAccounts.clubEvents,
       updateStudentNote: portalAccounts.updateStudentNote,
       addClassStudent: portalAccounts.addClassStudent,
+      addSubjectClass: portalAccounts.addSubjectClass,
+      createAttendanceSession: portalAccounts.createAttendanceSession,
+      updateAttendanceSessionMark: portalAccounts.updateAttendanceSessionMark,
       createAssignment: portalAccounts.createAssignment,
       submitStudentWork: portalAccounts.submitStudentWork,
       gradeSubmission: portalAccounts.gradeSubmission,

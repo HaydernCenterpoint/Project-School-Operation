@@ -1,10 +1,12 @@
 "use client";
 
 import type { Route } from "next";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { StaffContext, type Staff } from "@/components/admin/StaffContext";
 import { AppShell, type NavGroup } from "@/components/AppShell";
+import { Icon } from "@/components/Icon";
 import { SceneArrival } from "@/components/landing/SceneTransition";
 import { usePortalAccounts } from "@/lib/accounts";
 import { initials } from "@/lib/format";
@@ -83,6 +85,18 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
         searchLabel="Tìm tài khoản, vai trò, sinh viên"
         notifications={null}
         profileHref={"/quan-tri/tai-khoan" as Route}
+        headerActions={
+          activeStaff.role === "teacher" ? (
+            <Link
+              href={"/student/teacher-classes" as Route}
+              className="top-teacher-btn"
+              title="Quản lý lớp chủ nhiệm, các lớp bộ môn, điểm danh và bài tập giảng viên"
+            >
+              <Icon name="class" />
+              <span>Quản lý lớp học</span>
+            </Link>
+          ) : null
+        }
       >
         <StaffContext.Provider value={activeStaff}>{children}</StaffContext.Provider>
       </AppShell>
