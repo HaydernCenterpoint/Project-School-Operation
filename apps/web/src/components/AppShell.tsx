@@ -46,7 +46,7 @@ export const studentNav: NavGroup[] = [
       { href: "/student/news", label: "Tin tức", icon: "news" },
       { href: "/student/community", label: "Cộng đồng", icon: "message" },
       { href: "/student/ai", label: "Trợ lý AI", short: "AI", icon: "sparkle", newTab: true, mobile: true, featured: true },
-      { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }] },
+      { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }, { href: "/student/settings" as Route, label: "Cài đặt" }] },
     ],
   },
 ];
@@ -70,8 +70,10 @@ const studentSearchCatalog: SearchSuggestion[] = [
   { id: "s-news", label: "Tin tức nhà trường", detail: "Bản tin và hoạt động mới nhất của Đại học Sao Đỏ", category: "Tin tức", href: "/student/news" as Route, icon: "news", keywords: "tin tuc su kien truong dai hoc sao do" },
   { id: "s-community", label: "Cộng đồng sinh viên", detail: "Phòng trò chuyện, hỏi đáp và chia sẻ tài liệu", category: "Cộng đồng", href: "/student/community" as Route, icon: "message", keywords: "cong dong chat thao luan nhan tin" },
   { id: "s-ai", label: "Trợ lý AI học tập", detail: "Hỏi bài, giải thích thuật toán, ôn thi cùng AI", category: "Công cụ", href: "/student/ai" as Route, icon: "sparkle", newTab: true, keywords: "tro ly ai hoi bai on thi giai bai tap" },
-  { id: "s-account", label: "Thông tin tài khoản", detail: "Hồ sơ cá nhân, mã sinh viên, lớp niên chế, đổi mật khẩu", category: "Tài khoản", href: "/student/account" as Route, icon: "user", keywords: "tai khoan ho so ca nhan mat khau thong tin sinh vien" },
+  { id: "s-account", label: "Thông tin tài khoản", detail: "Hồ sơ cá nhân, mã sinh viên, lớp niên chế", category: "Tài khoản", href: "/student/account" as Route, icon: "user", keywords: "tai khoan ho so ca nhan thong tin sinh vien" },
   { id: "s-services", label: "Thủ tục & Góp ý (Một cửa)", detail: "Xin giấy xác nhận sinh viên, cấp bảng điểm, làm lại thẻ", category: "Tài khoản", href: "/student/services" as Route, icon: "file", keywords: "thu tuc mot cua giay xac nhan bang diem the sinh vien bao luu gop y" },
+  { id: "s-settings", label: "Cài đặt giao diện & hệ thống", detail: "Điều chỉnh giao diện Sáng / Tối, bảo mật và lối tắt Dashboard Quản lý", category: "Tài khoản", href: "/student/settings" as Route, icon: "sparkle", keywords: "cai dat giao dien sang toi dark mode light mode theme" },
+  { id: "s-admin-dash", label: "Dashboard Quản lý tài khoản & phân quyền", detail: "Trang quản lý các loại tài khoản: Giảng viên, Trưởng CLB, Sinh viên thuộc lớp", category: "Quản lý", href: "/quan-tri/tai-khoan" as Route, icon: "shield", keywords: "dashboard quan ly tai khoan phan quyen giao vien truong clb" },
   { id: "c-it3040", label: "IT3040 · Lập trình hướng đối tượng", detail: "ThS. Trần Minh Đức · 3 tín chỉ · A1-301 / B1-Lab 3", category: "Học phần", href: "/student/schedule" as Route, icon: "code", keywords: "it3040 oop lap trinh huong doi tuong ke thua da hinh" },
   { id: "c-it3090", label: "IT3090 · Cơ sở dữ liệu", detail: "TS. Phạm Thu Hà · 3 tín chỉ · A1-402 / B1-Lab 1", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3090 csdl co so du lieu sql truy van" },
   { id: "c-it3080", label: "IT3080 · Mạng máy tính", detail: "ThS. Lê Quang Vinh · 3 tín chỉ · A1-301 / B1-Lab 2", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3080 mang may tinh network" },
@@ -185,7 +187,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const { theme, toggleTheme } = usePhuongTheme();
+  const { theme } = usePhuongTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -585,16 +587,6 @@ export function AppShell({
           </form>
           <div className="top-actions">
             {headerActions}
-            <button
-              className="icon-button theme-toggle"
-              type="button"
-              onClick={toggleTheme}
-              aria-label="Chế độ tối"
-              aria-pressed={theme === "dark"}
-              title={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
-            >
-              <Icon name={theme === "dark" ? "sun" : "moon"} />
-            </button>
             <button
               className="icon-button bell"
               type="button"
