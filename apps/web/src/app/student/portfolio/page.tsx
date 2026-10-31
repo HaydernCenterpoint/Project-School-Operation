@@ -1886,7 +1886,7 @@ export default function StudentPortfolioPage() {
                         onClick={() => applyAiSuggestion(sug)}
                       >
                         <span>{sug.applied ? "Áp dụng lại" : sug.actionLabel}</span>
-                        <Icon name="arrowRight" />
+                        <Icon name="arrow" />
                       </button>
                     </article>
                   ))}
@@ -2330,7 +2330,7 @@ export default function StudentPortfolioPage() {
       <section ref={studioRef} id="xuat-bieu-mau">
         <Section
           title="Trích xuất sang Biểu mẫu hành chính & Hồ sơ trường (.doc / Một cửa)"
-          sub="Đồng bộ từ CV của bạn sang 4 biểu mẫu chuẩn của Trường Đại học Sao Đỏ để nộp phòng Một cửa hoặc Phòng Đào tạo"
+          action={<span className="reg-table-meta">4 biểu mẫu chuẩn ĐH Sao Đỏ · Phòng Một cửa & Đào tạo</span>}
         >
           <div className="pf-studio-layout">
             <div
