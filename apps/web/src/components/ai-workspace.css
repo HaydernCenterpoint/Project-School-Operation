@@ -237,3 +237,116 @@
   .aw-attach-menu { transition: none; }
   .aw-file, .aw-drop { animation: none; }
 }
+
+/* Custom delete confirmation modal */
+.aw-modal-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 8, 10, .52);
+  backdrop-filter: blur(4px);
+  animation: aw-fade-in .16s ease both;
+}
+.aw-modal {
+  width: min(420px, 100%);
+  padding: 22px 24px 20px;
+  display: grid;
+  gap: 12px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  animation: aw-modal-pop .2s cubic-bezier(.16, 1, .3, 1) both;
+}
+.aw-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.aw-modal-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--red);
+  background: var(--sky);
+  border-radius: 10px;
+}
+.aw-modal-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.aw-modal h2 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.aw-modal p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.aw-modal p strong {
+  color: var(--ink);
+}
+.aw-modal-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.aw-modal-cancel,
+.aw-modal-confirm {
+  min-height: 38px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color var(--fast), border-color var(--fast), transform var(--fast);
+}
+.aw-modal-confirm svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.aw-modal-cancel {
+  color: var(--ink-2);
+  background: var(--mist);
+  border: 1px solid var(--border);
+}
+.aw-modal-cancel:hover {
+  color: var(--ink);
+  background: var(--sky);
+}
+.aw-modal-confirm {
+  color: #fff;
+  background: var(--red);
+  border: 1px solid var(--red);
+}
+.aw-modal-confirm:hover {
+  background: #b81f2f;
+  border-color: #b81f2f;
+}
+.aw-modal-confirm:active,
+.aw-modal-cancel:active {
+  transform: scale(.97);
+}
+@keyframes aw-fade-in {
+  from { opacity: 0; }
+}
+@keyframes aw-modal-pop {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+}
+

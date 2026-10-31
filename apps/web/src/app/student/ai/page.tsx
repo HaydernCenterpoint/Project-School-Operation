@@ -190,6 +190,7 @@ export default function AiWorkspace() {
   const [notice, setNotice] = useState("");
   const [status, setStatus] = useState("");
   const [loadingThread, setLoadingThread] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AiConversation | null>(null);
   const controller = useRef<AbortController | null>(null);
   const thread = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -336,9 +337,14 @@ export default function AiWorkspace() {
     requestAnimationFrame(() => composer.current?.focus());
   }, [streaming]);
 
-  // Ctrl/⌘ + Shift + O starts a new conversation, as in other chat tools.
+  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes the custom delete modal.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && pendingDelete) {
+        event.preventDefault();
+        setPendingDelete(null);
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
         newConversation();
@@ -346,7 +352,7 @@ export default function AiWorkspace() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newConversation]);
+  }, [newConversation, pendingDelete]);
 
   async function openConversation(id: string) {
     if (streaming) return;
@@ -381,8 +387,8 @@ export default function AiWorkspace() {
     }
   }
 
-  async function deleteConversation(id: string) {
-    if (!window.confirm("Xoá vĩnh viễn cuộc trò chuyện này?")) return;
+  async function confirmDeleteConversation(id: string) {
+    setPendingDelete(null);
     try {
       const remainingLocal = readLocalThreads().filter((item) => item.conversation.id !== id);
       writeLocalThreads(remainingLocal);
@@ -674,7 +680,6 @@ export default function AiWorkspace() {
     ? conversations.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()))
     : conversations;
   const empty = !messages.length && !loadingThread;
-  const usedPercent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
 
   const composerForm = (
     <form className="aw-composer" onSubmit={submit}>
@@ -823,7 +828,7 @@ export default function AiWorkspace() {
                         className="aw-delete"
                         type="button"
                         aria-label={`Xoá cuộc trò chuyện ${item.title}`}
-                        onClick={() => void deleteConversation(item.id)}
+                        onClick={() => setPendingDelete(item)}
                         disabled={streaming}
                       >
                         <Icon name="trash" />
@@ -838,22 +843,12 @@ export default function AiWorkspace() {
           )}
         </nav>
         <div className="aw-side-foot">
-          {usage?.enabled && (
-            <div className="aw-usage">
-              <span>Lượt hỏi hôm nay</span>
-              <strong>{usage.used}/{usage.limit}</strong>
-              <div className="meter" role="meter" aria-label="Lượt hỏi AI đã dùng hôm nay" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
-                <span style={{ width: `${usedPercent}%` }} />
-              </div>
-            </div>
-          )}
           <div className="aw-user">
             <span className="avatar">
               {avatarUrl ? <img src={avatarUrl} alt="" className="avatar-img" /> : initials(name)}
             </span>
             <span>
               <strong>{name}</strong>
-              <small>{account.roleTitle} · {account.cohortClass}</small>
             </span>
             <button
               className="icon-button"
@@ -1030,6 +1025,51 @@ export default function AiWorkspace() {
         )}
         <p className="sr-only" role="status" aria-live="polite">{status}</p>
       </main>
+      {pendingDelete && (
+        <div
+          className="aw-modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setPendingDelete(null);
+          }}
+        >
+          <div
+            className="aw-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="aw-delete-title"
+            aria-describedby="aw-delete-desc"
+          >
+            <div className="aw-modal-head">
+              <span className="aw-modal-icon" aria-hidden="true">
+                <Icon name="trash" />
+              </span>
+              <h2 id="aw-delete-title">Xoá cuộc trò chuyện?</h2>
+            </div>
+            <p id="aw-delete-desc">
+              Bạn có chắc chắn muốn xoá vĩnh viễn cuộc trò chuyện{" "}
+              <strong>“{pendingDelete.title}”</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="aw-modal-actions">
+              <button
+                type="button"
+                className="aw-modal-cancel"
+                onClick={() => setPendingDelete(null)}
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className="aw-modal-confirm"
+                autoFocus
+                onClick={() => void confirmDeleteConversation(pendingDelete.id)}
+              >
+                <Icon name="trash" /> Xoá vĩnh viễn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>,
     `${sideCollapsed ? "is-collapsed" : ""} ${sideOpen ? "is-open" : ""}`,
   );
