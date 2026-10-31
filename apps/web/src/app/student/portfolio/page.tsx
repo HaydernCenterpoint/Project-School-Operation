@@ -397,29 +397,10 @@ export default function StudentPortfolioPage() {
   );
   const [joinedClubs] = useDemoState<string[]>("clubs", () => initialClubs);
 
-  const studentIdentity = useMemo(
-    () => ({
-      displayName: account.displayName,
-      code: account.code,
-      email: account.email,
-      phone: account.phone,
-      cohortClass: account.cohortClass,
-      department: account.department,
-      advisorName: account.advisorName,
-    }),
-    [account],
-  );
-
-  const baseTemplates = useMemo(
-    () => buildEditableDossierTemplates(studentIdentity),
-    [studentIdentity],
-  );
-
   // Compute real student stats
   const allRows = terms.flatMap((t) => t.rows);
   const overallGpa = gpa(allRows);
   const earnedCredits = allRows.reduce((sum, r) => sum + r.credits, 0);
-  const currentCredits = courses.reduce((sum, c) => sum + c.credits, 0);
   const standingText = standing(overallGpa.value);
 
   const totalSessions = attendanceRecords.reduce((sum, r) => sum + r.completedSessions, 0);
@@ -430,6 +411,31 @@ export default function StudentPortfolioPage() {
   const attendancePct = totalSessions
     ? ((attendedSessions / totalSessions) * 100).toFixed(1)
     : "100.0";
+
+  const studentIdentity = useMemo(
+    () => ({
+      displayName: account.displayName,
+      code: account.code,
+      email: account.email,
+      phone: account.phone,
+      cohortClass: account.cohortClass,
+      department: account.department,
+      advisorName: account.advisorName,
+      gpaValue: overallGpa.value.toFixed(2),
+      standingLabel: standingText,
+      earnedCredits,
+      requiredCredits: program.requiredCredits,
+      conductScore: conduct.score,
+      conductRank: conduct.rank,
+      attendancePct,
+    }),
+    [account, attendancePct, earnedCredits, overallGpa.value, standingText],
+  );
+
+  const baseTemplates = useMemo(
+    () => buildEditableDossierTemplates(studentIdentity),
+    [studentIdentity],
+  );
 
   const topCourses = useMemo(
     () =>
