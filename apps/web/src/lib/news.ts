@@ -30,6 +30,28 @@ export type NewsSource = {
 
 export type SyncResult = { source: string; name: string; added: number; error?: string };
 
+export type AgentStepReport = {
+  source: string;
+  engine: "tinyfish" | "sdu-live-agent";
+  count: number;
+  note?: string;
+};
+
+export type AgentFeedResponse = {
+  posts: NewsPost[];
+  report: {
+    engine: "tinyfish" | "sdu-live-agent";
+    tinyfishConfigured: boolean;
+    ranAt: string;
+    durationMs: number;
+    sourcesChecked: number;
+    articlesFound: number;
+    steps: AgentStepReport[];
+  };
+  sources: { id: string; name: string; url: string; pageUrl: string; category: string }[];
+  defaultGoal?: string;
+};
+
 const db = () => getSupabaseBrowserClient();
 
 async function run<T>(query: PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>): Promise<T> {
@@ -72,6 +94,32 @@ export const news = {
     const { data: auth } = await db().auth.getUser();
     const rows = await run<{ tenant_id: string }[]>(db().from("memberships").select("tenant_id").eq("user_id", auth.user?.id ?? ""));
     return rows[0]?.tenant_id ?? null;
+  },
+  /** Reads the live AI Agent news feed (TinyFish Web Agent + SDU multi-source crawler). */
+  agentFeed: async (): Promise<AgentFeedResponse> => {
+    const response = await fetch("/api/news/agent", { method: "GET" });
+    if (!response.ok) throw new Error("Không tải được luồng AI Agent.");
+    return (await response.json()) as AgentFeedResponse;
+  },
+  /** Triggers an immediate TinyFish Web Agent or SDU multi-source crawl. */
+  runAgent: async (options?: {
+    url?: string;
+    name?: string;
+    category?: string;
+    goal?: string;
+    apiKey?: string;
+    preferTinyFish?: boolean;
+  }): Promise<AgentFeedResponse> => {
+    const response = await fetch("/api/news/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options ?? {}),
+    });
+    const body = (await response.json().catch(() => ({}))) as AgentFeedResponse & { message?: string };
+    if (!response.ok) {
+      throw new Error(body.message || "AI Agent không thể quét nguồn tin lúc này.");
+    }
+    return body;
   },
 };
 
