@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { type CSSProperties, FormEvent, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
 import { streamChat } from "@/lib/ai-client";
@@ -31,6 +31,10 @@ import {
 } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
+/* ==========================================================================
+   Canva-style AI CV Studio Types & Presets
+   ========================================================================== */
+
 type CvLayoutStyleId = "modern-split" | "harvard" | "impressive" | "minimal";
 
 type CvLayoutStyle = {
@@ -38,39 +42,102 @@ type CvLayoutStyle = {
   name: string;
   tag: string;
   summary: string;
-  accentColor: string;
+  defaultAccent: string;
 };
 
 const cvLayoutStyles: CvLayoutStyle[] = [
   {
     id: "modern-split",
     name: "Mẫu Chuyên nghiệp 2 Cột",
-    tag: "Phổ biến nhất trên TopCV",
-    summary: "Cột trái hiển thị liên hệ, kỹ năng, ngoại ngữ; cột phải trình bày mục tiêu nghề nghiệp, học vấn và dự án.",
-    accentColor: "#c81d2e",
+    tag: "Chuẩn TopCV & Canva",
+    summary: "Cột trái hiển thị kỹ năng, chứng chỉ, ngoại ngữ; cột phải trình bày mục tiêu, học vấn và dự án.",
+    defaultAccent: "#c81d2e",
   },
   {
     id: "harvard",
     name: "Mẫu Harvard / Chuẩn ATS",
     tag: "Tối ưu lọc CV tự động",
-    summary: "Bố cục 1 cột cổ điển, phân mục đường kẻ mảnh chuẩn quốc tế, dễ đọc với hệ thống ATS của tập đoàn & ngân hàng.",
-    accentColor: "#1f2937",
+    summary: "Bố cục 1 cột cổ điển, đường kẻ phân mục chuẩn quốc tế, dễ đọc với hệ thống ATS tập đoàn & ngân hàng.",
+    defaultAccent: "#1f2937",
   },
   {
     id: "impressive",
     name: "Mẫu Ấn tượng / Tech Portfolio",
     tag: "Nổi bật dự án & chỉ số",
-    summary: "Header nhấn mạnh vị trí ứng tuyển, đóng khung các con số kết quả học thuật (GPA, truy vấn SQL, điểm Lab).",
-    accentColor: "#0f4c81",
+    summary: "Header đóng khung chỉ số học thuật (GPA, truy vấn SQL, điểm Lab), làm nổi bật dự án công nghệ.",
+    defaultAccent: "#0f4c81",
   },
   {
     id: "minimal",
     name: "Mẫu Đơn giản / Tinh gọn",
-    tag: "Dành cho SV thực tập",
-    summary: "Trình bày gọn gàng trên 1 trang A4, ưu tiên mục tiêu nghề nghiệp và các học phần cốt lõi đạt điểm A.",
-    accentColor: "#2d6a4f",
+    tag: "Gọn 1 trang A4",
+    summary: "Thiết kế tối giản khoảng trắng thoáng, ưu tiên mục tiêu nghề nghiệp và học phần cốt lõi đạt điểm A.",
+    defaultAccent: "#2d6a4f",
   },
 ];
+
+type CvFontPairId = "sans" | "serif" | "mono-tech";
+type CvAvatarShapeId = "rounded" | "circle" | "square" | "hidden";
+type CvDensityId = "compact" | "normal" | "airy";
+type CvSectionId = "objective" | "education" | "projects" | "skills" | "certs" | "activities";
+
+type StudioDockTabId = "ai" | "templates" | "design" | "sections" | "data";
+
+type CvColorSwatch = {
+  id: string;
+  label: string;
+  hex: string;
+};
+
+const cvColorSwatches: CvColorSwatch[] = [
+  { id: "sdu-crimson", label: "Đỏ Sao Đỏ", hex: "#c81d2e" },
+  { id: "navy-tech", label: "Xanh Navy Tech", hex: "#0f4c81" },
+  { id: "forest-exec", label: "Xanh Rừng Đậm", hex: "#2d6a4f" },
+  { id: "slate-ats", label: "Than Chì ATS", hex: "#1f2937" },
+  { id: "indigo-modern", label: "Tím Indigo", hex: "#4338ca" },
+  { id: "terracotta", label: "Nâu Đồng", hex: "#9a3412" },
+];
+
+type EditableCvProject = {
+  id: string;
+  title: string;
+  courseCode: string;
+  semester: string;
+  role: string;
+  score: string;
+  summary: string;
+  techStack: string;
+  artifactUrl: string;
+};
+
+type EditableCvSkillGroup = {
+  id: string;
+  group: string;
+  items: string;
+};
+
+type EditableCvCertItem = {
+  id: string;
+  title: string;
+  detail: string;
+};
+
+type AiSuggestionItem = {
+  id: string;
+  category: "layout" | "objective" | "project" | "skill" | "missing";
+  title: string;
+  reason: string;
+  actionLabel: string;
+  applied?: boolean;
+  payload: {
+    newObjective?: string;
+    newSectionOrder?: CvSectionId[];
+    newLayout?: CvLayoutStyleId;
+    addSkillGroup?: { group: string; items: string };
+    updateProjectSummary?: { index: number; summary: string };
+    fillGithubDemo?: string;
+  };
+};
 
 type JobRoleTrack = {
   id: string;
@@ -78,20 +145,15 @@ type JobRoleTrack = {
   shortLabel: string;
   roleTitle: string;
   companyType: string;
-  matchCount: string;
+  recommendedLayout: CvLayoutStyleId;
+  recommendedOrder: CvSectionId[];
   defaultObjective: string;
   recruiterVerdict: string;
-  checklist: {
-    label: string;
-    detail: string;
-    status: "ready" | "missing" | "recommended";
-    actionLabel?: string;
-    templateId?: string;
-  }[];
   cvSkills: {
     group: string;
     items: string[];
   }[];
+  aiSuggestions: AiSuggestionItem[];
 };
 
 const jobRoleTracks: JobRoleTrack[] = [
@@ -101,54 +163,51 @@ const jobRoleTracks: JobRoleTrack[] = [
     shortLabel: "Lập trình viên Backend / Web",
     roleTitle: "Thực tập sinh Lập trình viên Backend / Fullstack Web",
     companyType: "Công ty Sản phẩm công nghệ & Phần mềm",
-    matchCount: "5/6 tiêu chí đạt",
+    recommendedLayout: "modern-split",
+    recommendedOrder: ["objective", "projects", "education", "skills", "certs", "activities"],
     defaultObjective:
       "Sinh viên năm 3 chuyên ngành Công nghệ phần mềm tại Trường Đại học Sao Đỏ (GPA 3.22/4.0, thuộc Top 18% lớp DK13-CNTT1) ứng tuyển vị trí Thực tập sinh Lập trình viên Backend / Fullstack. Có nền tảng vững về Lập trình hướng đối tượng (IT3040 - 9.2/10), Cấu trúc dữ liệu & Giải thuật (Điểm A) và Thiết kế CSDL chuẩn 3NF (IT3090 - 9.0/10). Mong muốn vận dụng kỹ năng TypeScript, SQL và kiểm thử tự động vào dự án thực tế tại doanh nghiệp, hướng tới vị trí Kỹ sư phần mềm chính thức sau kỳ thực tập.",
     recruiterVerdict:
-      "Hồ sơ vượt vòng lọc CV tự động nhờ GPA 3.22/4.0, điểm A môn Cấu trúc dữ liệu & Giải thuật (8.5) và 2 đồ án OOP/CSDL đạt 9.0+. Điểm thiếu duy nhất khi nộp CV là đường dẫn GitHub/Demo công khai của dự án.",
-    checklist: [
-      {
-        label: "GPA tích lũy ≥ 3.0 & nắm vững Cấu trúc dữ liệu, OOP",
-        detail: "Đạt 3.22/4.0 (Loại Giỏi) · IT2010 đạt 8.5 (A), IT3040 Lab đạt 8.8",
-        status: "ready",
-      },
-      {
-        label: "Thiết kế CSDL quan hệ chuẩn 3NF & truy vấn SQL",
-        detail: "Đạt 9.0/10 bài thực hành CSDL (14 bảng, 25 truy vấn thống kê)",
-        status: "ready",
-      },
-      {
-        label: "Đọc hiểu tài liệu kỹ thuật tiếng Anh (Chuẩn B1)",
-        detail: "Đã đạt chuẩn B1 · Tiếng Anh 1 (8.0) & Tiếng Anh 2 (8.9)",
-        status: "ready",
-      },
-      {
-        label: "Link mã nguồn GitHub & bản chạy thử (Live Demo) trong CV",
-        detail: "Đồ án IT3040 & IT3090 mới lưu nội bộ, chưa điền link repo vào CV",
-        status: "missing",
-        actionLabel: "Điền link vào CV",
-        templateId: "tpl-internship-cv",
-      },
-      {
-        label: "Giấy giới thiệu thực tập & Bảng điểm xác nhận của Trường",
-        detail: "Doanh nghiệp thường yêu cầu bản xác nhận sinh viên có dấu đỏ khi nhận việc",
-        status: "recommended",
-        actionLabel: "Tạo đơn Một cửa",
-        templateId: "tpl-onestop-service",
-      },
-    ],
+      "Hồ sơ vượt vòng lọc CV tự động nhờ GPA 3.22/4.0, điểm A môn Cấu trúc dữ liệu & Giải thuật (8.5) và 2 đồ án OOP/CSDL đạt 9.0+. AI khuyến nghị đẩy mục Dự án thực tế lên ngay dưới Mục tiêu nghề nghiệp.",
     cvSkills: [
+      { group: "Ngôn ngữ & Nền tảng", items: ["TypeScript / JavaScript", "C++20", "SQL (PostgreSQL, SQLite)", "HTML5 / CSS3"] },
+      { group: "Kiến trúc & Công cụ", items: ["OOP Design Patterns", "Thiết kế ERD 3NF", "Git / GitHub", "RESTful API & Unit Test"] },
+      { group: "Ngoại ngữ & Kỹ năng mềm", items: ["Tiếng Anh B1 (8.9/10)", "Làm việc nhóm Agile", "Tài liệu kỹ thuật SRS"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Ngôn ngữ & Nền tảng",
-        items: ["TypeScript / JavaScript", "C++20", "SQL (PostgreSQL, SQLite)", "HTML5 / CSS3"],
+        id: "sug-fs-order",
+        category: "layout",
+        title: "Đưa mục Dự án & Đồ án lên trước Học vấn",
+        reason: "Nhà tuyển dụng vị trí Backend/Web ưu tiên xem đồ án OOP (9.2) và CSDL 3NF (9.0) ngay sau Mục tiêu nghề nghiệp.",
+        actionLabel: "Tự động sắp xếp lại bố cục",
+        payload: {
+          newSectionOrder: ["objective", "projects", "education", "skills", "certs", "activities"],
+        },
       },
       {
-        group: "Kiến trúc & Công cụ",
-        items: ["OOP Design Patterns", "Thiết kế ERD 3NF", "Git / GitHub", "Unit Testing"],
+        id: "sug-fs-star",
+        category: "project",
+        title: "Viết lại mô tả Đồ án theo công thức định lượng STAR",
+        reason: "Nhấn mạnh con số 2.400 đầu sách, 14 bảng chuẩn 3NF và thời gian phản hồi truy vấn < 8ms.",
+        actionLabel: "Áp dụng mô tả chuẩn STAR",
+        payload: {
+          updateProjectSummary: {
+            index: 0,
+            summary:
+              "Xây dựng phân hệ Quản lý Thư viện Số theo kiến trúc 3-Layer & OOP: thiết kế cơ chế phân quyền độc giả/thủ thư, tự động hóa quy trình mượn–trả cho 2.400 đầu sách và phủ 18 ca kiểm thử đơn vị (đạt 9.2/10).",
+          },
+        },
       },
       {
-        group: "Ngoại ngữ & Kỹ năng mềm",
-        items: ["Tiếng Anh B1 (8.9/10)", "Làm việc nhóm Agile", "Báo cáo kỹ thuật"],
+        id: "sug-fs-github",
+        category: "missing",
+        title: "Bổ sung liên kết GitHub & Live Demo công khai",
+        reason: "Dữ liệu trường cho thấy 2 đồ án đạt điểm A nhưng trên CV chưa gắn đường dẫn mã nguồn để Tech Lead kiểm tra.",
+        actionLabel: "Điền mẫu GitHub chuẩn SDU",
+        payload: {
+          fillGithubDemo: "github.com/khanhlinh-sdu/sdu-digital-library",
+        },
       },
     ],
   },
@@ -156,47 +215,43 @@ const jobRoleTracks: JobRoleTrack[] = [
     id: "role-qa",
     sector: "CNTT & Phần mềm",
     shortLabel: "Kiểm thử phần mềm (QA / Tester)",
-    roleTitle: "Thực tập sinh Kiểm thử phần mềm (Manual & Automation QA/QC)",
-    companyType: "Doanh nghiệp Outsourcing & Ngân hàng số",
-    matchCount: "5/5 tiêu chí đạt",
+    roleTitle: "Thực tập sinh Kiểm thử phần mềm (Manual / Automation QA)",
+    companyType: "Doanh nghiệp Gia công & Phát triển Phần mềm",
+    recommendedLayout: "harvard",
+    recommendedOrder: ["objective", "education", "projects", "skills", "certs", "activities"],
     defaultObjective:
-      "Sinh viên năm 3 ngành Công nghệ thông tin tại Trường Đại học Sao Đỏ (GPA 3.22/4.0, tỷ lệ chuyên cần thực hành phòng Lab đạt 97.5%) ứng tuyển vị trí Thực tập sinh Kiểm thử phần mềm (QA/Tester). Thành thạo viết kịch bản kiểm thử biên, truy vấn SQL đối soát dữ liệu (đạt 9.0/10 học phần CSDL) và Unit Testing (đã kiểm thử 1.200 bản ghi không lỗi trong đồ án Quản lý Thư viện). Mong muốn đóng góp vào quy trình đảm bảo chất lượng phần mềm và phát triển lên Automation QA Engineer.",
+      "Sinh viên năm 3 ngành Công nghệ thông tin Trường Đại học Sao Đỏ (GPA 3.22/4.0, tỷ lệ chuyên cần phòng Lab đạt 97.5%) ứng tuyển vị trí Thực tập sinh QA / Tester. Đã thực hành thiết kế 18 ca kiểm thử biên (Boundary Value Analysis), kiểm thử tích hợp và truy vấn SQL đối soát dữ liệu trên CSDL 14 bảng chuẩn 3NF. Mong muốn đóng góp tính cẩn thận, tư duy bắt lỗi hệ thống và khả năng đọc tài liệu tiếng Anh (8.9/10) vào quy trình đảm bảo chất lượng phần mềm.",
     recruiterVerdict:
-      "Rất phù hợp để ứng tuyển ngay. Tỷ lệ chuyên cần 97.5%, kỹ năng truy vấn SQL kiểm tra dữ liệu và kinh nghiệm viết Unit Test trong đồ án Quản lý Thư viện đáp ứng trực tiếp yêu cầu tuyển QA/QC thực tập.",
-    checklist: [
-      {
-        label: "Nắm vững SQL để kiểm tra dữ liệu Backend (Database Testing)",
-        detail: "Đạt 9.0/10 thực hành CSDL · Thành thạo JOIN, Stored Procedures, Indexing",
-        status: "ready",
-      },
-      {
-        label: "Kinh nghiệm viết kịch bản kiểm thử (Test Case / Unit Test)",
-        detail: "Đã kiểm thử 1.200 bản ghi sách không lỗi trong đồ án IT3040",
-        status: "ready",
-      },
-      {
-        label: "Tính cẩn thận, đúng giờ và tuân thủ quy trình",
-        detail: "Chuyên cần 97.5% · Điểm rèn luyện 82/100 (Xếp loại Tốt)",
-        status: "ready",
-      },
-      {
-        label: "Đọc hiểu tài liệu đặc tả yêu cầu (SRS) bằng tiếng Anh",
-        detail: "Tiếng Anh 2 đạt 8.9/10 (Điểm A) · Đạt chuẩn ngoại ngữ B1",
-        status: "ready",
-      },
-    ],
+      "Tỷ lệ chuyên cần Lab 97.5% và kinh nghiệm viết 18 Unit/Boundary Test trong đồ án OOP là minh chứng rất thuyết phục cho vị trí QA/Tester.",
     cvSkills: [
+      { group: "Kiểm thử & Đảm bảo chất lượng", items: ["Test Case Design (BVA, EP)", "Bug Life Cycle & Checklist", "Unit Test & Regression Test"] },
+      { group: "Cơ sở dữ liệu & Kỹ thuật", items: ["SQL Truy vấn đối soát dữ liệu", "Đọc hiểu ERD 3NF", "Kiểm thử API (Postman)", "Git cơ bản"] },
+      { group: "Ngoại ngữ & Thái độ", items: ["Tiếng Anh đọc hiểu tài liệu (8.9/10)", "Chuyên cần Lab 97.5%", "Tỉ mỉ, ghi nhận log chuẩn xác"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Kiểm thử & Đảm bảo chất lượng",
-        items: ["Thiết kế Test Case", "Unit Testing", "SQL Data Verification", "Bug Tracking"],
+        id: "sug-qa-layout",
+        category: "layout",
+        title: "Chuyển sang Mẫu Harvard / Chuẩn ATS 1 cột",
+        reason: "Các công ty Outsourcing/QA ưu tiên CV 1 cột chuẩn mực, trình bày rõ quy trình kiểm thử và độ chính xác.",
+        actionLabel: "Áp dụng Mẫu Harvard ATS",
+        payload: {
+          newLayout: "harvard",
+          newSectionOrder: ["objective", "education", "projects", "skills", "certs", "activities"],
+        },
       },
       {
-        group: "Kiến thức kỹ thuật",
-        items: ["OOP / TypeScript", "PostgreSQL / SQLite", "RESTful API", "Mạng máy tính"],
-      },
-      {
-        group: "Ngoại ngữ & Quy trình",
-        items: ["Đọc hiểu SRS Tiếng Anh (B1)", "Tài liệu hóa báo cáo lỗi"],
+        id: "sug-qa-skill",
+        category: "skill",
+        title: "Thêm nhóm kỹ năng Thiết kế Test Case & Truy vấn SQL",
+        reason: "Nổi bật hóa 18 test case biên từ môn IT3040 và khả năng kiểm tra dữ liệu bằng SQL.",
+        actionLabel: "Thêm vào mục Kỹ năng",
+        payload: {
+          addSkillGroup: {
+            group: "Công cụ & Phương pháp Kiểm thử",
+            items: "Test Scenario / Test Case (Excel, Jira), Boundary Value Analysis, SQL Data Verification, Postman API Test",
+          },
+        },
       },
     ],
   },
@@ -204,49 +259,29 @@ const jobRoleTracks: JobRoleTrack[] = [
     id: "role-ba",
     sector: "CNTT & Nghiệp vụ",
     shortLabel: "Business Analyst (BA Intern)",
-    roleTitle: "Thực tập sinh Phân tích nghiệp vụ phần mềm (IT Business Analyst)",
-    companyType: "Công ty Tư vấn chuyển đổi số & Phát triển sản phẩm",
-    matchCount: "5/5 tiêu chí đạt",
+    roleTitle: "Thực tập sinh Phân tích nghiệp vụ (IT Business Analyst)",
+    companyType: "Khối Ngân hàng, Tài chính, ERP & Chuyển đổi số",
+    recommendedLayout: "harvard",
+    recommendedOrder: ["objective", "education", "projects", "activities", "skills", "certs"],
     defaultObjective:
-      "Sinh viên năm 3 ngành Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, Tiếng Anh B1 đạt 8.9/10) ứng tuyển vị trí Thực tập sinh IT Business Analyst. Có kinh nghiệm khảo sát nghiệp vụ, thiết kế mô hình thực thể kết hợp (ERD 14 bảng chuẩn 3NF) và đặc tả phân hệ phần mềm trong đồ án Quản lý Thư viện & Quản lý Học vụ. Mong muốn làm cầu nối hiệu quả giữa khách hàng và đội ngũ phát triển sản phẩm.",
+      "Sinh viên năm 3 ngành Công nghệ thông tin Trường Đại học Sao Đỏ (GPA 3.22/4.0, Tiếng Anh 2 đạt 8.9/10 - Điểm A) ứng tuyển vị trí IT Business Analyst Intern. Có kinh nghiệm khảo sát nghiệp vụ, chuẩn hóa lược đồ quan hệ 14 bảng đạt chuẩn 3NF (9.0/10) và điều phối hoạt động câu lạc bộ học thuật (Điểm rèn luyện 86/100). Mong muốn kết nối giữa yêu cầu người dùng và đội ngũ kỹ thuật thông qua tài liệu SRS, Use Case và mô hình hóa quy trình.",
     recruiterVerdict:
-      "Điểm Tiếng Anh 2 đạt 8.9 (A) kết hợp với điểm thực hành thiết kế CSDL 9.0/10 và vai trò Trưởng nhóm thiết kế Domain Model trong đồ án IT3040 là minh chứng rất thuyết phục cho vị trí BA thực tập.",
-    checklist: [
-      {
-        label: "Thiết kế lược đồ CSDL (ERD) & mô hình hóa luồng nghiệp vụ",
-        detail: "Trưởng nhóm thiết kế Domain Model (IT3040) & chuẩn hóa 14 bảng 3NF (IT3090)",
-        status: "ready",
-      },
-      {
-        label: "Ngoại ngữ giao tiếp & viết tài liệu đặc tả (SRS / Use Case)",
-        detail: "Tiếng Anh 1 (8.0) & Tiếng Anh 2 (8.9 - Điểm A), chuẩn B1",
-        status: "ready",
-      },
-      {
-        label: "Kỹ năng làm việc nhóm & thuyết trình giải pháp",
-        detail: "Thành viên Ban chuyên môn CLB Tin học Sao Đỏ · Điểm rèn luyện 82/100",
-        status: "ready",
-      },
-      {
-        label: "Đính kèm sơ đồ ERD & mẫu tài liệu đặc tả vào hồ sơ",
-        detail: "Nên trích xuất tóm tắt đồ án IT3090 vào Mẫu 01-CVTT khi gửi nhà tuyển dụng",
-        status: "recommended",
-        actionLabel: "Cập nhật vào CV",
-        templateId: "tpl-internship-cv",
-      },
-    ],
+      "Phù hợp cao với vị trí BA nhờ điểm Tiếng Anh 2 đạt 8.9 (A), điểm CSDL 9.0 và kỹ năng giao tiếp/tổ chức sự kiện tại CLB Tin học.",
     cvSkills: [
+      { group: "Phân tích & Thiết kế hệ thống", items: ["Mô hình hóa ERD & Chuẩn hóa 3NF", "Use Case & Activity Diagram", "Đặc tả yêu cầu phần mềm (SRS)"] },
+      { group: "Truy vấn & Công cụ", items: ["SQL phân tích nghiệp vụ", "Figma / Draw.io Wireframe", "Quản lý tài liệu dự án"] },
+      { group: "Ngoại ngữ & Giao tiếp", items: ["Tiếng Anh B1 (Điểm A - 8.9)", "Thuyết trình & Điều phối CLB", "Phỏng vấn yêu cầu người dùng"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Phân tích & Thiết kế hệ thống",
-        items: ["Mô hình hóa ERD / UML", "Phân tích yêu cầu (SRS)", "Thiết kế Domain Model", "SQL truy vấn báo cáo"],
-      },
-      {
-        group: "Nền tảng công nghệ",
-        items: ["Hiểu kiến trúc Web / OOP", "Cơ sở dữ liệu quan hệ 3NF", "Git & Quản lý tài liệu"],
-      },
-      {
-        group: "Ngoại ngữ & Giao tiếp",
-        items: ["Tiếng Anh B1 (8.9/10)", "Thuyết trình & Phản biện", "Điều phối nhóm đồ án"],
+        id: "sug-ba-order",
+        category: "layout",
+        title: "Đẩy mục Hoạt động CLB & Học vấn lên cao",
+        reason: "Vị trí BA đánh giá cao khả năng giao tiếp, điều phối sự kiện CLB Tin học và điểm Tiếng Anh 8.9.",
+        actionLabel: "Sắp xếp bố cục chuẩn BA",
+        payload: {
+          newSectionOrder: ["objective", "education", "projects", "activities", "skills", "certs"],
+        },
       },
     ],
   },
@@ -254,49 +289,30 @@ const jobRoleTracks: JobRoleTrack[] = [
     id: "role-data",
     sector: "Dữ liệu & AI",
     shortLabel: "Phân tích dữ liệu (Data / SQL)",
-    roleTitle: "Thực tập sinh Phân tích & Kỹ thuật Dữ liệu (Data / SQL Analyst)",
-    companyType: "Khối Phân tích dữ liệu, Thương mại điện tử & Fintech",
-    matchCount: "4/5 tiêu chí đạt",
+    roleTitle: "Thực tập sinh Phân tích dữ liệu & Cơ sở dữ liệu (Data / SQL Intern)",
+    companyType: "Doanh nghiệp Thương mại điện tử, Fintech & AI",
+    recommendedLayout: "impressive",
+    recommendedOrder: ["objective", "projects", "skills", "education", "certs", "activities"],
     defaultObjective:
-      "Sinh viên năm 3 Khoa Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0) ứng tuyển vị trí Thực tập sinh Phân tích & Kỹ thuật Dữ liệu (Data / SQL Intern). Nắm vững thiết kế lược đồ CSDL chuẩn 3NF, tối ưu hóa truy vấn SQL (25 truy vấn thống kê chạy dưới 8ms) và cấu trúc dữ liệu đồ thị (Điểm A). Mong muốn tham gia xây dựng pipeline dữ liệu, báo cáo BI và tối ưu truy vấn tại doanh nghiệp.",
+      "Sinh viên năm 3 chuyên ngành Công nghệ phần mềm Trường Đại học Sao Đỏ (GPA 3.22/4.0) ứng tuyển vị trí Thực tập sinh Phân tích dữ liệu (Data / SQL Intern). Đạt 9.0/10 đồ án Cơ sở dữ liệu với 25 truy vấn thống kê phức tạp, tối ưu chỉ mục B-Tree giúp giảm thời gian phản hồi xuống dưới 8ms và đạt điểm A môn Cấu trúc dữ liệu & Giải thuật (8.5). Mong muốn phát triển kỹ năng xử lý dữ liệu, viết truy vấn SQL hiệu năng cao và xây dựng báo cáo trực quan cho doanh nghiệp.",
     recruiterVerdict:
-      "Thế mạnh lớn ở thiết kế lược đồ CSDL 3NF và tối ưu truy vấn SQL (< 8ms). Tuy nhiên nhà tuyển dụng Data thường soi kỹ điểm nhóm môn Toán nền tảng (Giải tích, Đại số tuyến tính, Toán rời rạc).",
-    checklist: [
-      {
-        label: "Thiết kế mô hình dữ liệu (ERD) & tối ưu truy vấn SQL",
-        detail: "Đạt 9.0/10 học phần Cơ sở dữ liệu (IT3090) · 25 truy vấn thống kê",
-        status: "ready",
-      },
-      {
-        label: "Lập trình xử lý cấu trúc dữ liệu & thuật toán",
-        detail: "Đạt điểm A (8.5) môn Cấu trúc dữ liệu & Giải thuật (IT2010)",
-        status: "ready",
-      },
-      {
-        label: "Nền tảng Toán học (Giải tích, Đại số tuyến tính, Toán rời rạc)",
-        detail: "Giải tích 1 (6.2 - C), Đại số (7.0 - B) đang thấp hơn mặt bằng lập trình (8.6)",
-        status: "missing",
-        actionLabel: "Lập kế hoạch cải thiện",
-        templateId: "tpl-academic-plan",
-      },
-      {
-        label: "Ngoại ngữ đọc tài liệu phân tích & báo cáo",
-        detail: "Tiếng Anh 2 đạt 8.9/10 · Chuẩn B1",
-        status: "ready",
-      },
-    ],
+      "Điểm sáng lớn nhất là đồ án CSDL đạt 9.0/10 (25 truy vấn thống kê, tối ưu B-Tree < 8ms) và giải thuật đạt 8.5 (A).",
     cvSkills: [
+      { group: "Cơ sở dữ liệu & Xử lý dữ liệu", items: ["SQL nâng cao (JOIN, Window, CTE)", "Tối ưu B-Tree Index (< 8ms)", "Thiết kế kho dữ liệu 3NF (14 bảng)"] },
+      { group: "Lập trình & Thuật toán", items: ["Cấu trúc dữ liệu & Giải thuật (8.5 - A)", "Python / C++ xử lý dữ liệu", "Thống kê & Đại số tuyến tính"] },
+      { group: "Báo cáo & Ngoại ngữ", items: ["Trực quan hóa dữ liệu", "Tiếng Anh đọc tài liệu kỹ thuật (8.9)", "Báo cáo phân tích định lượng"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Cơ sở dữ liệu & Truy vấn",
-        items: ["PostgreSQL", "SQLite", "Thiết kế chuẩn 3NF", "Tối ưu truy vấn & Indexing"],
-      },
-      {
-        group: "Lập trình & Giải thuật",
-        items: ["C++20", "TypeScript", "Đồ thị & Cây tìm kiếm", "Thống kê học vụ"],
-      },
-      {
-        group: "Ngoại ngữ",
-        items: ["Tiếng Anh B1 (8.9/10)", "Trình bày báo cáo số liệu"],
+        id: "sug-data-layout",
+        category: "layout",
+        title: "Chọn Mẫu Ấn tượng / Tech Portfolio để làm nổi bật con số < 8ms",
+        reason: "Nhà tuyển dụng Data chú ý ngay vào các con số hiệu năng truy vấn SQL và điểm A Giải thuật.",
+        actionLabel: "Đổi sang Mẫu Ấn tượng",
+        payload: {
+          newLayout: "impressive",
+          newSectionOrder: ["objective", "projects", "skills", "education", "certs", "activities"],
+        },
       },
     ],
   },
@@ -304,42 +320,29 @@ const jobRoleTracks: JobRoleTrack[] = [
     id: "role-network",
     sector: "Hạ tầng & Hệ thống",
     shortLabel: "Quản trị mạng / IT Helpdesk",
-    roleTitle: "Thực tập sinh Quản trị hệ thống & Hỗ trợ kỹ thuật (IT Support / System)",
-    companyType: "Doanh nghiệp sản xuất công nghiệp & Khu công nghiệp Hải Dương / Bắc Ninh",
-    matchCount: "5/5 tiêu chí đạt",
+    roleTitle: "Thực tập sinh Quản trị mạng & Hệ thống (Network / System Admin)",
+    companyType: "Khu công nghiệp, Nhà máy sản xuất & Viễn thông",
+    recommendedLayout: "modern-split",
+    recommendedOrder: ["objective", "skills", "education", "projects", "certs", "activities"],
     defaultObjective:
-      "Sinh viên năm 3 Khoa Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, tỷ lệ chuyên cần 97.5%) ứng tuyển vị trí Thực tập sinh IT Support / Quản trị hệ thống. Có kiến thức vững về Kiến trúc máy tính (8.0), Mạng máy tính (TCP/IP, định tuyến, cấu hình dịch vụ), quản trị CSDL SQL và hỗ trợ kỹ thuật phần mềm. Sẵn sàng làm việc trực tiếp tại doanh nghiệp và hỗ trợ vận hành hạ tầng CNTT ổn định.",
+      "Sinh viên năm 3 Khoa Công nghệ thông tin Trường Đại học Sao Đỏ (GPA 3.22/4.0, chuyên cần thực hành phòng máy 97.5%) ứng tuyển vị trí Thực tập sinh Quản trị mạng & Hệ thống IT. Nắm vững kiến trúc Mạng máy tính (TCP/IP, định tuyến VLAN, Wireshark), Hệ điều hành và Quản trị cơ sở dữ liệu. Sẵn sàng làm việc trực tiếp tại doanh nghiệp/nhà máy khu vực Hải Dương, Bắc Ninh, Hà Nội với tinh thần trách nhiệm và kỷ luật cao.",
     recruiterVerdict:
-      "Phù hợp cao với các doanh nghiệp FDI và khu công nghiệp quanh Chí Linh, Hải Dương, Bắc Ninh nhờ kỷ luật chuyên cần 97.5%, nền tảng Kiến trúc máy tính (8.0) và Tiếng Anh B1.",
-    checklist: [
-      {
-        label: "Kiến thức phần cứng, Kiến trúc máy tính & Hệ điều hành",
-        detail: "Đạt 8.0 (B+) học phần Kiến trúc máy tính (IT2030)",
-        status: "ready",
-      },
-      {
-        label: "Cấu hình mạng TCP/IP & Quản trị CSDL nội bộ",
-        detail: "Đang hoàn thành IT3080 (Mạng máy tính) & đạt 9.0 Lab CSDL",
-        status: "ready",
-      },
-      {
-        label: "Giao tiếp tiếng Anh cơ bản trong môi trường doanh nghiệp FDI",
-        detail: "Đạt chuẩn B1 · Tiếng Anh 2 đạt 8.9/10",
-        status: "ready",
-      },
-    ],
+      "Rất phù hợp với các doanh nghiệp FDI và khu công nghiệp quanh Hải Dương – Bắc Ninh – Hà Nội nhờ tính kỷ luật Lab (97.5%).",
     cvSkills: [
+      { group: "Hạ tầng mạng & Hệ thống", items: ["TCP/IP, Subnetting, VLAN, Routing", "Phân tích gói tin Wireshark", "Quản trị Windows Server & Linux"] },
+      { group: "Vận hành & Bảo trì dữ liệu", items: ["Sao lưu & Phục hồi CSDL SQL", "Xử lý sự cố phần cứng / mạng LAN", "Bảo mật tài khoản nội bộ"] },
+      { group: "Tác phong công nghiệp", items: ["Chuyên cần phòng Lab 97.5%", "Điểm rèn luyện 86/100 (Tốt)", "Tiếng Anh giao tiếp & đọc tài liệu B1"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Hệ thống & Mạng",
-        items: ["Kiến trúc máy tính", "Mạng TCP/IP & LAN/WAN", "Cài đặt & Xử lý sự cố phần mềm"],
-      },
-      {
-        group: "Cơ sở dữ liệu & Bảo trì",
-        items: ["Sao lưu & Phục hồi SQL", "Quản lý tài khoản nội bộ", "Hỗ trợ người dùng cuối"],
-      },
-      {
-        group: "Ngoại ngữ & Tác phong",
-        items: ["Tiếng Anh B1 (8.9/10)", "Kỷ luật giờ giấc (Chuyên cần 97.5%)"],
+        id: "sug-net-order",
+        category: "layout",
+        title: "Đưa mục Kỹ năng hệ thống & Chuyên cần lên đầu",
+        reason: "Khối nhà máy FDI/Khu công nghiệp cần kiểm tra nhanh kỹ năng mạng LAN/VLAN và tính kỷ luật.",
+        actionLabel: "Tối ưu bố cục IT Helpdesk",
+        payload: {
+          newSectionOrder: ["objective", "skills", "education", "projects", "certs", "activities"],
+        },
       },
     ],
   },
@@ -347,172 +350,237 @@ const jobRoleTracks: JobRoleTrack[] = [
     id: "role-sales-eng",
     sector: "Kinh doanh & Tư vấn",
     shortLabel: "Tư vấn giải pháp (Sales IT / EdTech)",
-    roleTitle: "Thực tập sinh Tư vấn giải pháp Công nghệ (Sales Engineer / Tech Consultant)",
-    companyType: "Doanh nghiệp Phần mềm quản trị (ERP/CRM), Viễn thông & EdTech",
-    matchCount: "5/5 tiêu chí đạt",
+    roleTitle: "Thực tập sinh Tư vấn giải pháp Công nghệ (Technical Sales / Solution)",
+    companyType: "Công ty Giải pháp Phần mềm, EdTech & Dịch vụ CNTT",
+    recommendedLayout: "modern-split",
+    recommendedOrder: ["objective", "activities", "projects", "education", "skills", "certs"],
     defaultObjective:
-      "Sinh viên năm 3 ngành Công nghệ thông tin — Trường Đại học Sao Đỏ (GPA 3.22/4.0, Điểm rèn luyện 82/100) ứng tuyển vị trí Thực tập sinh Tư vấn giải pháp CNTT (Sales Engineer). Kết hợp kiến thức kỹ thuật thực tế về phần mềm, cơ sở dữ liệu với kỹ năng trình bày, hướng dẫn người dùng tích lũy từ hoạt động Ban chuyên môn CLB Tin học Sao Đỏ. Mong muốn tư vấn giải pháp công nghệ hiệu quả và mở rộng tập khách hàng doanh nghiệp.",
+      "Sinh viên năm 3 ngành Công nghệ thông tin Trường Đại học Sao Đỏ (GPA 3.22/4.0, Tiếng Anh 8.9/10, Điểm rèn luyện 86/100) ứng tuyển vị trí Thực tập sinh Tư vấn giải pháp CNTT. Kết hợp kiến thức nền tảng vững về phần mềm/cơ sở dữ liệu với kỹ năng thuyết trình, tổ chức sự kiện và hỗ trợ sinh viên tại CLB Tin học để tư vấn, demo sản phẩm và chăm sóc khách hàng doanh nghiệp hiệu quả.",
     recruiterVerdict:
-      "Theo danh mục mẫu CV TopCV, vị trí Sales Engineer / Kinh doanh phần mềm rất chuộng sinh viên CNTT nắm rõ kỹ thuật sản phẩm và có kỹ năng giao tiếp, hoạt động CLB năng nổ.",
-    checklist: [
-      {
-        label: "Hiểu rõ cấu trúc sản phẩm phần mềm, Web & Cơ sở dữ liệu",
-        detail: "GPA 3.22/4.0 · Đã xây dựng hoàn chỉnh 3 đồ án phần mềm & CSDL",
-        status: "ready",
-      },
-      {
-        label: "Kỹ năng trình bày demo sản phẩm & hướng dẫn người dùng",
-        detail: "Thành viên Ban chuyên môn CLB Tin học · Điểm rèn luyện 82/100",
-        status: "ready",
-      },
-      {
-        label: "Ngoại ngữ & Tin học văn phòng chuẩn bị hồ sơ thầu / báo giá",
-        detail: "Tiếng Anh B1 (8.9/10) · Thành thạo soạn thảo tài liệu kỹ thuật",
-        status: "ready",
-      },
-    ],
+      "Lợi thế kép vừa hiểu kỹ thuật phần mềm (GPA 3.22), vừa có điểm Tiếng Anh 8.9 và năng nổ hoạt động CLB.",
     cvSkills: [
+      { group: "Tư vấn & Trình diễn giải pháp", items: ["Demo sản phẩm phần mềm Web/App", "Lắng nghe & Phân tích nhu cầu KH", "Soạn thảo tài liệu giới thiệu giải pháp"] },
+      { group: "Hiểu biết Kỹ thuật CNTT", items: ["Nền tảng Web, CSDL & Cloud cơ bản", "Phối hợp đội ngũ Dev/QA xử lý yêu cầu", "Hướng dẫn sử dụng phần mềm"] },
+      { group: "Ngoại ngữ & Hoạt động", items: ["Tiếng Anh B1 (Điểm A - 8.9/10)", "Thành viên tích cực CLB Tin học", "Giao tiếp & Đàm phán chuyên nghiệp"] },
+    ],
+    aiSuggestions: [
       {
-        group: "Tư vấn & Demo Giải pháp",
-        items: ["Trình bày Demo phần mềm", "Khảo sát nhu cầu khách hàng", "Soạn thảo tài liệu giải pháp"],
-      },
-      {
-        group: "Nền tảng kỹ thuật",
-        items: ["Ứng dụng Web & CSDL SQL", "Quy trình vận hành phần mềm", "Xử lý thắc mắc kỹ thuật"],
-      },
-      {
-        group: "Ngoại ngữ & Hoạt động",
-        items: ["Tiếng Anh B1 (8.9/10)", "Ban chuyên môn CLB Tin học Sao Đỏ"],
+        id: "sug-sales-order",
+        category: "layout",
+        title: "Đưa Hoạt động ngoại khóa & Dự án lên trước",
+        reason: "Vị trí Sales IT / Solution cần thấy ngay sự năng động, khả năng demo sản phẩm và giao tiếp.",
+        actionLabel: "Áp dụng bố cục Sales IT",
+        payload: {
+          newSectionOrder: ["objective", "activities", "projects", "education", "skills", "certs"],
+        },
       },
     ],
   },
 ];
 
-type AiFocusStyle = "ats" | "project" | "intern" | "fresher";
-
-const aiFocusOptions: { id: AiFocusStyle; label: string; promptHint: string }[] = [
-  {
-    id: "ats",
-    label: "Chuẩn TopCV / ATS (Ngắn gọn, súc tích)",
-    promptHint: "Viết theo chuẩn TopCV/ATS trong 3-4 câu ngắn gọn, có số liệu GPA, điểm môn cốt lõi và từ khóa kỹ năng của vị trí ứng tuyển.",
-  },
-  {
-    id: "project",
-    label: "Nhấn mạnh Đồ án & Kỹ năng thực hành",
-    promptHint: "Tập trung làm nổi bật 3 đồ án thực hành phòng Lab (OOP 9.2, CSDL 3NF 9.0, CTDL-GT Điểm A) và khả năng bắt nhịp công việc ngay.",
-  },
-  {
-    id: "intern",
-    label: "Mục tiêu Thực tập sinh (Ham học hỏi, kỷ luật)",
-    promptHint: "Nhấn mạnh tinh thần kỷ luật (chuyên cần 97.5%), nền tảng kiến thức vững và mục tiêu hoàn thành xuất sắc kỳ thực tập doanh nghiệp.",
-  },
-  {
-    id: "fresher",
-    label: "Mục tiêu gắn bó lâu dài (Fresher / Junior)",
-    promptHint: "Chia rõ mục tiêu ngắn hạn (3-6 tháng nắm vững quy trình và đóng góp vào dự án) và mục tiêu dài hạn (1-2 năm trở thành nhân sự nòng cốt).",
-  },
-];
+const defaultSectionLabels: Record<CvSectionId, string> = {
+  objective: "Mục tiêu nghề nghiệp",
+  education: "Học vấn & Thành tích học thuật",
+  projects: "Dự án & Đồ án thực tế",
+  skills: "Kỹ năng chuyên môn",
+  certs: "Chứng chỉ & Ngoại ngữ",
+  activities: "Hoạt động & Giải thưởng",
+};
 
 export default function StudentPortfolioPage() {
+  const { data, avatarUrl, account } = useStudent();
   const router = useRouter();
-  const { data, avatarUrl, account, accounts } = useStudent();
-  const formStudioRef = useRef<HTMLDivElement>(null);
 
-  const studentIdentity = useMemo(() => {
-    if (account.role !== "teacher") return account;
-    return accounts.find((a) => a.role === "class_student") ?? account;
-  }, [account, accounts]);
-
-  const [cvStyleId, setCvStyleId] = useState<CvLayoutStyleId>("modern-split");
-  const [roleTrackId, setRoleTrackId] = useState<string>("role-fullstack");
-  const [aiFocus, setAiFocus] = useState<AiFocusStyle>("ats");
-  const [customCompanyHint, setCustomCompanyHint] = useState<string>("");
-  const [aiGenerating, setAiGenerating] = useState<boolean>(false);
-  const [aiError, setAiError] = useState<string>("");
-
-  const [joinedClubs] = useDemoState("clubs", () => initialClubs);
   const [, setProposals] = useDemoState<ProfileUpdateProposal[]>(
     "profile-updates",
     () => initialProfileUpdates,
   );
+  const [joinedClubs] = useDemoState<string[]>("clubs", () => initialClubs);
 
-  const selectedTrack =
-    jobRoleTracks.find((r) => r.id === roleTrackId) ?? jobRoleTracks[0]!;
-  const selectedLayout =
-    cvLayoutStyles.find((s) => s.id === cvStyleId) ?? cvLayoutStyles[0]!;
+  const studentIdentity = useMemo(
+    () => ({
+      displayName: account.displayName,
+      code: account.code,
+      email: account.email,
+      phone: account.phone,
+      cohortClass: account.cohortClass,
+      department: account.department,
+      advisorName: account.advisorName,
+    }),
+    [account],
+  );
 
-  const allGradeRows = useMemo(() => terms.flatMap((term) => term.rows), []);
-  const overallGpa = useMemo(() => gpa(allGradeRows), [allGradeRows]);
+  const baseTemplates = useMemo(
+    () => buildEditableDossierTemplates(studentIdentity),
+    [studentIdentity],
+  );
+
+  // Compute real student stats
+  const allRows = terms.flatMap((t) => t.rows);
+  const overallGpa = gpa(allRows);
+  const earnedCredits = allRows.reduce((sum, r) => sum + r.credits, 0);
+  const currentCredits = courses.reduce((sum, c) => sum + c.credits, 0);
   const standingText = standing(overallGpa.value);
-  const earnedCredits = useMemo(
-    () => allGradeRows.filter((r) => total(r) >= 4).reduce((sum, r) => sum + r.credits, 0),
-    [allGradeRows],
-  );
-  const currentCredits = useMemo(
-    () => courses.reduce((sum, c) => sum + c.credits, 0),
-    [],
-  );
 
-  const totalAttended = useMemo(
-    () => attendanceRecords.reduce((sum, r) => sum + r.attendedPeriods, 0),
-    [],
+  const totalSessions = attendanceRecords.reduce((sum, r) => sum + r.completedSessions, 0);
+  const attendedSessions = attendanceRecords.reduce(
+    (sum, r) => sum + (r.completedSessions - r.absentSessions),
+    0,
   );
-  const totalPeriods = useMemo(
-    () => attendanceRecords.reduce((sum, r) => sum + r.totalPeriods, 0),
-    [],
-  );
-  const attendancePct = totalPeriods
-    ? ((totalAttended / totalPeriods) * 100).toFixed(1)
+  const attendancePct = totalSessions
+    ? ((attendedSessions / totalSessions) * 100).toFixed(1)
     : "100.0";
 
   const topCourses = useMemo(
     () =>
-      [...allGradeRows]
-        .map((r) => ({ ...r, score10: total(r) }))
+      terms
+        .flatMap((t) =>
+          t.rows.map((r) => ({
+            ...r,
+            termName: t.name,
+            score10: total(r),
+          })),
+        )
+        .filter((r): r is typeof r & { score10: number } => r.score10 !== null)
         .sort((a, b) => b.score10 - a.score10)
-        .slice(0, 4),
-    [allGradeRows],
+        .slice(0, 5),
+    [],
   );
 
-  const baseTemplates = useMemo(
-    () =>
-      buildEditableDossierTemplates({
-        displayName: studentIdentity.displayName,
-        code: studentIdentity.code,
-        email: studentIdentity.email,
-        phone: studentIdentity.phone,
-        cohortClass: studentIdentity.cohortClass,
-        department: studentIdentity.department,
-        advisorName: studentIdentity.advisorName,
-        gpaValue: overallGpa.value.toFixed(2),
-        standingLabel: standingText,
-        earnedCredits,
-        requiredCredits: program.requiredCredits,
-        conductScore: conduct.score,
-        conductRank: conduct.rank,
-        attendancePct,
-      }),
-    [
-      attendancePct,
-      earnedCredits,
-      overallGpa.value,
-      standingText,
-      studentIdentity.advisorName,
-      studentIdentity.code,
-      studentIdentity.cohortClass,
-      studentIdentity.department,
-      studentIdentity.displayName,
-      studentIdentity.email,
-      studentIdentity.phone,
-    ],
+  const joinedClubObjects = clubs.filter((c) => joinedClubs.includes(c.id));
+
+  /* ---------- Canva Studio State ---------- */
+  const [dockTab, setDockTab] = useState<StudioDockTabId>("ai");
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+  const [cvTitle, setCvTitle] = useState<string>(
+    `CV_${account.displayName.replace(/\s+/g, "_")}_Intern`,
+  );
+  const [cvStyleId, setCvStyleId] = useState<CvLayoutStyleId>("modern-split");
+  const [roleTrackId, setRoleTrackId] = useState<string>(jobRoleTracks[0]!.id);
+  const [accentColor, setAccentColor] = useState<string>("#c81d2e");
+  const [fontPair, setFontPair] = useState<CvFontPairId>("sans");
+  const [avatarShape, setAvatarShape] = useState<CvAvatarShapeId>("rounded");
+  const [density, setDensity] = useState<CvDensityId>("normal");
+  const [zoomPct, setZoomPct] = useState<number>(100);
+  const [activeSectionFocus, setActiveSectionFocus] = useState<CvSectionId | null>("objective");
+
+  const selectedTrack =
+    jobRoleTracks.find((t) => t.id === roleTrackId) ?? jobRoleTracks[0]!;
+  const selectedLayout =
+    cvLayoutStyles.find((s) => s.id === cvStyleId) ?? cvLayoutStyles[0]!;
+
+  // Ordered sections & visibility on the CV artboard
+  const [sectionOrder, setSectionOrder] = useState<CvSectionId[]>([
+    "objective",
+    "education",
+    "projects",
+    "skills",
+    "certs",
+    "activities",
+  ]);
+  const [hiddenSections, setHiddenSections] = useState<Record<CvSectionId, boolean>>({
+    objective: false,
+    education: false,
+    projects: false,
+    skills: false,
+    certs: false,
+    activities: false,
+  });
+  const [sectionTitles, setSectionTitles] = useState<Record<CvSectionId, string>>(
+    () => ({ ...defaultSectionLabels }),
   );
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("tpl-internship-cv");
-  const [customOverrides, setCustomOverrides] = useDemoState<Record<string, Record<string, string>>>(
-    "portfolio-form-drafts",
-    () => ({}),
+  // Editable CV Header & Contact fields on the A4 canvas
+  const [headerFields, setHeaderFields] = useState(() => ({
+    fullName: account.displayName,
+    targetRole: jobRoleTracks[0]!.roleTitle,
+    email: account.email,
+    phone: account.phone,
+    classAndDept: `${account.cohortClass} · ${account.department}`,
+    location: "Chí Linh, Hải Dương (Sẵn sàng thực tập Hà Nội / Hải Dương / Bắc Ninh)",
+    githubPortfolio: "github.com/sv-saodo/portfolio",
+    gpaBadge: `${overallGpa.value.toFixed(2)}/4.0`,
+    standingBadge: `Xếp loại ${standingText}`,
+  }));
+
+  // Editable Projects on the CV artboard
+  const [cvProjects, setCvProjects] = useState<EditableCvProject[]>(() =>
+    portfolioProjects.map((p) => ({
+      id: p.id,
+      title: p.title,
+      courseCode: p.courseCode,
+      semester: p.semester,
+      role: p.role,
+      score: p.score,
+      summary: p.highlight,
+      techStack: p.stack.join(" · "),
+      artifactUrl: "",
+    })),
   );
+
+  // Editable Skill groups on the CV artboard
+  const [cvSkillGroups, setCvSkillGroups] = useState<EditableCvSkillGroup[]>(() =>
+    jobRoleTracks[0]!.cvSkills.map((g, idx) => ({
+      id: `sk-${idx}`,
+      group: g.group,
+      items: g.items.join(", "),
+    })),
+  );
+
+  // Editable Certificates & Languages
+  const [cvCerts, setCvCerts] = useState<EditableCvCertItem[]>([
+    {
+      id: "cert-1",
+      title: "Chuẩn ngoại ngữ Tiếng Anh B1",
+      detail: "Tiếng Anh 1 (8.0) · Tiếng Anh 2 (8.9 - Điểm A)",
+    },
+    {
+      id: "cert-2",
+      title: `Chuyên cần thực hành Lab ${attendancePct}%`,
+      detail: `Có mặt ${attendedSessions}/${totalSessions} buổi thực hành phòng máy`,
+    },
+  ]);
+
+  // Editable Extracurriculars & Awards
+  const [cvActivities, setCvActivities] = useState<EditableCvCertItem[]>(() => [
+    ...(joinedClubObjects.length > 0
+      ? joinedClubObjects.map((club, idx) => ({
+          id: `act-club-${idx}`,
+          title: club.name,
+          detail: `${club.role} · Sinh hoạt định kỳ (${club.next})`,
+        }))
+      : [
+          {
+            id: "act-club-default",
+            title: "CLB Tin học & Lập trình SDU",
+            detail: "Thành viên nhóm thuật toán & hỗ trợ kỹ thuật",
+          },
+        ]),
+    {
+      id: "act-conduct",
+      title: `Điểm rèn luyện: ${conduct.score}/100 (${conduct.rank})`,
+      detail: `Đủ điều kiện xét Học bổng Khuyến khích học tập ${semester.short}`,
+    },
+  ]);
+
+  // AI Studio controls
+  const [aiFocus, setAiFocus] = useState<"ats" | "project" | "intern" | "fresher">("ats");
+  const [customCompanyHint, setCustomCompanyHint] = useState<string>("");
+  const [aiGenerating, setAiGenerating] = useState<boolean>(false);
+  const [aiSortingAndFilling, setAiSortingAndFilling] = useState<boolean>(false);
+  const [aiStatusText, setAiStatusText] = useState<string>("");
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestionItem[]>(
+    () => jobRoleTracks[0]!.aiSuggestions,
+  );
+
+  // Bottom Administrative Dossier Form Studio state
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(baseTemplates[0]!.id);
+  const [customOverrides, setCustomOverrides] = useDemoState<
+    Record<string, Record<string, string>>
+  >("portfolio-form-drafts-v2", () => ({}));
   const [bannerNotice, setBannerNotice] = useState<string>("");
+
+  const studioRef = useRef<HTMLElement>(null);
 
   if (!data) return null;
 
@@ -526,7 +594,6 @@ export default function StudentPortfolioPage() {
     ...(customOverrides[activeTemplate.id] ?? {}),
   };
 
-  // Current career objective displayed on the CV sheet and synchronized with Mẫu 01-CVTT
   const currentCareerObjective =
     customOverrides["tpl-internship-cv"]?.objectivePitch ?? selectedTrack.defaultObjective;
 
@@ -535,29 +602,132 @@ export default function StudentPortfolioPage() {
       ...prev,
       "tpl-internship-cv": {
         ...(prev["tpl-internship-cv"] ?? {}),
-        targetRole: selectedTrack.roleTitle,
+        targetRole: headerFields.targetRole,
         objectivePitch: nextText,
       },
     }));
   }
 
-  async function generateCareerObjectiveWithAi() {
-    if (aiGenerating) return;
-    setAiGenerating(true);
-    setAiError("");
+  /* ---------- Role / Template Switching ---------- */
+  function selectJobRoleTrack(track: JobRoleTrack) {
+    setRoleTrackId(track.id);
+    setHeaderFields((prev) => ({
+      ...prev,
+      targetRole: track.roleTitle,
+    }));
+    setCvSkillGroups(
+      track.cvSkills.map((g, idx) => ({
+        id: `sk-${track.id}-${idx}`,
+        group: g.group,
+        items: g.items.join(", "),
+      })),
+    );
+    setAiSuggestions(track.aiSuggestions);
+  }
 
-    const focusMeta = aiFocusOptions.find((f) => f.id === aiFocus) ?? aiFocusOptions[0]!;
+  function selectCvLayout(style: CvLayoutStyle) {
+    setCvStyleId(style.id);
+    setAccentColor(style.defaultAccent);
+  }
+
+  /* ---------- Section Order & Visibility Controls ---------- */
+  function moveSection(sectionId: CvSectionId, direction: -1 | 1) {
+    setSectionOrder((prev) => {
+      const idx = prev.indexOf(sectionId);
+      if (idx < 0) return prev;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const copy = [...prev];
+      const [item] = copy.splice(idx, 1);
+      copy.splice(targetIdx, 0, item!);
+      return copy;
+    });
+  }
+
+  function toggleSectionVisibility(sectionId: CvSectionId) {
+    setHiddenSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  }
+
+  /* ---------- Apply Individual AI Suggestion ---------- */
+  function applyAiSuggestion(sug: AiSuggestionItem) {
+    const { payload } = sug;
+    if (payload.newLayout) {
+      const foundLayout = cvLayoutStyles.find((l) => l.id === payload.newLayout);
+      if (foundLayout) selectCvLayout(foundLayout);
+    }
+    if (payload.newSectionOrder) {
+      setSectionOrder(payload.newSectionOrder);
+    }
+    if (payload.newObjective) {
+      setCareerObjectiveText(payload.newObjective);
+    }
+    if (payload.addSkillGroup) {
+      const groupToAdd = payload.addSkillGroup;
+      setCvSkillGroups((prev) => [
+        ...prev,
+        {
+          id: `sk-ai-${Date.now()}`,
+          group: groupToAdd.group,
+          items: groupToAdd.items,
+        },
+      ]);
+    }
+    if (payload.updateProjectSummary) {
+      const { index, summary } = payload.updateProjectSummary;
+      setCvProjects((prev) =>
+        prev.map((proj, idx) => (idx === index ? { ...proj, summary } : proj)),
+      );
+    }
+    if (payload.fillGithubDemo) {
+      const demoUrl = payload.fillGithubDemo;
+      setHeaderFields((prev) => ({ ...prev, githubPortfolio: demoUrl }));
+      setCvProjects((prev) =>
+        prev.map((proj, idx) =>
+          idx === 0 ? { ...proj, artifactUrl: `https://${demoUrl}` } : proj,
+        ),
+      );
+    }
+
+    setAiSuggestions((prev) =>
+      prev.map((item) => (item.id === sug.id ? { ...item, applied: true } : item)),
+    );
+    setBannerNotice(`Đã áp dụng đề xuất AI: "${sug.title}" lên trang thiết kế CV.`);
+  }
+
+  /* ---------- AI Full Auto-Read, Auto-Arrange & Auto-Fill Engine ---------- */
+  async function runAiAutoArrangeAndFillAll() {
+    if (aiSortingAndFilling) return;
+    setAiSortingAndFilling(true);
+    setAiStatusText("AI đang đọc bảng điểm, đồ án Lab, điểm rèn luyện và sắp xếp bố cục CV...");
+
+    // Step 1: Automatically apply best section order & layout for the target role
+    setSectionOrder(selectedTrack.recommendedOrder);
+    setHeaderFields((prev) => ({
+      ...prev,
+      targetRole: customCompanyHint.trim()
+        ? `${selectedTrack.roleTitle} — ${customCompanyHint.trim()}`
+        : selectedTrack.roleTitle,
+    }));
+    setCvSkillGroups(
+      selectedTrack.cvSkills.map((g, idx) => ({
+        id: `sk-auto-${idx}`,
+        group: g.group,
+        items: g.items.join(", "),
+      })),
+    );
+
+    // Step 2: Stream tailored Career Objective from /api/ai/chat using real student record
     const prompt = [
-      `Hãy viết mục "Mục tiêu nghề nghiệp" (Career Objective) cho CV xin việc/thực tập theo chuẩn TopCV Việt Nam.`,
-      `- Họ tên ứng viên: ${studentIdentity.displayName} (Sinh viên năm 3, Lớp ${studentIdentity.cohortClass}, ${studentIdentity.department}, Trường Đại học Sao Đỏ).`,
+      `Bạn là chuyên gia thiết kế CV chuẩn TopCV & Canva. Hãy đọc hồ sơ học tập thực tế của sinh viên dưới đây và viết đoạn "Mục tiêu nghề nghiệp" (65-100 từ) thật sắc bén, giàu số liệu định lượng để điền trực tiếp vào CV:`,
+      `- Ứng viên: ${studentIdentity.displayName} (${studentIdentity.cohortClass}, ${studentIdentity.department}, Trường Đại học Sao Đỏ).`,
       `- Vị trí ứng tuyển: ${selectedTrack.roleTitle} (${selectedTrack.companyType}).`,
-      customCompanyHint.trim()
-        ? `- Yêu cầu/Công ty mục tiêu cụ thể: ${customCompanyHint.trim()}.`
-        : "",
-      `- Dữ liệu học thuật khách quan: GPA ${overallGpa.value.toFixed(2)}/4.0 (Xếp loại ${standingText}, Top 18% lớp), tích lũy ${earnedCredits}/${program.requiredCredits} tín chỉ, chuyên cần phòng Lab ${attendancePct}%, điểm rèn luyện ${conduct.score}/100.`,
-      `- Các học phần và dự án nổi bật: Lập trình hướng đối tượng (đồ án Quản lý Thư viện 9.2/10), Cơ sở dữ liệu (thiết kế 14 bảng 3NF, 25 truy vấn SQL < 8ms, 9.0/10), Cấu trúc dữ liệu & Giải thuật (8.5 - Điểm A), Tiếng Anh 2 (8.9 - Điểm A, chuẩn B1).`,
-      `- Phong cách yêu cầu: ${focusMeta.promptHint}`,
-      `Chỉ trả về đúng đoạn văn Mục tiêu nghề nghiệp hoàn chỉnh (khoảng 60-110 từ, không dùng markdown heading, không mở bài hay giải thích thêm) để đưa thẳng vào CV.`,
+      customCompanyHint.trim() ? `- Doanh nghiệp / JD mục tiêu: ${customCompanyHint.trim()}.` : "",
+      `- Dữ liệu học tập thực tế: GPA ${overallGpa.value.toFixed(2)}/4.0 (${standingText}, Top 18%), ${earnedCredits}/${program.requiredCredits} tín chỉ, chuyên cần Lab ${attendancePct}%, điểm rèn luyện ${conduct.score}/100.`,
+      `- Học phần & Đồ án nổi bật: Lập trình hướng đối tượng (9.2/10 - Đồ án Quản lý Thư viện 2.400 đầu sách, 18 Unit Test), Cơ sở dữ liệu (9.0/10 - 14 bảng chuẩn 3NF, 25 truy vấn SQL < 8ms), Cấu trúc dữ liệu & Giải thuật (8.5 - Điểm A), Tiếng Anh 2 (8.9 - Điểm A, chuẩn B1).`,
+      `Chỉ trả về đúng 1 đoạn văn hoàn chỉnh (không tiêu đề, không gạch đầu dòng) để điền thẳng vào ô Mục tiêu nghề nghiệp trên CV.`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -580,98 +750,282 @@ export default function StudentPortfolioPage() {
           if (event.type === "delta") {
             streamed += event.text;
             setCareerObjectiveText(streamed.trimStart());
-          } else if (event.type === "error") {
-            setAiError("Không thể kết nối máy chủ AI, đã áp dụng mẫu mục tiêu nghề nghiệp tối ưu.");
           }
         },
         controller.signal,
       );
       if (streamed.trim()) {
         setCareerObjectiveText(streamed.trim().replace(/^["“]|["”]$/g, ""));
-        setBannerNotice(
-          `Trợ lý AI đã tạo Mục tiêu nghề nghiệp cho vị trí ${selectedTrack.shortLabel} và đồng bộ vào Mẫu 01-CVTT`,
-        );
+      } else {
+        setCareerObjectiveText(selectedTrack.defaultObjective);
       }
     } catch {
-      // Fallback synthesis if offline or quota reached
-      const fallback = `${selectedTrack.defaultObjective}${
-        customCompanyHint.trim()
-          ? ` Định hướng đóng góp trực tiếp cho ${customCompanyHint.trim()} với cam kết kỷ luật và hiệu suất cao.`
-          : ""
-      }`;
-      setCareerObjectiveText(fallback);
-      setBannerNotice("Đã tạo Mục tiêu nghề nghiệp theo dữ liệu học thuật và vị trí ứng tuyển");
+      setCareerObjectiveText(selectedTrack.defaultObjective);
     } finally {
-      setAiGenerating(false);
+      setAiSortingAndFilling(false);
+      setAiStatusText("");
+      setBannerNotice(
+        `AI đã đọc dữ liệu học tập của ${studentIdentity.displayName}, tự động sắp xếp 6 mục CV theo chuẩn "${selectedTrack.shortLabel}" và điền Mục tiêu nghề nghiệp.`,
+      );
     }
   }
 
-  function updateDraftField(key: string, nextValue: string) {
+  /* ---------- AI Single-Section Rewrite (Objective or Project) ---------- */
+  async function rewriteObjectiveWithAi() {
+    if (aiGenerating) return;
+    setAiGenerating(true);
+    setAiStatusText("AI đang viết lại Mục tiêu nghề nghiệp...");
+
+    const styleHints: Record<typeof aiFocus, string> = {
+      ats: "Ngắn gọn, súc tích, chứa từ khóa kỹ thuật chuẩn ATS TopCV (60-85 từ).",
+      project: "Nhấn mạnh kết quả định lượng từ 2 đồ án thực tế (9.2/10 và 9.0/10) cùng hiệu năng truy vấn SQL < 8ms.",
+      intern: "Thái độ cầu thị, kỷ luật phòng Lab 97.5%, sẵn sàng học quy trình thực tế tại doanh nghiệp.",
+      fresher: "Định hướng đóng góp lâu dài và phát triển lên Kỹ sư chính thức sau kỳ thực tập.",
+    };
+
+    const prompt = [
+      `Viết đoạn "Mục tiêu nghề nghiệp" cho CV sinh viên ${studentIdentity.displayName} (GPA ${overallGpa.value.toFixed(2)}/4.0, Lớp ${studentIdentity.cohortClass}, ĐH Sao Đỏ) ứng tuyển vị trí "${headerFields.targetRole}".`,
+      customCompanyHint.trim() ? `Công ty/JD mục tiêu: ${customCompanyHint.trim()}.` : "",
+      `Phong cách: ${styleHints[aiFocus]}`,
+      `Điểm mạnh thực tế: Đồ án OOP 9.2/10, Đồ án CSDL 14 bảng 3NF 9.0/10, Cấu trúc dữ liệu & Giải thuật 8.5 (A), Tiếng Anh B1 8.9 (A), chuyên cần Lab ${attendancePct}%.`,
+      `Chỉ trả về đoạn văn hoàn chỉnh, không mở bài hay markdown heading.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const controller = new AbortController();
+    let streamed = "";
+
+    try {
+      await streamChat(
+        accessToken,
+        {
+          conversationId: null,
+          mode: "summarize",
+          content: prompt,
+          assignmentId: null,
+          reasoningEffort: "low",
+        },
+        crypto.randomUUID(),
+        (event) => {
+          if (event.type === "delta") {
+            streamed += event.text;
+            setCareerObjectiveText(streamed.trimStart());
+          }
+        },
+        controller.signal,
+      );
+      if (streamed.trim()) {
+        setCareerObjectiveText(streamed.trim().replace(/^["“]|["”]$/g, ""));
+      }
+    } catch {
+      setCareerObjectiveText(selectedTrack.defaultObjective);
+    } finally {
+      setAiGenerating(false);
+      setAiStatusText("");
+    }
+  }
+
+  async function rewriteProjectWithAi(projectIdx: number) {
+    const targetProj = cvProjects[projectIdx];
+    if (!targetProj || aiGenerating) return;
+    setAiGenerating(true);
+    setAiStatusText(`AI đang tối ưu mô tả dự án "${targetProj.title}" theo chuẩn STAR...`);
+
+    const prompt = [
+      `Hãy viết lại mô tả dự án trong CV cho sinh viên CNTT theo mô hình STAR (Tình huống - Nhiệm vụ - Hành động - Kết quả định lượng) trong 45-65 từ:`,
+      `- Tên dự án: ${targetProj.title} (${targetProj.courseCode})`,
+      `- Vai trò: ${targetProj.role} · Điểm đánh giá: ${targetProj.score}`,
+      `- Công nghệ: ${targetProj.techStack}`,
+      `- Mô tả hiện tại: ${targetProj.summary}`,
+      `- Vị trí đang ứng tuyển: ${headerFields.targetRole}`,
+      `Chỉ trả về đúng 1 đoạn mô tả ngắn gọn, súc tích, không dùng gạch đầu dòng hay tiêu đề.`,
+    ].join("\n");
+
+    const controller = new AbortController();
+    let streamed = "";
+
+    try {
+      await streamChat(
+        accessToken,
+        {
+          conversationId: null,
+          mode: "summarize",
+          content: prompt,
+          assignmentId: null,
+          reasoningEffort: "low",
+        },
+        crypto.randomUUID(),
+        (event) => {
+          if (event.type === "delta") {
+            streamed += event.text;
+            const cleanText = streamed.trimStart();
+            setCvProjects((prev) =>
+              prev.map((item, idx) =>
+                idx === projectIdx ? { ...item, summary: cleanText } : item,
+              ),
+            );
+          }
+        },
+        controller.signal,
+      );
+    } catch {
+      // Keep existing summary on network error
+    } finally {
+      setAiGenerating(false);
+      setAiStatusText("");
+    }
+  }
+
+  /* ---------- Export Word (.doc) from Live Canva Artboard ---------- */
+  function exportLiveCvToWordDoc() {
+    const htmlContent = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8" />
+<title>${cvTitle}</title>
+<style>
+  body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
+  h1 { font-size: 18pt; margin: 0 0 4pt; text-transform: uppercase; color: ${accentColor}; }
+  h2 { font-size: 12.5pt; margin: 14pt 0 6pt; text-transform: uppercase; border-bottom: 1.5pt solid ${accentColor}; padding-bottom: 2pt; color: ${accentColor}; }
+  p { margin: 3pt 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6pt; }
+  td, th { border: 1px solid #ccc; padding: 6pt 8pt; vertical-align: top; text-align: left; font-size: 11pt; }
+  th { width: 30%; background: #f5f5f5; font-weight: bold; }
+</style>
+</head>
+<body>
+  <h1>${headerFields.fullName}</h1>
+  <p><strong>${headerFields.targetRole}</strong></p>
+  <p>Email: ${headerFields.email} | ĐT: ${headerFields.phone} | Lớp: ${headerFields.classAndDept}</p>
+  <p>Địa chỉ: ${headerFields.location} | Portfolio: ${headerFields.githubPortfolio}</p>
+  <h2>1. ${sectionTitles.objective}</h2>
+  <p>${currentCareerObjective}</p>
+  <h2>2. ${sectionTitles.education}</h2>
+  <p><strong>Trường Đại học Sao Đỏ</strong> — ${headerFields.classAndDept} (${headerFields.gpaBadge} · ${headerFields.standingBadge})</p>
+  <h2>3. ${sectionTitles.skills}</h2>
+  <table>
+    <tbody>
+      ${cvSkillGroups
+        .map((g) => `<tr><th>${g.group}</th><td>${g.items}</td></tr>`)
+        .join("")}
+    </tbody>
+  </table>
+  <h2>4. ${sectionTitles.projects}</h2>
+  ${cvProjects
+    .map(
+      (p) =>
+        `<p><strong>${p.title} (${p.courseCode} — ${p.score})</strong> · <em>${p.role}</em><br/>${p.summary}<br/><small>Công nghệ: ${p.techStack}${p.artifactUrl ? ` · Link: ${p.artifactUrl}` : ""}</small></p>`,
+    )
+    .join("")}
+  <h2>5. ${sectionTitles.certs} & ${sectionTitles.activities}</h2>
+  ${[...cvCerts, ...cvActivities]
+    .map((c) => `<p>- <strong>${c.title}:</strong> ${c.detail}</p>`)
+    .join("")}
+</body>
+</html>`;
+
+    const blob = new Blob(["﻿", htmlContent], {
+      type: "application/msword;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${cvTitle || `CV_${studentIdentity.code}`}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setBannerNotice(`Đã tải xuống "${cvTitle}.doc" theo đúng thiết kế trên khung CV.`);
+  }
+
+  /* ---------- Bottom Administrative Form Studio Handlers ---------- */
+  function updateDraftField(key: string, value: string) {
     setCustomOverrides((prev) => ({
       ...prev,
       [activeTemplate.id]: {
         ...(prev[activeTemplate.id] ?? {}),
-        [key]: nextValue,
+        [key]: value,
       },
     }));
   }
 
-  function resetCurrentDraft() {
+  function resetTemplateDraft(templateId: string) {
     setCustomOverrides((prev) => {
       const next = { ...prev };
-      delete next[activeTemplate.id];
+      delete next[templateId];
       return next;
     });
-    setBannerNotice(`Đã khôi phục dữ liệu gốc từ hệ thống cho ${activeTemplate.code}`);
+    setBannerNotice("Đã khôi phục dữ liệu trích xuất gốc từ hệ thống đào tạo.");
   }
 
-  function openTemplateInStudio(templateId: string, customPatch?: Record<string, string>) {
+  function focusStudioWithTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
-    if (customPatch) {
-      setCustomOverrides((prev) => ({
-        ...prev,
-        [templateId]: {
-          ...(prev[templateId] ?? {}),
-          ...customPatch,
-        },
-      }));
-    }
-    setBannerNotice(
-      `Đã nạp dữ liệu sang ${
-        baseTemplates.find((t) => t.id === templateId)?.code ?? templateId
-      } để chỉnh sửa`,
-    );
     setTimeout(() => {
-      formStudioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
+      studioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
   }
 
-  function handleSelectRoleTrack(track: JobRoleTrack) {
-    setRoleTrackId(track.id);
-    setCustomOverrides((prev) => ({
-      ...prev,
-      "tpl-internship-cv": {
-        ...(prev["tpl-internship-cv"] ?? {}),
-        targetRole: track.roleTitle,
-        objectivePitch: track.defaultObjective,
-        coreSkills: track.cvSkills.map((g) => `${g.group}: ${g.items.join(", ")}`).join(" · "),
-      },
-    }));
+  function exportTemplateAsWordDoc(tpl: EditableDossierTemplate) {
+    const values: Record<string, string> = {
+      ...Object.fromEntries(tpl.fields.map((f) => [f.key, f.value])),
+      ...(customOverrides[tpl.id] ?? {}),
+    };
+    const rowsHtml = tpl.fields
+      .map(
+        (field) => `
+        <tr>
+          <td style="width:34%;padding:8px 10px;border:1px solid #d4c6b8;font-weight:bold;background:#faf6f0;">${field.label}</td>
+          <td style="width:66%;padding:8px 10px;border:1px solid #d4c6b8;white-space:pre-line;">${(values[field.key] ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const htmlContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8" /><title>${tpl.code} - ${tpl.title}</title></head>
+<body style="font-family:'Times New Roman',serif;font-size:12pt;margin:2cm;">
+  <h2 style="text-align:center;">TRƯỜNG ĐẠI HỌC SAO ĐỎ · ${tpl.code}</h2>
+  <h3 style="text-align:center;">${tpl.title}</h3>
+  <table style="width:100%;border-collapse:collapse;"><tbody>${rowsHtml}</tbody></table>
+</body></html>`;
+
+    const blob = new Blob(["﻿", htmlContent], {
+      type: "application/msword;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${tpl.code}_${studentIdentity.code}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setBannerNotice(`Đã tải xuống biểu mẫu "${tpl.code}" (.doc).`);
   }
 
-  function handleSaveAndRoute(event: FormEvent) {
+  function dispatchFormSubmit(event: FormEvent) {
     event.preventDefault();
 
     if (activeTemplate.id === "tpl-profile-correction") {
-      const cat = (activeDraftValues.category as ProfileUpdateProposal["category"]) || "Hồ sơ cá nhân";
-      const fieldLabel = activeDraftValues.fieldLabel || "Thông tin hồ sơ sinh viên";
-      const oldValue = activeDraftValues.oldValue || "Dữ liệu hiện tại";
+      const category = (activeDraftValues.category ||
+        "Hồ sơ cá nhân") as ProfileUpdateProposal["category"];
+      const fieldLabel = activeDraftValues.fieldLabel || "Cập nhật hồ sơ học tập & kỹ năng";
+      const oldValue = activeDraftValues.oldValue || "Chưa khai báo";
       const newValue = activeDraftValues.newValue || "";
-      const reason = activeDraftValues.reason || "Đề xuất cập nhật từ Hồ sơ của bạn";
+      const reason = activeDraftValues.reason || "";
 
       const newProposal: ProfileUpdateProposal = {
         id: `pup-${Date.now()}`,
-        category: cat,
+        category: [
+          "Hồ sơ cá nhân",
+          "Tài khoản ngân hàng",
+          "Bảo hiểm y tế",
+          "Thông tin gia đình",
+        ].includes(category)
+          ? category
+          : "Hồ sơ cá nhân",
         fieldLabel,
         oldValue,
         newValue,
@@ -689,7 +1043,7 @@ export default function StudentPortfolioPage() {
 
       const params = new URLSearchParams({
         from: "portfolio",
-        category: cat,
+        category: newProposal.category,
         field: fieldLabel,
         old: oldValue,
         new: newValue,
@@ -700,163 +1054,572 @@ export default function StudentPortfolioPage() {
     }
 
     if (activeTemplate.id === "tpl-onestop-service") {
+      const sType = activeDraftValues.serviceTypeId || "svc-1";
+      const purpose = `${activeDraftValues.purpose || "Bổ sung hồ sơ thực tập"} — Cam kết: ${activeDraftValues.gpaConfirm || ""}`;
       const params = new URLSearchParams({
         from: "portfolio",
-        type: activeDraftValues.serviceType || "svc-enrol",
-        purpose: activeDraftValues.purpose || "",
+        type: sType,
+        purpose,
       });
       router.push(`/student/services?${params.toString()}` as Route);
       return;
     }
 
-    setBannerNotice(`Đã lưu bản chỉnh sửa ${activeTemplate.code} vào bộ nhớ trình duyệt`);
+    exportTemplateAsWordDoc(activeTemplate);
   }
 
-  function exportFormAsWordDoc(templateOverride?: EditableDossierTemplate) {
-    const targetTpl = templateOverride ?? activeTemplate;
-    const values: Record<string, string> = {
-      ...Object.fromEntries(targetTpl.fields.map((f) => [f.key, f.value])),
-      ...(customOverrides[targetTpl.id] ?? {}),
-    };
+  /* ---------- Render Helpers for Individual CV Sections on A4 Canvas ---------- */
+  const leftSidebarSections: CvSectionId[] = ["skills", "certs", "activities"];
 
-    const rowsHtml = targetTpl.fields
-      .map(
-        (field) => `
-          <tr>
-            <td style="padding:8px 12px;border:1px solid #ccc;font-weight:bold;width:32%;vertical-align:top;background:#f9f5f0;">${field.label}</td>
-            <td style="padding:8px 12px;border:1px solid #ccc;white-space:pre-line;">${(
-              values[field.key] ?? ""
-            )
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")}</td>
-          </tr>`,
-      )
-      .join("");
-
-    const docHtml = `<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="utf-8" />
-<title>${targetTpl.code} - ${studentIdentity.displayName}</title>
-</head>
-<body style="font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12pt;line-height:1.5;color:#111;max-width:760px;margin:24px auto;">
-  <div style="text-align:center;margin-bottom:18px;">
-    <strong>TRƯỜNG ĐẠI HỌC SAO ĐỎ · CỔNG HỌC TẬP SINH VIÊN</strong><br/>
-    <span>Mã biểu mẫu: ${targetTpl.code} · Mẫu thiết kế: ${selectedLayout.name}</span>
-    <h2 style="margin:12px 0 4px;">${targetTpl.title}</h2>
-    <p style="margin:0;">Kính gửi: ${targetTpl.recipient}</p>
-  </div>
-  <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-    <tbody>${rowsHtml}</tbody>
-  </table>
-  <p style="text-align:right;margin-top:28px;">
-    Chí Linh, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}<br/>
-    <strong>Người lập biểu mẫu</strong><br/><br/><br/>
-    ${studentIdentity.displayName} (${studentIdentity.code})
-  </p>
-</body>
-</html>`;
-
-    const blob = new Blob([docHtml], { type: "application/msword;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${targetTpl.code.toLowerCase().replace(/\s+/g, "-")}-${studentIdentity.code}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setBannerNotice(`Đã tải tệp ${targetTpl.code}.doc (${selectedLayout.name})`);
+  function renderSectionToolbar(sectionId: CvSectionId, allowAiRewrite?: () => void, onAdd?: () => void) {
+    const idx = sectionOrder.indexOf(sectionId);
+    return (
+      <div className="cv-block-floating-tools" role="toolbar" aria-label={`Công cụ mục ${sectionTitles[sectionId]}`}>
+        <button
+          type="button"
+          className="cv-tool-mini"
+          onClick={() => moveSection(sectionId, -1)}
+          disabled={idx <= 0}
+          title="Đưa mục này lên trên"
+        >
+          ↑ Lên
+        </button>
+        <button
+          type="button"
+          className="cv-tool-mini"
+          onClick={() => moveSection(sectionId, 1)}
+          disabled={idx < 0 || idx >= sectionOrder.length - 1}
+          title="Đưa mục này xuống dưới"
+        >
+          ↓ Xuống
+        </button>
+        {allowAiRewrite && (
+          <button
+            type="button"
+            className="cv-tool-mini is-ai"
+            onClick={allowAiRewrite}
+            disabled={aiGenerating || aiSortingAndFilling}
+          >
+            <Icon name="sparkle" /> AI viết lại
+          </button>
+        )}
+        {onAdd && (
+          <button type="button" className="cv-tool-mini" onClick={onAdd}>
+            + Thêm dòng
+          </button>
+        )}
+        <button
+          type="button"
+          className="cv-tool-mini"
+          onClick={() => toggleSectionVisibility(sectionId)}
+          title="Ẩn mục này khỏi CV"
+        >
+          Ẩn
+        </button>
+      </div>
+    );
   }
 
-  function exportFormAsJson() {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      cvLayoutStyle: selectedLayout.id,
-      jobRoleTrack: selectedTrack.roleTitle,
-      templateCode: activeTemplate.code,
-      templateTitle: activeTemplate.title,
-      recipient: activeTemplate.recipient,
-      student: {
-        code: studentIdentity.code,
-        name: studentIdentity.displayName,
-        cohortClass: studentIdentity.cohortClass,
-        department: studentIdentity.department,
-        gpa: overallGpa.value,
-        standing: standingText,
-        conductScore: conduct.score,
-        attendancePct: Number(attendancePct),
-      },
-      formValues: activeDraftValues,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ho-so-${studentIdentity.code}-${activeTemplate.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setBannerNotice(`Đã tải tệp JSON cho ${activeTemplate.code}`);
-  }
+  function renderCvSectionBlock(sectionId: CvSectionId) {
+    if (hiddenSections[sectionId]) return null;
+    const isFocused = activeSectionFocus === sectionId;
 
-  async function copyFormText() {
-    const lines = [
-      `${activeTemplate.code} — ${activeTemplate.title}`,
-      `Kính gửi: ${activeTemplate.recipient}`,
-      ...activeTemplate.fields.map(
-        (field) => `${field.label}: ${activeDraftValues[field.key] ?? ""}`,
-      ),
-    ];
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setBannerNotice("Đã sao chép nội dung biểu mẫu");
-    } catch {
-      setBannerNotice("Không thể truy cập bộ nhớ tạm trên trình duyệt này");
+    if (sectionId === "objective") {
+      return (
+        <section
+          key="objective"
+          className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+          onClick={() => setActiveSectionFocus("objective")}
+        >
+          {renderSectionToolbar("objective", () => void rewriteObjectiveWithAi())}
+          <header className="pf-cv-block-head">
+            <input
+              type="text"
+              className="cv-section-title-input"
+              value={sectionTitles.objective}
+              onChange={(e) =>
+                setSectionTitles((prev) => ({ ...prev, objective: e.target.value }))
+              }
+              aria-label="Tiêu đề mục Mục tiêu nghề nghiệp"
+            />
+            <span>Click để sửa trực tiếp hoặc dùng AI</span>
+          </header>
+          <textarea
+            className="pf-cv-objective-input"
+            rows={4}
+            value={currentCareerObjective}
+            onChange={(e) => setCareerObjectiveText(e.target.value)}
+            aria-label="Nội dung mục tiêu nghề nghiệp trên CV"
+          />
+        </section>
+      );
     }
+
+    if (sectionId === "education") {
+      return (
+        <section
+          key="education"
+          className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+          onClick={() => setActiveSectionFocus("education")}
+        >
+          {renderSectionToolbar("education")}
+          <header className="pf-cv-block-head">
+            <input
+              type="text"
+              className="cv-section-title-input"
+              value={sectionTitles.education}
+              onChange={(e) =>
+                setSectionTitles((prev) => ({ ...prev, education: e.target.value }))
+              }
+              aria-label="Tiêu đề mục Học vấn"
+            />
+            <span>2022 – 2026</span>
+          </header>
+          <div className="pf-cv-edu-row">
+            <div>
+              <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
+              <p>
+                Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
+              </p>
+            </div>
+            <code>
+              GPA {overallGpa.value.toFixed(2)}/4.0 · {earnedCredits}/{program.requiredCredits} TC
+            </code>
+          </div>
+          <div className="pf-cv-top-courses">
+            <span className="pf-cv-sublabel">Học phần cốt lõi đạt điểm cao (Xác thực từ SDU):</span>
+            <div className="pf-course-pills">
+              {topCourses.map((course) => (
+                <span key={course.code} className="pf-course-tag">
+                  <code>{course.code}</code> {course.name}:{" "}
+                  <strong>{course.score10.toFixed(1)}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "projects") {
+      return (
+        <section
+          key="projects"
+          className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+          onClick={() => setActiveSectionFocus("projects")}
+        >
+          {renderSectionToolbar(
+            "projects",
+            () => void rewriteProjectWithAi(0),
+            () =>
+              setCvProjects((prev) => [
+                ...prev,
+                {
+                  id: `proj-custom-${Date.now()}`,
+                  title: "Dự án cá nhân / Bài tập lớn mới",
+                  courseCode: "SDU-PRJ",
+                  semester: semester.short,
+                  role: "Thành viên phát triển chính",
+                  score: "9.0 / 10",
+                  summary:
+                    "Mô tả ngắn gọn bài toán, giải pháp kỹ thuật đã triển khai và kết quả đạt được.",
+                  techStack: "TypeScript · React · SQL",
+                  artifactUrl: "",
+                },
+              ]),
+          )}
+          <header className="pf-cv-block-head">
+            <input
+              type="text"
+              className="cv-section-title-input"
+              value={sectionTitles.projects}
+              onChange={(e) =>
+                setSectionTitles((prev) => ({ ...prev, projects: e.target.value }))
+              }
+              aria-label="Tiêu đề mục Dự án"
+            />
+            <span>{cvProjects.length} dự án</span>
+          </header>
+          <div className="pf-cv-projects">
+            {cvProjects.map((proj, idx) => (
+              <article key={proj.id} className="pf-cv-project-item">
+                <div className="pf-cv-project-head">
+                  <div className="cv-proj-title-wrap">
+                    <input
+                      type="text"
+                      className="cv-inline-input is-strong"
+                      value={proj.title}
+                      onChange={(e) =>
+                        setCvProjects((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, title: e.target.value } : item,
+                          ),
+                        )
+                      }
+                      aria-label={`Tên dự án ${idx + 1}`}
+                    />
+                    <div className="cv-proj-sub-inputs">
+                      <input
+                        type="text"
+                        className="cv-inline-input is-sub"
+                        value={proj.role}
+                        onChange={(e) =>
+                          setCvProjects((prev) =>
+                            prev.map((item, i) =>
+                              i === idx ? { ...item, role: e.target.value } : item,
+                            ),
+                          )
+                        }
+                        aria-label={`Vai trò dự án ${idx + 1}`}
+                      />
+                      <span>·</span>
+                      <code>{proj.courseCode}</code>
+                    </div>
+                  </div>
+                  <div className="cv-proj-actions-right">
+                    <input
+                      type="text"
+                      className="pf-cv-project-score cv-score-input"
+                      value={proj.score}
+                      onChange={(e) =>
+                        setCvProjects((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, score: e.target.value } : item,
+                          ),
+                        )
+                      }
+                      aria-label={`Điểm dự án ${idx + 1}`}
+                    />
+                    <button
+                      type="button"
+                      className="cv-mini-icon-btn"
+                      onClick={() => void rewriteProjectWithAi(idx)}
+                      disabled={aiGenerating}
+                      title="Dùng AI viết lại mô tả dự án này theo chuẩn STAR"
+                    >
+                      <Icon name="sparkle" />
+                    </button>
+                    {cvProjects.length > 1 && (
+                      <button
+                        type="button"
+                        className="cv-mini-icon-btn is-danger"
+                        onClick={() =>
+                          setCvProjects((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        title="Xóa dự án này khỏi CV"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <textarea
+                  className="cv-inline-textarea"
+                  rows={2}
+                  value={proj.summary}
+                  onChange={(e) =>
+                    setCvProjects((prev) =>
+                      prev.map((item, i) =>
+                        i === idx ? { ...item, summary: e.target.value } : item,
+                      ),
+                    )
+                  }
+                  aria-label={`Mô tả dự án ${idx + 1}`}
+                />
+                <div className="pf-cv-project-meta">
+                  <input
+                    type="text"
+                    className="cv-inline-input is-mono"
+                    value={proj.techStack}
+                    onChange={(e) =>
+                      setCvProjects((prev) =>
+                        prev.map((item, i) =>
+                          i === idx ? { ...item, techStack: e.target.value } : item,
+                        ),
+                      )
+                    }
+                    placeholder="Công nghệ sử dụng..."
+                    aria-label={`Công nghệ dự án ${idx + 1}`}
+                  />
+                  <input
+                    type="text"
+                    className="cv-inline-input is-link"
+                    value={proj.artifactUrl}
+                    onChange={(e) =>
+                      setCvProjects((prev) =>
+                        prev.map((item, i) =>
+                          i === idx ? { ...item, artifactUrl: e.target.value } : item,
+                        ),
+                      )
+                    }
+                    placeholder="+ Dán link GitHub / Demo..."
+                    aria-label={`Link demo dự án ${idx + 1}`}
+                  />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "skills") {
+      return (
+        <section
+          key="skills"
+          className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+          onClick={() => setActiveSectionFocus("skills")}
+        >
+          {renderSectionToolbar("skills", undefined, () =>
+            setCvSkillGroups((prev) => [
+              ...prev,
+              {
+                id: `sk-custom-${Date.now()}`,
+                group: "Nhóm kỹ năng mới",
+                items: "Kỹ năng 1, Kỹ năng 2",
+              },
+            ]),
+          )}
+          <header className="pf-cv-block-head">
+            <input
+              type="text"
+              className="cv-section-title-input"
+              value={sectionTitles.skills}
+              onChange={(e) =>
+                setSectionTitles((prev) => ({ ...prev, skills: e.target.value }))
+              }
+              aria-label="Tiêu đề mục Kỹ năng"
+            />
+            <span>{selectedTrack.shortLabel}</span>
+          </header>
+          <div className="pf-skill-groups">
+            {cvSkillGroups.map((group, idx) => (
+              <div key={group.id} className="pf-skill-row cv-editable-skill-row">
+                <div className="cv-skill-row-head">
+                  <input
+                    type="text"
+                    className="cv-inline-input is-label"
+                    value={group.group}
+                    onChange={(e) =>
+                      setCvSkillGroups((prev) =>
+                        prev.map((g, i) =>
+                          i === idx ? { ...g, group: e.target.value } : g,
+                        ),
+                      )
+                    }
+                    aria-label={`Tên nhóm kỹ năng ${idx + 1}`}
+                  />
+                  {cvSkillGroups.length > 1 && (
+                    <button
+                      type="button"
+                      className="cv-mini-icon-btn is-danger"
+                      onClick={() =>
+                        setCvSkillGroups((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      title="Xóa nhóm kỹ năng"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  className="cv-inline-input is-skill-items"
+                  value={group.items}
+                  onChange={(e) =>
+                    setCvSkillGroups((prev) =>
+                      prev.map((g, i) =>
+                        i === idx ? { ...g, items: e.target.value } : g,
+                      ),
+                    )
+                  }
+                  aria-label={`Danh sách kỹ năng ${idx + 1}`}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "certs") {
+      return (
+        <section
+          key="certs"
+          className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+          onClick={() => setActiveSectionFocus("certs")}
+        >
+          {renderSectionToolbar("certs", undefined, () =>
+            setCvCerts((prev) => [
+              ...prev,
+              {
+                id: `cert-${Date.now()}`,
+                title: "Chứng chỉ / Giải thưởng mới",
+                detail: "Cơ quan cấp · Năm cấp",
+              },
+            ]),
+          )}
+          <header className="pf-cv-block-head">
+            <input
+              type="text"
+              className="cv-section-title-input"
+              value={sectionTitles.certs}
+              onChange={(e) =>
+                setSectionTitles((prev) => ({ ...prev, certs: e.target.value }))
+              }
+              aria-label="Tiêu đề mục Chứng chỉ"
+            />
+          </header>
+          <ul className="pf-cv-compact-list">
+            {cvCerts.map((cert, idx) => (
+              <li key={cert.id} className="cv-editable-list-item">
+                <input
+                  type="text"
+                  className="cv-inline-input is-strong"
+                  value={cert.title}
+                  onChange={(e) =>
+                    setCvCerts((prev) =>
+                      prev.map((c, i) =>
+                        i === idx ? { ...c, title: e.target.value } : c,
+                      ),
+                    )
+                  }
+                  aria-label={`Tên chứng chỉ ${idx + 1}`}
+                />
+                <input
+                  type="text"
+                  className="cv-inline-input is-sub"
+                  value={cert.detail}
+                  onChange={(e) =>
+                    setCvCerts((prev) =>
+                      prev.map((c, i) =>
+                        i === idx ? { ...c, detail: e.target.value } : c,
+                      ),
+                    )
+                  }
+                  aria-label={`Chi tiết chứng chỉ ${idx + 1}`}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    return (
+      <section
+        key="activities"
+        className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
+        onClick={() => setActiveSectionFocus("activities")}
+      >
+        {renderSectionToolbar("activities", undefined, () =>
+          setCvActivities((prev) => [
+            ...prev,
+            {
+              id: `act-${Date.now()}`,
+              title: "Hoạt động tình nguyện / CLB",
+              detail: "Vai trò · Kết quả đóng góp",
+            },
+          ]),
+        )}
+        <header className="pf-cv-block-head">
+          <input
+            type="text"
+            className="cv-section-title-input"
+            value={sectionTitles.activities}
+            onChange={(e) =>
+              setSectionTitles((prev) => ({ ...prev, activities: e.target.value }))
+            }
+            aria-label="Tiêu đề mục Hoạt động"
+          />
+        </header>
+        <ul className="pf-cv-compact-list">
+          {cvActivities.map((act, idx) => (
+            <li key={act.id} className="cv-editable-list-item">
+              <input
+                type="text"
+                className="cv-inline-input is-strong"
+                value={act.title}
+                onChange={(e) =>
+                  setCvActivities((prev) =>
+                    prev.map((a, i) =>
+                      i === idx ? { ...a, title: e.target.value } : a,
+                    ),
+                  )
+                }
+                aria-label={`Tên hoạt động ${idx + 1}`}
+              />
+              <input
+                type="text"
+                className="cv-inline-input is-sub"
+                value={act.detail}
+                onChange={(e) =>
+                  setCvActivities((prev) =>
+                    prev.map((a, i) =>
+                      i === idx ? { ...a, detail: e.target.value } : a,
+                    ),
+                  )
+                }
+                aria-label={`Chi tiết hoạt động ${idx + 1}`}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
   }
 
-  const activeClubsList = clubs.filter((c) => joinedClubs.includes(c.id));
-  const cvTemplate = baseTemplates[0]!;
+  const artboardCssVars = {
+    "--cv-accent": accentColor,
+    transform: zoomPct === 100 ? undefined : `scale(${zoomPct / 100})`,
+    transformOrigin: "top center",
+  } as CSSProperties;
 
   return (
     <>
       <DemoBanner />
 
       <PageTitle
-        title="Hồ sơ của bạn"
-        lead="Thư viện mẫu CV theo vị trí công việc (chuẩn TopCV), kết hợp Trợ lý AI viết mục tiêu nghề nghiệp từ dữ liệu học tập thực tế"
+        title="Không gian thiết kế CV bằng AI"
+        lead="Tùy chỉnh bố cục, màu sắc, thứ tự mục trực tiếp trên trang A4 như Canva — tích hợp AI đọc dữ liệu học tập để tự sắp xếp, điền CV và đề xuất nâng cấp"
       >
         <div className="pf-top-actions">
           <button
             type="button"
-            className="button button-primary button-sm"
-            onClick={() => exportFormAsWordDoc(cvTemplate)}
+            className="button button-primary"
+            onClick={() => void runAiAutoArrangeAndFillAll()}
+            disabled={aiSortingAndFilling || aiGenerating}
           >
-            <Icon name="file" /> Tải CV Word (.doc)
+            <Icon name="sparkle" />
+            <span>
+              {aiSortingAndFilling
+                ? "AI đang sắp xếp & điền CV…"
+                : "AI Tự đọc hồ sơ & Điền toàn bộ CV"}
+            </span>
           </button>
           <button
             type="button"
-            className="button button-outline button-sm"
-            onClick={() => openTemplateInStudio("tpl-internship-cv")}
+            className="button button-outline"
+            onClick={exportLiveCvToWordDoc}
           >
-            <Icon name="pen" /> Mở khung chỉnh sửa biểu mẫu
+            <Icon name="download" />
+            <span>Tải CV Word (.doc)</span>
           </button>
           <button
             type="button"
-            className="button button-outline button-sm"
+            className="button button-quiet"
             onClick={() => window.print()}
           >
-            In / Lưu PDF A4
+            <span>In / Xuất PDF A4</span>
           </button>
         </div>
       </PageTitle>
 
       {bannerNotice && (
-        <div className="notice ok" role="status">
+        <div className="notice ok" role="status" style={{ marginBottom: 16 }}>
           <Icon name="checkCircle" />
           <div>
-            <strong>Đồng bộ hồ sơ & CV</strong>
+            <strong>Trợ lý Thiết kế CV AI</strong>
             <p>{bannerNotice}</p>
           </div>
           <button
@@ -869,472 +1632,715 @@ export default function StudentPortfolioPage() {
         </div>
       )}
 
-      {/* Step 1: Choose CV Template Style & Job Position (Inspired by TopCV mau-cv-theo-vi-tri-cong-viec) */}
-      <section className="pf-gallery-bar" aria-label="Chọn mẫu thiết kế CV và vị trí công việc">
-        <div className="pf-gallery-row">
-          <div className="pf-gallery-head">
-            <span className="pf-section-eyebrow">1. Chọn kiểu bố cục CV (4 phong cách chuẩn TopCV)</span>
-          </div>
-          <div className="pf-style-grid" role="tablist" aria-label="Phong cách thiết kế CV">
-            {cvLayoutStyles.map((style) => {
-              const active = style.id === cvStyleId;
-              return (
-                <button
-                  key={style.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`pf-style-card${active ? " is-active" : ""}`}
-                  onClick={() => setCvStyleId(style.id)}
-                >
-                  <div className="pf-style-card-top">
-                    <strong>{style.name}</strong>
-                    <code>{style.tag}</code>
-                  </div>
-                  <p>{style.summary}</p>
-                </button>
-              );
-            })}
-          </div>
+      {/* ====================================================================
+          CANVA-STYLE TOP TOOLBAR
+          ==================================================================== */}
+      <div className="cv-canva-topbar" role="toolbar" aria-label="Thanh công cụ thiết kế CV">
+        <div className="cv-topbar-left">
+          <span className="cv-topbar-badge">SDU CV Studio</span>
+          <input
+            type="text"
+            className="cv-doc-title-input"
+            value={cvTitle}
+            onChange={(e) => setCvTitle(e.target.value)}
+            aria-label="Tên file CV"
+          />
+          <span className="cv-autosave-pill">
+            <i aria-hidden="true" /> Đã đồng bộ dữ liệu SDU
+          </span>
         </div>
 
-        <div className="pf-gallery-row">
-          <div className="pf-gallery-head">
-            <span className="pf-section-eyebrow">
-              2. Chọn mẫu CV theo vị trí công việc ({jobRoleTracks.length} vị trí thực tập & fresher)
-            </span>
+        <div className="cv-topbar-center">
+          <div className="cv-swatch-bar" role="group" aria-label="Màu chủ đạo CV">
+            {cvColorSwatches.map((sw) => (
+              <button
+                key={sw.id}
+                type="button"
+                className={`cv-color-dot${accentColor.toLowerCase() === sw.hex.toLowerCase() ? " is-active" : ""}`}
+                style={{ backgroundColor: sw.hex }}
+                onClick={() => setAccentColor(sw.hex)}
+                title={`Màu chủ đạo: ${sw.label}`}
+                aria-label={sw.label}
+              />
+            ))}
+            <label className="cv-color-picker-label" title="Chọn mã màu tùy ý">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                aria-label="Chọn màu tùy chỉnh"
+              />
+              <span>Màu khác</span>
+            </label>
           </div>
-          <div className="pf-role-pills" role="tablist" aria-label="Mẫu CV theo vị trí công việc">
-            {jobRoleTracks.map((track) => {
-              const active = track.id === selectedTrack.id;
-              return (
-                <button
-                  key={track.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`pf-role-pill${active ? " is-active" : ""}`}
-                  onClick={() => handleSelectRoleTrack(track)}
-                >
-                  <span className="pf-role-sector">{track.sector}</span>
-                  <strong>{track.shortLabel}</strong>
-                </button>
-              );
-            })}
-          </div>
+
+          <select
+            className="cv-topbar-select"
+            value={fontPair}
+            onChange={(e) => setFontPair(e.target.value as CvFontPairId)}
+            aria-label="Phông chữ CV"
+          >
+            <option value="sans">Font: Hiện đại (Plus Jakarta)</option>
+            <option value="serif">Font: Cổ điển Harvard (Serif)</option>
+            <option value="mono-tech">Font: Kỹ thuật số (Tech Mono)</option>
+          </select>
+
+          <select
+            className="cv-topbar-select"
+            value={density}
+            onChange={(e) => setDensity(e.target.value as CvDensityId)}
+            aria-label="Độ thoáng dòng"
+          >
+            <option value="compact">Khoảng cách: Thu gọn</option>
+            <option value="normal">Khoảng cách: Chuẩn A4</option>
+            <option value="airy">Khoảng cách: Thoáng rộng</option>
+          </select>
         </div>
-      </section>
 
-      {/* Main Split: Live TopCV-Style Resume Preview (Left) + AI Career Objective & Job Readiness (Right) */}
-      <div className="pf-cv-workspace">
-        {/* Left: Printable, Recruiter-Ready Student CV Sheet */}
-        <article
-          className={`pf-cv-sheet is-layout-${cvStyleId}`}
-          aria-label="Bản xem trước CV ứng tuyển theo vị trí công việc"
-        >
-          <header className="pf-cv-header">
-            <div className="pf-dossier-identity">
-              <div className="pf-dossier-avatar" aria-hidden="true">
-                {avatarUrl && account.role !== "teacher" ? (
-                  <img src={avatarUrl} alt="" />
-                ) : (
-                  <span>{initials(studentIdentity.displayName)}</span>
-                )}
-              </div>
-              <div className="pf-dossier-meta">
-                <span className="pf-record-id">
-                  {selectedLayout.name} · Mã xác thực{" "}
-                  <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
-                </span>
-                <h2>{studentIdentity.displayName}</h2>
-                <p className="pf-cv-role">{selectedTrack.roleTitle}</p>
-              </div>
-            </div>
+        <div className="cv-topbar-right">
+          <div className="cv-zoom-controls" role="group" aria-label="Thu phóng trang A4">
+            <button
+              type="button"
+              onClick={() => setZoomPct((z) => Math.max(80, z - 10))}
+              title="Thu nhỏ"
+            >
+              −
+            </button>
+            <span>{zoomPct}%</span>
+            <button
+              type="button"
+              onClick={() => setZoomPct((z) => Math.min(115, z + 10))}
+              title="Phóng to"
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            className="button button-quiet button-sm"
+            onClick={() => focusStudioWithTemplate("tpl-onestop-service")}
+          >
+            Biểu mẫu Một cửa
+          </button>
+        </div>
+      </div>
 
-            <div className="pf-score-stamp">
-              <span className="pf-score-label">GPA tích lũy</span>
-              <strong className="pf-score-value">
-                {overallGpa.value.toFixed(2)}
-                <small>/4.0</small>
-              </strong>
-              <span className="pf-score-delta">Xếp loại {standingText}</span>
-            </div>
-          </header>
+      {/* ====================================================================
+          CANVA STUDIO MAIN WORKSPACE (LEFT DOCK + DRAWER + RIGHT A4 STAGE)
+          ==================================================================== */}
+      <div className={`cv-canva-workspace${drawerOpen ? "" : " is-drawer-collapsed"}`}>
+        {/* 1. Left Icon Rail (Canva Dock) */}
+        <nav className="cv-dock-rail" aria-label="Bảng công cụ thiết kế CV">
+          {(
+            [
+              { id: "ai", icon: "sparkle", label: "Trợ lý AI" },
+              { id: "templates", icon: "briefcase", label: "Mẫu CV" },
+              { id: "design", icon: "image", label: "Giao diện" },
+              { id: "sections", icon: "file", label: "Thứ tự mục" },
+              { id: "data", icon: "award", label: "Dữ liệu SDU" },
+            ] as const
+          ).map((tab) => {
+            const active = drawerOpen && dockTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`cv-dock-btn${active ? " is-active" : ""}`}
+                onClick={() => {
+                  if (dockTab === tab.id) {
+                    setDrawerOpen((o) => !o);
+                  } else {
+                    setDockTab(tab.id);
+                    setDrawerOpen(true);
+                  }
+                }}
+              >
+                <Icon name={tab.icon} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-          {/* Contact & Verification Bar */}
-          <dl className="pf-cv-contact">
-            <div>
-              <dt>Email</dt>
-              <dd>{studentIdentity.email}</dd>
-            </div>
-            <div>
-              <dt>Điện thoại</dt>
-              <dd>{studentIdentity.phone}</dd>
-            </div>
-            <div>
-              <dt>Lớp & Khoa</dt>
-              <dd>
-                {studentIdentity.cohortClass} · {studentIdentity.department}
-              </dd>
-            </div>
-            <div>
-              <dt>Địa điểm</dt>
-              <dd>Chí Linh, Hải Dương (Thực tập Hà Nội / Hải Dương / Bắc Ninh)</dd>
-            </div>
-          </dl>
-
-          <div className="pf-cv-body-grid">
-            {/* Sidebar column (used in 2-column Modern Split layout, flows naturally in 1-column layouts) */}
-            <div className="pf-cv-side-col">
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Kỹ năng chuyên môn</h3>
-                  <span>{selectedTrack.shortLabel}</span>
+        {/* 2. Left Contextual Drawer Panel */}
+        {drawerOpen && (
+          <aside className="cv-dock-drawer" aria-label="Khung tùy chỉnh chi tiết">
+          {dockTab === "ai" && (
+            <div className="cv-drawer-pane">
+              <header className="cv-drawer-head">
+                <div>
+                  <span className="pf-section-eyebrow">Trợ lý AI & Đề xuất thông minh</span>
+                  <h3>Tự động đọc hồ sơ & Sắp xếp CV</h3>
                 </div>
-                <div className="pf-skill-groups">
-                  {selectedTrack.cvSkills.map((grp) => (
-                    <div key={grp.group} className="pf-skill-row">
-                      <span className="pf-skill-label">{grp.group}</span>
-                      <div className="pf-skill-items">
-                        {grp.items.map((item) => (
-                          <span key={item} className="pf-skill-chip">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                <Link href={"/student/ai" as Route} className="pf-rank-tag">
+                  Chat AI
+                </Link>
+              </header>
 
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Chứng chỉ & Ngoại ngữ</h3>
-                  <span>Đã xác thực</span>
-                </div>
-                <ul className="pf-cv-compact-list">
-                  <li>
-                    <strong>Chuẩn Ngoại ngữ B1</strong>
-                    <span>Tiếng Anh 1 (8.0) · Tiếng Anh 2 (8.9 - Điểm A)</span>
-                  </li>
-                  <li>
-                    <strong>Kỷ luật & Chuyên cần Lab</strong>
-                    <span>{attendancePct}% tiết có mặt ({totalAttended}/{totalPeriods} tiết)</span>
-                  </li>
-                  <li>
-                    <strong>Điểm rèn luyện học kỳ</strong>
-                    <span>{conduct.score}/100 điểm · Xếp loại {conduct.rank}</span>
-                  </li>
-                </ul>
-              </section>
+              <p className="pf-ai-desc">
+                AI phân tích bảng điểm (<code>GPA {overallGpa.value.toFixed(2)}</code>), 2 đồ án thực hành phòng Lab và vị trí bạn chọn để tự sắp xếp thứ tự mục, điền nội dung và gợi ý nâng cấp CV.
+              </p>
 
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Hoạt động & Giải thưởng</h3>
-                  <span>{activeClubsList.length} CLB</span>
-                </div>
-                <ul className="pf-cv-compact-list">
-                  <li>
-                    <strong>Ban chuyên môn — CLB Tin học Sao Đỏ</strong>
-                    <span>Phụ đạo Cấu trúc dữ liệu & xây dựng kho bài mẫu C++20</span>
-                  </li>
-                  <li>
-                    <strong>Tình nguyện & Cộng đồng</strong>
-                    <span>Hiến máu &ldquo;Giọt hồng Sao Đỏ&rdquo; · Chủ nhật xanh KTX</span>
-                  </li>
-                </ul>
-              </section>
-            </div>
-
-            {/* Main column: Career Objective + Education + Verified Projects */}
-            <div className="pf-cv-main-col">
-              {/* Career Objective Section (with live AI rewrite) */}
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Mục tiêu nghề nghiệp</h3>
-                  <span>{aiGenerating ? "Trợ lý AI đang viết…" : "Có thể chỉnh sửa trực tiếp"}</span>
-                </div>
-                <textarea
-                  className="pf-cv-objective-input"
-                  rows={4}
-                  value={currentCareerObjective}
-                  onChange={(e) => setCareerObjectiveText(e.target.value)}
-                  aria-label="Mục tiêu nghề nghiệp trên CV"
-                />
-              </section>
-
-              {/* Education & Verified Academic Standing */}
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Học vấn & Thành tích học thuật</h3>
-                  <span>2022 – 2026</span>
-                </div>
-                <div className="pf-cv-edu-row">
-                  <div>
-                    <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
-                    <p>
-                      Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
-                    </p>
-                  </div>
-                  <code>
-                    GPA {overallGpa.value.toFixed(2)}/4.0 · {earnedCredits}/{program.requiredCredits} TC
-                  </code>
-                </div>
-
-                <div className="pf-cv-top-courses">
-                  <span className="pf-cv-sublabel">Học phần cốt lõi đạt điểm cao:</span>
-                  <div className="pf-course-pills">
-                    {topCourses.map((c) => (
-                      <span key={c.code} className="pf-course-tag">
-                        <code>{c.code}</code> {c.name}: <strong>{c.score10.toFixed(1)}</strong>
-                      </span>
+              <div className="pf-ai-controls">
+                <label className="field">
+                  Vị trí công việc mục tiêu
+                  <select
+                    value={roleTrackId}
+                    onChange={(e) => {
+                      const found = jobRoleTracks.find((r) => r.id === e.target.value);
+                      if (found) selectJobRoleTrack(found);
+                    }}
+                  >
+                    {jobRoleTracks.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.sector} — {role.shortLabel}
+                      </option>
                     ))}
-                  </div>
-                </div>
-              </section>
+                  </select>
+                </label>
 
-              {/* Verified Projects */}
-              <section className="pf-cv-block">
-                <div className="pf-cv-block-head">
-                  <h3>Kinh nghiệm dự án & Đồ án thực hành</h3>
-                  <span>Giảng viên bộ môn xác nhận</span>
-                </div>
-                <div className="pf-cv-projects">
-                  {portfolioProjects.map((proj) => (
-                    <div key={proj.id} className="pf-cv-project-item">
-                      <div className="pf-cv-project-head">
-                        <div>
-                          <strong>{proj.title}</strong>
-                          <span className="pf-cv-project-role">
-                            {proj.role} · <code>{proj.courseCode}</code>
-                          </span>
-                        </div>
-                        <code className="pf-cv-project-score">{proj.score}</code>
-                      </div>
-                      <p>{proj.highlight}</p>
-                      <div className="pf-cv-project-meta">
-                        <span>Công nghệ: {proj.stack.join(", ")}</span>
-                        <span>Xác nhận: {proj.verifiedBy}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </div>
+                <label className="field">
+                  Công ty hoặc yêu cầu JD cụ thể (tùy chọn)
+                  <input
+                    type="text"
+                    value={customCompanyHint}
+                    onChange={(e) => setCustomCompanyHint(e.target.value)}
+                    placeholder="Ví dụ: FPT Software, Viettel, yêu cầu SQL..."
+                  />
+                </label>
 
-          <footer className="pf-quick-export-bar" aria-label="Chọn nhanh biểu mẫu cần xuất">
-            <span className="pf-quick-export-label">Xuất hồ sơ sang form để sửa:</span>
-            <div className="pf-export-links">
-              <button
-                type="button"
-                className="pf-export-btn"
-                onClick={() => openTemplateInStudio("tpl-internship-cv")}
-              >
-                Mẫu 01 · CV Thực tập
-              </button>
-              <button
-                type="button"
-                className="pf-export-btn"
-                onClick={() => openTemplateInStudio("tpl-scholarship")}
-              >
-                Mẫu 02 · Xét Học bổng
-              </button>
-              <button
-                type="button"
-                className="pf-export-btn"
-                onClick={() => openTemplateInStudio("tpl-profile-correction")}
-              >
-                Mẫu 03 · Sửa hồ sơ gốc
-              </button>
-              <button
-                type="button"
-                className="pf-export-btn"
-                onClick={() => openTemplateInStudio("tpl-onestop-service")}
-              >
-                Mẫu 04 · Xin giấy xác nhận
-              </button>
-            </div>
-          </footer>
-        </article>
+                <label className="field">
+                  Giọng văn Mục tiêu nghề nghiệp
+                  <select
+                    value={aiFocus}
+                    onChange={(e) => setAiFocus(e.target.value as typeof aiFocus)}
+                  >
+                    <option value="ats">Chuẩn TopCV / ATS (Ngắn gọn, súc tích)</option>
+                    <option value="project">Nhấn mạnh Đồ án & Chỉ số định lượng</option>
+                    <option value="intern">Cầu thị, kỷ luật Lab & cam kết thực tập</option>
+                    <option value="fresher">Định hướng lên Kỹ sư Fresher chính thức</option>
+                  </select>
+                </label>
 
-        {/* Right Column: AI Career Objective Generator + Job Readiness Checklist */}
-        <aside className="pf-side-column" aria-label="Trợ lý AI viết Mục tiêu nghề nghiệp và kiểm tra CV">
-          <section className="pf-ai-card">
-            <div className="pf-radar-card-head">
-              <div>
-                <span className="pf-section-eyebrow">Tích hợp Trợ lý AI học tập SDU</span>
-                <h3>AI viết Mục tiêu nghề nghiệp</h3>
-              </div>
-              <Link href="/student/ai" className="pf-rank-tag">
-                Mở Trợ lý AI
-              </Link>
-            </div>
-
-            <p className="pf-ai-desc">
-              Sử dụng hệ thống AI sẵn có để tổng hợp GPA ({overallGpa.value.toFixed(2)}/4.0), đồ án
-              phòng Lab và vị trí <strong>{selectedTrack.shortLabel}</strong> thành đoạn Mục tiêu
-              nghề nghiệp chuẩn TopCV.
-            </p>
-
-            <div className="pf-ai-controls">
-              <label className="field">
-                <span>Phong cách viết Mục tiêu nghề nghiệp</span>
-                <select
-                  value={aiFocus}
-                  onChange={(e) => setAiFocus(e.target.value as AiFocusStyle)}
-                >
-                  {aiFocusOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Công ty hoặc yêu cầu JD cụ thể (tùy chọn)</span>
-                <input
-                  type="text"
-                  value={customCompanyHint}
-                  onChange={(e) => setCustomCompanyHint(e.target.value)}
-                  placeholder="Ví dụ: FPT Software, Viettel, yêu cầu biết SQL & Git…"
-                />
-              </label>
-
-              <div className="pf-ai-btn-row">
                 <button
                   type="button"
-                  className="button button-primary button-sm"
-                  disabled={aiGenerating}
-                  onClick={() => void generateCareerObjectiveWithAi()}
+                  className="button button-primary cv-full-btn"
+                  onClick={() => void runAiAutoArrangeAndFillAll()}
+                  disabled={aiSortingAndFilling || aiGenerating}
                 >
                   <Icon name="sparkle" />
                   <span>
-                    {aiGenerating
-                      ? "Đang viết mục tiêu nghề nghiệp…"
-                      : "Dùng AI tạo Mục tiêu nghề nghiệp"}
+                    {aiSortingAndFilling
+                      ? "Đang phân tích & sắp xếp CV…"
+                      : "AI Tự sắp xếp bố cục & Điền toàn bộ CV"}
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="button button-quiet button-xs"
-                  onClick={() => setCareerObjectiveText(selectedTrack.defaultObjective)}
-                >
-                  Khôi phục mẫu chuẩn
-                </button>
+
+                <div className="cv-ai-quick-btns">
+                  <button
+                    type="button"
+                    className="pf-export-btn"
+                    onClick={() => void rewriteObjectiveWithAi()}
+                    disabled={aiGenerating}
+                  >
+                    Viết lại Mục tiêu
+                  </button>
+                  <button
+                    type="button"
+                    className="pf-export-btn"
+                    onClick={() => void rewriteProjectWithAi(0)}
+                    disabled={aiGenerating}
+                  >
+                    Tối ưu Đồ án STAR
+                  </button>
+                </div>
+
+                {aiStatusText && <p className="pf-ai-note">{aiStatusText}</p>}
               </div>
 
-              {aiError && <p className="pf-ai-note">{aiError}</p>}
-            </div>
-          </section>
-
-          <section className="pf-readiness-card">
-            <div className="pf-radar-card-head">
-              <div>
-                <span className="pf-section-eyebrow">Đối chiếu yêu cầu tuyển dụng</span>
-                <h3>Checklist hồ sơ vị trí {selectedTrack.shortLabel}</h3>
-              </div>
-              <code className="pf-rank-tag">{selectedTrack.matchCount}</code>
-            </div>
-
-            <div className="pf-verdict-box">
-              <strong>Nhận xét khách quan từ dữ liệu học tập</strong>
-              <p>{selectedTrack.recruiterVerdict}</p>
-            </div>
-
-            <ul className="pf-checklist">
-              {selectedTrack.checklist.map((item) => (
-                <li key={item.label} className={`pf-check-item is-${item.status}`}>
-                  <span className="pf-check-dot" aria-hidden="true" />
-                  <div className="pf-check-body">
-                    <div className="pf-check-head">
-                      <strong>{item.label}</strong>
-                      <span className="pf-check-status">
-                        {item.status === "ready"
-                          ? "Đã đạt"
-                          : item.status === "missing"
-                            ? "Cần bổ sung"
-                            : "Khuyến nghị"}
-                      </span>
-                    </div>
-                    <p>{item.detail}</p>
-                    {item.templateId && item.actionLabel && (
+              <div className="cv-ai-suggestions-box">
+                <div className="cv-subhead-row">
+                  <strong>Đề xuất từ AI cho vị trí {selectedTrack.shortLabel}</strong>
+                  <span>{aiSuggestions.length} gợi ý</span>
+                </div>
+                <p className="cv-recruiter-note">{selectedTrack.recruiterVerdict}</p>
+                <div className="cv-suggestion-list">
+                  {aiSuggestions.map((sug) => (
+                    <article
+                      key={sug.id}
+                      className={`cv-suggestion-card${sug.applied ? " is-applied" : ""}`}
+                    >
+                      <div className="cv-sug-top">
+                        <strong>{sug.title}</strong>
+                        <span className="cv-sug-badge">
+                          {sug.applied ? "Đã áp dụng" : "Đề xuất AI"}
+                        </span>
+                      </div>
+                      <p>{sug.reason}</p>
                       <button
                         type="button"
                         className="pf-inline-link"
-                        onClick={() => openTemplateInStudio(item.templateId!)}
+                        onClick={() => applyAiSuggestion(sug)}
                       >
-                        {item.actionLabel} <Icon name="arrow" />
+                        <span>{sug.applied ? "Áp dụng lại" : sug.actionLabel}</span>
+                        <Icon name="arrowRight" />
                       </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="pf-readiness-card">
-            <div className="pf-radar-card-head">
-              <div>
-                <span className="pf-section-eyebrow">Góc nhìn khách quan đa chiều</span>
-                <h3>Điểm mạnh & điểm mù học thuật</h3>
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="pf-obs-stack">
-              {objectiveObservations.slice(0, 3).map((obs) => (
-                <article key={obs.id} className={`pf-obs-card is-${obs.tone}`}>
-                  <header className="pf-obs-head">
-                    <span className="pf-obs-badge">{obs.badge}</span>
-                    <code className="pf-obs-metric">{obs.metric}</code>
-                  </header>
-                  <h4>{obs.title}</h4>
-                  <p>{obs.summary}</p>
-                  <footer className="pf-obs-foot">
-                    <span>Nguồn: {obs.evidenceRef}</span>
+          {dockTab === "templates" && (
+            <div className="cv-drawer-pane">
+              <header className="cv-drawer-head">
+                <div>
+                  <span className="pf-section-eyebrow">Thư viện Mẫu CV</span>
+                  <h3>Chọn bố cục & Ngành nghề</h3>
+                </div>
+              </header>
+
+              <div className="cv-drawer-group">
+                <span className="cv-group-label">1. Kiểu bố cục trang A4 (4 mẫu)</span>
+                <div className="cv-vertical-cards">
+                  {cvLayoutStyles.map((style) => {
+                    const active = cvStyleId === style.id;
+                    return (
+                      <button
+                        key={style.id}
+                        type="button"
+                        className={`pf-style-card${active ? " is-active" : ""}`}
+                        onClick={() => selectCvLayout(style)}
+                      >
+                        <div className="pf-style-card-top">
+                          <strong>{style.name}</strong>
+                          <code>{style.tag}</code>
+                        </div>
+                        <p>{style.summary}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="cv-drawer-group">
+                <span className="cv-group-label">2. Mẫu nội dung theo vị trí công việc (6 ngành)</span>
+                <div className="cv-vertical-cards">
+                  {jobRoleTracks.map((role) => {
+                    const active = roleTrackId === role.id;
+                    return (
+                      <button
+                        key={role.id}
+                        type="button"
+                        className={`pf-role-pill${active ? " is-active" : ""}`}
+                        onClick={() => selectJobRoleTrack(role)}
+                      >
+                        <span className="pf-role-sector">{role.sector}</span>
+                        <strong>{role.shortLabel}</strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {dockTab === "design" && (
+            <div className="cv-drawer-pane">
+              <header className="cv-drawer-head">
+                <div>
+                  <span className="pf-section-eyebrow">Cá nhân hóa như Canva</span>
+                  <h3>Màu sắc, Phông chữ & Khung ảnh</h3>
+                </div>
+              </header>
+
+              <div className="cv-drawer-group">
+                <span className="cv-group-label">Bảng màu nhấn trên CV</span>
+                <div className="cv-palette-grid">
+                  {cvColorSwatches.map((sw) => (
+                    <button
+                      key={sw.id}
+                      type="button"
+                      className={`cv-palette-card${accentColor.toLowerCase() === sw.hex.toLowerCase() ? " is-active" : ""}`}
+                      onClick={() => setAccentColor(sw.hex)}
+                    >
+                      <span className="cv-palette-swatch" style={{ backgroundColor: sw.hex }} />
+                      <strong>{sw.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="cv-drawer-group">
+                <span className="cv-group-label">Kiểu hiển thị ảnh đại diện trên CV</span>
+                <div className="cv-segmented-2x2">
+                  {(
+                    [
+                      { id: "rounded", label: "Bo góc hiện đại" },
+                      { id: "circle", label: "Hình tròn" },
+                      { id: "square", label: "Vuông hồ sơ" },
+                      { id: "hidden", label: "Ẩn ảnh (ATS)" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`pf-export-btn${avatarShape === opt.id ? " is-selected-pill" : ""}`}
+                      onClick={() => setAvatarShape(opt.id)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="cv-drawer-group">
+                <span className="cv-group-label">Cặp phông chữ trình bày</span>
+                <div className="cv-vertical-cards">
+                  {(
+                    [
+                      {
+                        id: "sans",
+                        name: "Plus Jakarta Sans",
+                        desc: "Hiện đại, rõ ràng, phù hợp CV Công nghệ & Kỹ thuật",
+                      },
+                      {
+                        id: "serif",
+                        name: "Playfair & Serif cổ điển",
+                        desc: "Trang trọng chuẩn Harvard, phù hợp BA, Ngân hàng, Học bổng",
+                      },
+                      {
+                        id: "mono-tech",
+                        name: "JetBrains Mono Tech",
+                        desc: "Đậm chất Developer & Data Engineer",
+                      },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={`pf-style-card${fontPair === f.id ? " is-active" : ""}`}
+                      onClick={() => setFontPair(f.id)}
+                    >
+                      <strong>{f.name}</strong>
+                      <p>{f.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {dockTab === "sections" && (
+            <div className="cv-drawer-pane">
+              <header className="cv-drawer-head">
+                <div>
+                  <span className="pf-section-eyebrow">Quản lý cấu trúc CV</span>
+                  <h3>Sắp xếp thứ tự & Ẩn/Hiện mục</h3>
+                </div>
+              </header>
+              <p className="pf-ai-desc">
+                Đổi thứ tự ưu tiên hoặc đổi tên tiêu đề từng phần. Bạn cũng có thể bấm nút{" "}
+                <strong>AI Tự sắp xếp</strong> để AI xếp theo vị trí ứng tuyển.
+              </p>
+
+              <div className="cv-section-manager-list">
+                {sectionOrder.map((secId, idx) => {
+                  const isHidden = hiddenSections[secId];
+                  return (
+                    <div
+                      key={secId}
+                      className={`cv-sec-row${isHidden ? " is-muted" : ""}`}
+                    >
+                      <div className="cv-sec-row-top">
+                        <code>#{idx + 1}</code>
+                        <input
+                          type="text"
+                          value={sectionTitles[secId]}
+                          onChange={(e) =>
+                            setSectionTitles((prev) => ({
+                              ...prev,
+                              [secId]: e.target.value,
+                            }))
+                          }
+                          aria-label={`Đổi tên mục ${secId}`}
+                        />
+                      </div>
+                      <div className="cv-sec-row-actions">
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() => moveSection(secId, -1)}
+                          disabled={idx === 0}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() => moveSection(secId, 1)}
+                          disabled={idx === sectionOrder.length - 1}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() => toggleSectionVisibility(secId)}
+                        >
+                          {isHidden ? "Hiện lại" : "Ẩn mục"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {dockTab === "data" && (
+            <div className="cv-drawer-pane">
+              <header className="cv-drawer-head">
+                <div>
+                  <span className="pf-section-eyebrow">Kho dữ liệu xác thực SDU</span>
+                  <h3>Chèn nhanh dữ liệu học tập vào CV</h3>
+                </div>
+              </header>
+              <p className="pf-ai-desc">
+                Dữ liệu thật trích xuất từ Cổng đào tạo Đại học Sao Đỏ. Nhấp để chèn thêm vào CV của bạn:
+              </p>
+
+              <div className="cv-data-snippets">
+                {objectiveObservations.map((obs) => (
+                  <article key={obs.id} className="cv-data-card">
+                    <div className="pf-obs-head">
+                      <strong>{obs.title}</strong>
+                      <code className="pf-obs-metric">{obs.metric}</code>
+                    </div>
+                    <p>{obs.summary}</p>
                     <button
                       type="button"
                       className="pf-inline-link"
-                      onClick={() =>
-                        openTemplateInStudio(
-                          obs.suggestedFormId,
-                          obs.suggestedField
-                            ? {
-                                category: obs.suggestedField.category,
-                                fieldLabel: obs.suggestedField.fieldLabel,
-                                oldValue: obs.suggestedField.oldValue,
-                                newValue: obs.suggestedField.newValue,
-                                reason: obs.suggestedField.reason,
-                              }
-                            : undefined,
-                        )
-                      }
+                      onClick={() => {
+                        setCvCerts((prev) => [
+                          ...prev,
+                          {
+                            id: `cert-obs-${Date.now()}`,
+                            title: `${obs.title} (${obs.metric})`,
+                            detail: obs.evidenceRef,
+                          },
+                        ]);
+                        setBannerNotice(`Đã chèn minh chứng "${obs.title}" vào tờ CV.`);
+                      }}
                     >
-                      Đưa vào form <Icon name="arrow" />
+                      <span>+ Chèn minh chứng này vào CV</span>
                     </button>
-                  </footer>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
-          </section>
-        </aside>
+          )}
+          </aside>
+        )}
+
+        {/* 3. Right Interactive A4 Artboard Stage */}
+        <div className="cv-artboard-stage">
+          <article
+            className={`pf-cv-sheet cv-sheet-a4 is-layout-${cvStyleId} is-font-${fontPair} is-density-${density}`}
+            style={artboardCssVars}
+            aria-label="Trang giấy thiết kế CV A4 tương tác trực tiếp"
+          >
+            {/* CV Header with inline editable inputs */}
+            <header className="pf-cv-header">
+              <div className="pf-dossier-identity">
+                {avatarShape !== "hidden" && (
+                  <div className={`pf-dossier-avatar is-shape-${avatarShape}`}>
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={`Ảnh đại diện của ${headerFields.fullName}`}
+                      />
+                    ) : (
+                      <span>{initials(headerFields.fullName)}</span>
+                    )}
+                  </div>
+                )}
+                <div className="pf-dossier-meta">
+                  <span className="pf-record-id">
+                    {selectedLayout.name} · Mã xác thực SDU{" "}
+                    <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
+                  </span>
+                  <input
+                    type="text"
+                    className="cv-header-name-input"
+                    value={headerFields.fullName}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({ ...prev, fullName: e.target.value }))
+                    }
+                    aria-label="Họ và tên trên CV"
+                  />
+                  <input
+                    type="text"
+                    className="cv-header-role-input"
+                    value={headerFields.targetRole}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({ ...prev, targetRole: e.target.value }))
+                    }
+                    aria-label="Vị trí ứng tuyển trên CV"
+                  />
+                </div>
+              </div>
+
+              <div className="pf-score-stamp">
+                <span className="pf-score-label">GPA tích lũy xác thực</span>
+                <input
+                  type="text"
+                  className="cv-stamp-gpa-input"
+                  value={headerFields.gpaBadge}
+                  onChange={(e) =>
+                    setHeaderFields((prev) => ({ ...prev, gpaBadge: e.target.value }))
+                  }
+                  aria-label="GPA hiển thị trên CV"
+                />
+                <span className="pf-score-delta">{headerFields.standingBadge}</span>
+              </div>
+            </header>
+
+            {/* Editable Contact Strip */}
+            <dl className="pf-cv-contact">
+              <div>
+                <dt>Email</dt>
+                <dd>
+                  <input
+                    type="text"
+                    className="cv-contact-input"
+                    value={headerFields.email}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    aria-label="Email liên hệ"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt>Điện thoại</dt>
+                <dd>
+                  <input
+                    type="text"
+                    className="cv-contact-input"
+                    value={headerFields.phone}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({ ...prev, phone: e.target.value }))
+                    }
+                    aria-label="Số điện thoại"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt>Lớp & Khoa</dt>
+                <dd>
+                  <input
+                    type="text"
+                    className="cv-contact-input"
+                    value={headerFields.classAndDept}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({
+                        ...prev,
+                        classAndDept: e.target.value,
+                      }))
+                    }
+                    aria-label="Lớp và Khoa"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt>GitHub / Khu vực thực tập</dt>
+                <dd>
+                  <input
+                    type="text"
+                    className="cv-contact-input"
+                    value={headerFields.githubPortfolio}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({
+                        ...prev,
+                        githubPortfolio: e.target.value,
+                      }))
+                    }
+                    aria-label="Link GitHub hoặc địa điểm"
+                  />
+                </dd>
+              </div>
+            </dl>
+
+            {/* Dynamic CV Body Grid (2-column split or 1-column ordered flow) */}
+            {cvStyleId === "modern-split" ? (
+              <div className="pf-cv-body-grid">
+                <div className="pf-cv-side-col">
+                  {sectionOrder
+                    .filter((id) => leftSidebarSections.includes(id))
+                    .map((id) => renderCvSectionBlock(id))}
+                </div>
+                <div className="pf-cv-main-col">
+                  {sectionOrder
+                    .filter((id) => !leftSidebarSections.includes(id))
+                    .map((id) => renderCvSectionBlock(id))}
+                </div>
+              </div>
+            ) : (
+              <div className="pf-cv-body-grid">
+                <div className="pf-cv-main-col">
+                  {sectionOrder.map((id) => renderCvSectionBlock(id))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Bottom Action Bar inside A4 Sheet */}
+            <footer className="pf-quick-export-bar">
+              <span className="pf-quick-export-label">
+                Mẹo: Nhấp vào bất kỳ dòng chữ nào trên trang A4 để sửa trực tiếp, hoặc bấm nút AI ở góc từng mục.
+              </span>
+              <div className="pf-export-links">
+                <button
+                  type="button"
+                  className="pf-export-btn"
+                  onClick={() => void runAiAutoArrangeAndFillAll()}
+                >
+                  AI Tự sắp xếp & Điền lại
+                </button>
+                <button
+                  type="button"
+                  className="pf-export-btn"
+                  onClick={exportLiveCvToWordDoc}
+                >
+                  Xuất file Word (.doc)
+                </button>
+              </div>
+            </footer>
+          </article>
+        </div>
       </div>
 
-      {/* Master-Detail Editable Form Studio */}
-      <div ref={formStudioRef} id="xuat-bieu-mau">
+      {/* ====================================================================
+          ADMINISTRATIVE DOSSIER EXPORT STUDIO (MẪU 01-CVTT, 02-XNSV, 03-HBKK, 04-ĐXCN)
+          ==================================================================== */}
+      <section ref={studioRef} id="xuat-bieu-mau">
         <Section
-          title="Xuất hồ sơ sang biểu mẫu cần thiết để chỉnh sửa"
-          action={
-            <span className="reg-table-meta">
-              Dữ liệu tự động điền từ hệ thống học vụ · Chỉnh sửa trực tiếp trước khi tải Word/JSON hoặc gửi duyệt
-            </span>
-          }
+          title="Trích xuất sang Biểu mẫu hành chính & Hồ sơ trường (.doc / Một cửa)"
+          sub="Đồng bộ từ CV của bạn sang 4 biểu mẫu chuẩn của Trường Đại học Sao Đỏ để nộp phòng Một cửa hoặc Phòng Đào tạo"
         >
           <div className="pf-studio-layout">
-            <aside className="pf-template-rail" role="tablist" aria-label="Danh sách biểu mẫu">
+            <div
+              className="pf-template-rail"
+              role="tablist"
+              aria-label="Danh sách mẫu biểu mẫu trích xuất"
+            >
               {baseTemplates.map((tpl) => {
                 const active = tpl.id === activeTemplate.id;
+                const hasEdits = Boolean(
+                  customOverrides[tpl.id] &&
+                    Object.keys(customOverrides[tpl.id]!).length > 0,
+                );
                 return (
                   <button
                     key={tpl.id}
@@ -1346,145 +2352,87 @@ export default function StudentPortfolioPage() {
                   >
                     <div className="pf-rail-top">
                       <code>{tpl.code}</code>
-                      <span>{tpl.category}</span>
+                      <span>{hasEdits ? "Đã chỉnh sửa" : tpl.recipient}</span>
                     </div>
                     <strong>{tpl.title}</strong>
                   </button>
                 );
               })}
-            </aside>
+            </div>
 
-            <div className="pf-studio-shell">
+            <form className="pf-studio-shell" onSubmit={dispatchFormSubmit}>
               <header className="pf-studio-head">
                 <div>
                   <div className="pf-studio-code-row">
                     <code>{activeTemplate.code}</code>
-                    <span>· {activeTemplate.category}</span>
-                    {customOverrides[activeTemplate.id] && (
-                      <span className="pf-draft-indicator">Đã chỉnh sửa</span>
-                    )}
+                    <span>Nơi tiếp nhận: {activeTemplate.recipient}</span>
                   </div>
                   <h3>{activeTemplate.title}</h3>
-                  <p className="pt-muted">Nơi nhận: {activeTemplate.recipient}</p>
+                  <p className="pt-muted">{activeTemplate.usageNote}</p>
                 </div>
 
                 <div className="pf-studio-toolbar">
                   <button
                     type="button"
-                    className="button button-outline button-xs"
-                    onClick={() => exportFormAsWordDoc()}
+                    className="button button-quiet button-sm"
+                    onClick={() => resetTemplateDraft(activeTemplate.id)}
                   >
-                    <Icon name="file" /> Tải Word (.doc)
+                    Khôi phục mặc định
                   </button>
                   <button
                     type="button"
-                    className="button button-outline button-xs"
-                    onClick={exportFormAsJson}
+                    className="button button-outline button-sm"
+                    onClick={() => exportTemplateAsWordDoc(activeTemplate)}
                   >
-                    <Icon name="code" /> Tải JSON
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-outline button-xs"
-                    onClick={() => void copyFormText()}
-                  >
-                    <Icon name="copy" /> Sao chép
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-quiet button-xs"
-                    onClick={resetCurrentDraft}
-                  >
-                    Khôi phục gốc
+                    <Icon name="download" />
+                    <span>Tải Word (.doc)</span>
                   </button>
                 </div>
               </header>
 
-              <form className="pf-studio-form" onSubmit={handleSaveAndRoute}>
-                <div className="pf-studio-grid">
-                  {activeTemplate.fields.map((field) => {
-                    const val = activeDraftValues[field.key] ?? "";
-                    return (
-                      <label
-                        key={field.key}
-                        className={`field${field.wide ? " is-wide" : ""}`}
-                      >
-                        <span>{field.label}</span>
-                        {field.multiline ? (
-                          <textarea
-                            rows={4}
-                            value={val}
-                            onChange={(e) => updateDraftField(field.key, e.target.value)}
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={val}
-                            onChange={(e) => updateDraftField(field.key, e.target.value)}
-                          />
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-
-                <div className="pf-studio-actions">
-                  <div className="pf-studio-primary-actions">
-                    <button type="submit" className="button button-primary">
-                      <span>
-                        {activeTemplate.id === "tpl-profile-correction"
-                          ? "Chuyển sang Form Đề xuất cập nhật hồ sơ"
-                          : activeTemplate.id === "tpl-onestop-service"
-                            ? "Chuyển sang Form Thủ tục Một cửa"
-                            : "Lưu bản chỉnh sửa"}
-                      </span>
-                    </button>
-
-                    <Link
-                      href={
-                        `/student/profile-update?from=portfolio&category=${encodeURIComponent(
-                          activeDraftValues.category || "Hồ sơ cá nhân",
-                        )}&field=${encodeURIComponent(
-                          activeDraftValues.fieldLabel || activeTemplate.title,
-                        )}&old=${encodeURIComponent(
-                          activeDraftValues.oldValue ||
-                            `GPA ${overallGpa.value.toFixed(2)} · ${studentIdentity.cohortClass}`,
-                        )}&new=${encodeURIComponent(
-                          activeDraftValues.newValue || activeDraftValues.objectivePitch || "",
-                        )}&reason=${encodeURIComponent(
-                          activeDraftValues.reason ||
-                            `Trích xuất từ ${activeTemplate.code} (${activeTemplate.title})`,
-                        )}` as Route
-                      }
-                      className="button button-outline"
+              <div className="pf-studio-grid">
+                {activeTemplate.fields.map((field) => {
+                  const val = activeDraftValues[field.key] ?? "";
+                  return (
+                    <label
+                      key={field.key}
+                      className={`field${field.wide ? " is-wide" : ""}`}
                     >
-                      Mở trong Phiếu đề xuất chỉnh sửa HSSV
-                    </Link>
+                      <span>{field.label}</span>
+                      {field.multiline ? (
+                        <textarea
+                          rows={3}
+                          value={val}
+                          onChange={(e) => updateDraftField(field.key, e.target.value)}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={(e) => updateDraftField(field.key, e.target.value)}
+                        />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
 
-                    <Link
-                      href={
-                        `/student/services?from=portfolio&type=${encodeURIComponent(
-                          activeDraftValues.serviceType || "svc-enrol",
-                        )}&purpose=${encodeURIComponent(
-                          activeDraftValues.purpose ||
-                            `Xác nhận hồ sơ năng lực sinh viên (${activeTemplate.title}) - GPA ${overallGpa.value.toFixed(2)}`,
-                        )}` as Route
-                      }
-                      className="button button-outline"
-                    >
-                      Mở trong Thủ tục Một cửa
-                    </Link>
-                  </div>
-
-                  <Link href="/student/account" className="button button-quiet">
-                    Xem hồ sơ gốc ({profile.education.length + profile.personal.length} mục)
-                  </Link>
+              <footer className="pf-studio-actions">
+                <p className="pt-muted">
+                  Mã hồ sơ trích xuất:{" "}
+                  <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
+                </p>
+                <div className="pf-studio-primary-actions">
+                  <button type="submit" className="button button-primary">
+                    <Icon name="send" />
+                    <span>{activeTemplate.targetActionLabel}</span>
+                  </button>
                 </div>
-              </form>
-            </div>
+              </footer>
+            </form>
           </div>
         </Section>
-      </div>
+      </section>
     </>
   );
 }
