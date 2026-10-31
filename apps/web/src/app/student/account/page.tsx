@@ -297,7 +297,7 @@ export default function AccountPage() {
                 <span>/ {allFields.length} trường thông tin ({completionPct}%)</span>
               </p>
             </div>
-            <span className="reg-standing good">{account.roleBadge} · {semester.short}</span>
+            <span className="reg-standing good">{semester.short}</span>
           </div>
 
           <div
@@ -329,9 +329,17 @@ export default function AccountPage() {
 
           <div className="acc-summary-actions">
             {revealButton}
+            <Link href={"/student/profile-update" as import("next").Route} className="acc-reveal-btn">
+              <Icon name="pen" />
+              <span>Đề xuất cập nhật thông tin</span>
+            </Link>
+            <Link href="/doi-mat-khau" className="acc-reveal-btn">
+              <Icon name="shield" />
+              <span>Đổi mật khẩu</span>
+            </Link>
             <Link href={"/student/settings" as import("next").Route} className="acc-edit-link">
               <Icon name="sparkle" />
-              <span>Cài đặt giao diện & hệ thống</span>
+              <span>Cài đặt giao diện</span>
             </Link>
           </div>
         </section>

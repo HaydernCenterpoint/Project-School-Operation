@@ -38,15 +38,15 @@ export const studentNav: NavGroup[] = [
     label: "",
     items: [
       { href: "/student", label: "Tổng quan", icon: "home", mobile: true, tabs: [{ href: "/student", label: "Tổng quan", exact: true }, { href: "/student/notices", label: "Thông báo" }] },
-      { href: "/student/schedule", label: "Lịch", icon: "calendar", mobile: true, tabs: [{ href: "/student/schedule", label: "Lịch tuần" }, { href: "/student/exams", label: "Lịch thi" }] },
-      { href: "/student/assignments", label: "Học tập", icon: "book", mobile: true, tabs: [{ href: "/student/assignments", label: "Bài tập" }, { href: "/student/classes", label: "Lớp học" }, { href: "/student/grades", label: "Kết quả" }] },
-      { href: "/student/registration", label: "Đăng ký học phần", short: "Đăng ký", icon: "clipboard" },
-      { href: "/student/tuition", label: "Học phí", icon: "wallet" },
-      { href: "/student/activities", label: "Hoạt động", icon: "flag", tabs: [{ href: "/student/activities", label: "Sự kiện & rèn luyện" }, { href: "/student/clubs", label: "Câu lạc bộ" }] },
+      { href: "/student/schedule", label: "Lịch", icon: "calendar", mobile: true, tabs: [{ href: "/student/schedule", label: "Lịch tuần" }, { href: "/student/schedule-progress" as Route, label: "Lịch theo tiến độ" }, { href: "/student/exams", label: "Lịch thi" }] },
+      { href: "/student/assignments", label: "Học tập", icon: "book", mobile: true, tabs: [{ href: "/student/assignments", label: "Bài tập" }, { href: "/student/classes", label: "Lớp học" }, { href: "/student/grades", label: "Kết quả học tập" }, { href: "/student/attendance" as Route, label: "Thông tin điểm danh" }] },
+      { href: "/student/registration", label: "Đăng ký học phần", short: "Đăng ký", icon: "clipboard", tabs: [{ href: "/student/registration", label: "Đăng ký học phần", exact: true }, { href: "/student/curriculum" as Route, label: "Chương trình khung" }] },
+      { href: "/student/tuition", label: "Học phí", icon: "wallet", tabs: [{ href: "/student/tuition", label: "Tra cứu công nợ & Thanh toán", exact: true }, { href: "/student/receipts" as Route, label: "Phiếu thu trực tuyến & Tổng hợp" }] },
+      { href: "/student/activities", label: "Hoạt động", icon: "flag", tabs: [{ href: "/student/activities", label: "Kết quả rèn luyện & Sự kiện" }, { href: "/student/clubs", label: "Câu lạc bộ" }] },
       { href: "/student/news", label: "Tin tức", icon: "news" },
       { href: "/student/community", label: "Cộng đồng", icon: "message" },
       { href: "/student/ai", label: "Trợ lý AI", short: "AI", icon: "sparkle", newTab: true, mobile: true, featured: true },
-      { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }, { href: "/student/settings" as Route, label: "Cài đặt" }] },
+      { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin sinh viên", exact: true }, { href: "/student/profile-update" as Route, label: "Đề xuất cập nhật thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }, { href: "/student/settings" as Route, label: "Cài đặt & Đổi mật khẩu" }] },
     ],
   },
 ];
@@ -59,20 +59,25 @@ const studentSearchCatalog: SearchSuggestion[] = [
   { id: "s-home", label: "Tổng quan", detail: "Bảng điều khiển học tập, tiến độ và lịch hôm nay", category: "Mục chính", href: "/student" as Route, icon: "home", keywords: "trang chu dashboard bang dieu khien hom nay" },
   { id: "s-notices", label: "Thông báo", detail: "Thông báo đào tạo, khảo thí, tài chính và công tác sinh viên", category: "Tổng quan", href: "/student/notices" as Route, icon: "bell", keywords: "thong bao tin nhan nhac nho phong dao tao" },
   { id: "s-schedule", label: "Lịch tuần (Thời khóa biểu)", detail: "Lịch học theo tuần, phòng học và tiết học", category: "Lịch", href: "/student/schedule" as Route, icon: "calendar", keywords: "lich hoc thoi khoa bieu tkb tuan phong hoc tiet" },
+  { id: "s-schedule-progress", label: "Lịch theo tiến độ", detail: "Lịch học toàn kỳ theo tiến độ tuần bắt đầu và kết thúc", category: "Lịch", href: "/student/schedule-progress" as Route, icon: "calendar", keywords: "lich theo tien do toan ky tuan hoc" },
   { id: "s-exams", label: "Lịch thi", detail: "Lịch thi giữa kỳ, cuối kỳ, phòng thi và số báo danh", category: "Lịch", href: "/student/exams" as Route, icon: "clock", keywords: "lich thi phong thi sbd giua ky cuoi ky khao thi" },
   { id: "s-assignments", label: "Bài tập", detail: "Danh sách bài tập được giao, hạn nộp và phản hồi", category: "Học tập", href: "/student/assignments" as Route, icon: "assignment", keywords: "bai tap deadline han nop nop bai" },
   { id: "s-classes", label: "Lớp học", detail: "Các lớp học phần đang theo học và giảng viên phụ trách", category: "Học tập", href: "/student/classes" as Route, icon: "class", keywords: "lop hoc mon hoc hoc phan giang vien" },
   { id: "s-grades", label: "Kết quả học tập (Bảng điểm)", detail: "Điểm chuyên cần, giữa kỳ, cuối kỳ và GPA tích lũy", category: "Học tập", href: "/student/grades" as Route, icon: "award", keywords: "ket qua diem bang diem gpa xep loai hoc luc" },
+  { id: "s-attendance", label: "Thông tin điểm danh", detail: "Tra cứu số tiết học, số tiết vắng có phép và không phép", category: "Học tập", href: "/student/attendance" as Route, icon: "checkCircle", keywords: "thong tin diem danh vang co phep khong phep chuyen can" },
   { id: "s-registration", label: "Đăng ký học phần", detail: "Đăng ký tín chỉ, tra cứu lớp học phần mở kỳ tới", category: "Đào tạo", href: "/student/registration" as Route, icon: "clipboard", keywords: "dang ky hoc phan dkhp tin chi mon hoc" },
+  { id: "s-curriculum", label: "Chương trình khung", detail: "Khung chương trình đào tạo toàn khóa, môn bắt buộc và tự chọn", category: "Đào tạo", href: "/student/curriculum" as Route, icon: "book", keywords: "chuong trinh khung ctkt bat buoc tu chon tin chi" },
   { id: "s-tuition", label: "Học phí & Công nợ", detail: "Hóa đơn học phí, bảo hiểm y tế và lịch sử thanh toán", category: "Tài chính", href: "/student/tuition" as Route, icon: "wallet", keywords: "hoc phi cong no thanh toan tien hoc bhyt hoa don" },
+  { id: "s-receipts", label: "Phiếu thu trực tuyến & Phiếu thu tổng hợp", detail: "Tra cứu và in biên lai thu học phí điện tử theo từng đợt", category: "Tài chính", href: "/student/receipts" as Route, icon: "file", keywords: "phieu thu truc tuyen phieu thu tong hop bien lai hoa don" },
   { id: "s-activities", label: "Sự kiện & Điểm rèn luyện", detail: "Hoạt động ngoại khóa, tình nguyện, hiến máu", category: "Hoạt động", href: "/student/activities" as Route, icon: "flag", keywords: "hoat dong su kien diem ren luyen tinh nguyen hien mau" },
   { id: "s-clubs", label: "Câu lạc bộ sinh viên", detail: "CLB Tin học Sao Đỏ, Tiếng Anh SEC, Tình nguyện Hoa Phượng", category: "Hoạt động", href: "/student/clubs" as Route, icon: "users", keywords: "cau lac bo clb doi nhom ngoai khoa" },
   { id: "s-news", label: "Tin tức nhà trường", detail: "Bản tin và hoạt động mới nhất của Đại học Sao Đỏ", category: "Tin tức", href: "/student/news" as Route, icon: "news", keywords: "tin tuc su kien truong dai hoc sao do" },
   { id: "s-community", label: "Cộng đồng sinh viên", detail: "Phòng trò chuyện, hỏi đáp và chia sẻ tài liệu", category: "Cộng đồng", href: "/student/community" as Route, icon: "message", keywords: "cong dong chat thao luan nhan tin" },
   { id: "s-ai", label: "Trợ lý AI học tập", detail: "Hỏi bài, giải thích thuật toán, ôn thi cùng AI", category: "Công cụ", href: "/student/ai" as Route, icon: "sparkle", newTab: true, keywords: "tro ly ai hoi bai on thi giai bai tap" },
-  { id: "s-account", label: "Thông tin tài khoản", detail: "Hồ sơ cá nhân, mã sinh viên, lớp niên chế", category: "Tài khoản", href: "/student/account" as Route, icon: "user", keywords: "tai khoan ho so ca nhan thong tin sinh vien" },
+  { id: "s-account", label: "Thông tin sinh viên", detail: "Hồ sơ cá nhân, mã sinh viên, lớp niên chế", category: "Tài khoản", href: "/student/account" as Route, icon: "user", keywords: "tai khoan ho so ca nhan thong tin sinh vien" },
+  { id: "s-profile-update", label: "Đề xuất cập nhật thông tin", detail: "Đề xuất chỉnh sửa hồ sơ cá nhân, tài khoản ngân hàng và BHYT", category: "Tài khoản", href: "/student/profile-update" as Route, icon: "pen", keywords: "de xuat cap nhat thong tin ngan hang bhyt ho so" },
   { id: "s-services", label: "Thủ tục & Góp ý (Một cửa)", detail: "Xin giấy xác nhận sinh viên, cấp bảng điểm, làm lại thẻ", category: "Tài khoản", href: "/student/services" as Route, icon: "file", keywords: "thu tuc mot cua giay xac nhan bang diem the sinh vien bao luu gop y" },
-  { id: "s-settings", label: "Cài đặt giao diện & hệ thống", detail: "Điều chỉnh giao diện Sáng / Tối, bảo mật và lối tắt Dashboard Quản lý", category: "Tài khoản", href: "/student/settings" as Route, icon: "sparkle", keywords: "cai dat giao dien sang toi dark mode light mode theme" },
+  { id: "s-settings", label: "Cài đặt giao diện & hệ thống", detail: "Điều chỉnh giao diện Sáng / Tối, đổi mật khẩu và lối tắt Quản lý", category: "Tài khoản", href: "/student/settings" as Route, icon: "sparkle", keywords: "cai dat giao dien sang toi dark mode light mode theme doi mat khau" },
   { id: "s-admin-dash", label: "Dashboard Quản lý tài khoản & phân quyền", detail: "Trang quản lý các loại tài khoản: Giảng viên, Trưởng CLB, Sinh viên thuộc lớp", category: "Quản lý", href: "/quan-tri/tai-khoan" as Route, icon: "shield", keywords: "dashboard quan ly tai khoan phan quyen giao vien truong clb" },
   { id: "c-it3040", label: "IT3040 · Lập trình hướng đối tượng", detail: "ThS. Trần Minh Đức · 3 tín chỉ · A1-301 / B1-Lab 3", category: "Học phần", href: "/student/schedule" as Route, icon: "code", keywords: "it3040 oop lap trinh huong doi tuong ke thua da hinh" },
   { id: "c-it3090", label: "IT3090 · Cơ sở dữ liệu", detail: "TS. Phạm Thu Hà · 3 tín chỉ · A1-402 / B1-Lab 1", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3090 csdl co so du lieu sql truy van" },
@@ -187,7 +192,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const { theme } = usePhuongTheme();
+  const { theme, toggleTheme } = usePhuongTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -410,7 +415,6 @@ export function AppShell({
               <small>Cổng học tập</small>
             </span>
           </Link>
-          <span className="version-tag">{tag}</span>
         </div>
         <nav className="app-nav" aria-label="Điều hướng chính" ref={navRef}>
           <span className={`nav-slider${navReady ? " is-ready" : ""}`} style={navStyle} aria-hidden="true" />
@@ -587,6 +591,15 @@ export function AppShell({
           </form>
           <div className="top-actions">
             {headerActions}
+            <button
+              className="icon-button theme-toggle"
+              type="button"
+              onClick={(event) => toggleTheme(event)}
+              aria-label={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
+              title={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
+            >
+              <Icon name={theme === "dark" ? "sun" : "moon"} />
+            </button>
             <button
               className="icon-button bell"
               type="button"
