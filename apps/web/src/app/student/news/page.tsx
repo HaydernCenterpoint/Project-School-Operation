@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { LikeBurstButton } from "@/components/landing/MotionPromptEffects";
 import { DemoBanner, Empty, PageTitle } from "@/components/portal/Parts";
 import {
   ago,
@@ -73,11 +74,17 @@ function Card({ post, lead = false }: { post: NewsPost; lead?: boolean }) {
           <code className="nw-source-tag">
             [{post.source?.name ?? "ĐH Sao Đỏ"}]
           </code>
-          <span className="nw-read">
-            <span>{lead ? "Đọc toàn văn" : "Xem bài gốc"}</span>
-            <Icon name="external" />
-            <span className="sr-only"> (mở tab mới)</span>
-          </span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <LikeBurstButton
+              initialCount={42 + (post.id.charCodeAt(post.id.length - 1) % 90)}
+              storageKey={`sdu-news-like-${post.id}`}
+            />
+            <span className="nw-read">
+              <span>{lead ? "Đọc toàn văn" : "Xem bài gốc"}</span>
+              <Icon name="external" />
+              <span className="sr-only"> (mở tab mới)</span>
+            </span>
+          </div>
         </footer>
       </div>
     </article>

@@ -11,6 +11,7 @@ import {
 } from "@/lib/format";
 import { AssignmentTable, type AssignmentRow } from "./AssignmentTable";
 import { Icon, type IconName } from "./Icon";
+import { CountUpStat } from "./landing/MotionPromptEffects";
 import { PhuongTree } from "./landing/Phuong";
 
 export type DashboardLinks = {
@@ -113,9 +114,9 @@ function DeadlineChart({ weeks }: { weeks: ReturnType<typeof weeklyDeadlines> })
 
 function Stat({ icon, value, label }: { icon: IconName; value: number | string; label: string }) {
   return (
-    <div className="stat-cell">
+    <div className="stat-cell" data-spotlight>
       <span className="icon-box"><Icon name={icon} /></span>
-      <strong>{value}</strong>
+      <strong><CountUpStat rawText={String(value)} showBar={false} /></strong>
       <span>{label}</span>
     </div>
   );

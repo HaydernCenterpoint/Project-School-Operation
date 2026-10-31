@@ -1,4 +1,5 @@
 import { Icon, type IconName } from "@/components/Icon";
+import { CountUpStat } from "@/components/landing/MotionPromptEffects";
 
 /** Shown on every module that still runs on sample data (see lib/portal-demo.ts). */
 export function DemoBanner() {
@@ -24,12 +25,18 @@ export function PageTitle({ title, lead, children }: { title: string; lead?: Rea
 
 export function StatTile({ label, value, note, tone }: { icon?: IconName; label: string; value: React.ReactNode; note?: React.ReactNode; tone?: "good" | "warn" | "danger" }) {
   return (
-    <div className={`pt-stat${tone ? ` ${tone}` : ""}`}>
+    <div className={`pt-stat${tone ? ` ${tone}` : ""}`} data-spotlight>
       <span className="pt-stat-label">
         {tone && <i className="pt-stat-dot" aria-hidden="true" />}
         {label}
       </span>
-      <strong>{value}</strong>
+      <strong>
+        {typeof value === "string" || typeof value === "number" ? (
+          <CountUpStat rawText={String(value)} showBar={false} />
+        ) : (
+          value
+        )}
+      </strong>
       {note && <span className="pt-stat-note">{note}</span>}
     </div>
   );

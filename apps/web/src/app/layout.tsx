@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { BootSplash } from "@/components/BootSplash";
 import { NavProgress } from "@/components/NavProgress";
 import { AnimatedGradient } from "@/components/landing/AnimatedGradient";
+import { MotionPromptInteractions } from "@/components/landing/MotionPromptEffects";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
     >
       <body>
         <AnimatedGradient />
+        <MotionPromptInteractions />
         <a className="skip-link" href="#noi-dung">
           Bỏ qua đến nội dung chính
         </a>

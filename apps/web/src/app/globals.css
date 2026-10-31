@@ -593,6 +593,166 @@ select { cursor: pointer; }
 .bubble ul ul { list-style-type: circle; }
 .bubble ol ol { list-style-type: lower-alpha; }
 
+/* ---------- Motion Prompt (#007, #085, #153, #154, #166) ----------
+   // Motion Prompt #007 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#007
+   // Motion Prompt #085 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#085
+   // Motion Prompt #153 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#153
+   // Motion Prompt #154 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#154
+   // Motion Prompt #166 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#166 */
+
+/* #085 Ripple effect: white circle expanding from click point over 0.6s cubic ease-out, fading 0.3s-0.8s */
+.sd-btn, .button-primary, .button-dark, .nw-agent-trigger, .nw-agent-run-btn {
+  position: relative;
+  overflow: hidden;
+}
+.mp-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0);
+  animation: mp-ripple-expand 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+             mp-ripple-fade 500ms linear 300ms forwards;
+}
+@keyframes mp-ripple-expand {
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes mp-ripple-fade {
+  to { opacity: 0; }
+}
+
+/* #154 Spotlight hover: cursor-tracked radial glow inside cards */
+[data-spotlight], .pt-stat, .class-card, .pt-club, .nw-card, .auth-role-card {
+  position: relative;
+  overflow: hidden;
+}
+[data-spotlight]::after, .pt-stat::after, .class-card::after, .pt-club::after, .nw-card::after, .auth-role-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    rgba(255, 122, 82, 0.14),
+    rgba(255, 122, 82, 0) 75%
+  );
+  transition: opacity 250ms ease;
+}
+[data-spotlight]:hover::after, .pt-stat:hover::after, .class-card:hover::after, .pt-club:hover::after, .nw-card:hover::after, .auth-role-card:hover::after {
+  opacity: 1;
+}
+
+/* #166 Like button animation: spring pop + ring + 6 directional particles + vertical counter slot */
+.mp-like-btn {
+  min-height: 32px;
+  padding: 0 11px 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(160, 50, 30, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.mp-like-btn:hover {
+  border-color: rgba(242, 61, 92, 0.5);
+  background: rgba(242, 61, 92, 0.08);
+}
+.mp-like-btn.is-liked {
+  color: #f23d5c;
+  border-color: rgba(242, 61, 92, 0.42);
+  background: rgba(242, 61, 92, 0.1);
+}
+.mp-like-icon-wrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+}
+.mp-like-heart {
+  width: 16px;
+  height: 16px;
+  overflow: visible;
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), fill 150ms ease;
+}
+.mp-like-btn:active .mp-like-heart {
+  transform: scale(0.78);
+}
+.mp-like-btn.is-liked .mp-like-heart {
+  fill: #f23d5c;
+  stroke: #f23d5c;
+  animation: mp-heart-pop 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes mp-heart-pop {
+  0% { transform: scale(0.78); }
+  20% { transform: scale(1.45); }
+  45% { transform: scale(0.92); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.mp-like-ring {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #f23d5c;
+  opacity: 0;
+  pointer-events: none;
+}
+.mp-like-btn.is-bursting .mp-like-ring {
+  animation: mp-ring-burst 500ms cubic-bezier(0.22, 1, 0.36, 1) 50ms forwards;
+}
+@keyframes mp-ring-burst {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.mp-like-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--p-color, #f23d5c);
+  opacity: 0;
+  pointer-events: none;
+}
+.mp-like-btn.is-bursting .mp-like-particle {
+  animation: mp-particle-fly 500ms cubic-bezier(0.22, 1, 0.36, 1) 50ms forwards;
+}
+@keyframes mp-particle-fly {
+  0% { transform: rotate(var(--angle)) translateY(-8px) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-20px) scale(0.4); opacity: 0; }
+}
+.mp-like-Slot {
+  height: 18px;
+  overflow: hidden;
+  display: inline-block;
+  line-height: 18px;
+}
+.mp-like-Slot-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mp-like-Slot-track > span {
+  height: 18px;
+  display: block;
+}
+.mp-like-Slot-track > span.is-liked-num {
+  color: #f23d5c;
+}
+
 /* ---------- Formulas (Tex.tsx) ---------- */
 .tx { font-family: var(--font-display), Georgia, serif; font-size: 1.06em; line-height: 1.4; white-space: nowrap; }
 .tx i { font-style: italic; }

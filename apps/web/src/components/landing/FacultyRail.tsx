@@ -29,7 +29,7 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
       <ul ref={rail} className="sd-rail-track" aria-label="Các khoa đào tạo">
         {faculties.map((faculty) => (
           <li key={faculty.name}>
-            <figure>
+            <figure data-lightbox data-tilt data-tilt-max="4">
               <Image
                 src={faculty.src}
                 alt={faculty.name}

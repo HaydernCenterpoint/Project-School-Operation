@@ -531,4 +531,406 @@
   }
 }
 
+/* ---------- Motion Prompt Effects (#007, #079, #080, #081, #086, #151, #153, #162, #165, #167) ----------
+   // Motion Prompt #007 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#007
+   // Motion Prompt #079 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#079
+   // Motion Prompt #080 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#080
+   // Motion Prompt #081 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#081
+   // Motion Prompt #086 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#086
+   // Motion Prompt #151 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#151
+   // Motion Prompt #153 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#153
+   // Motion Prompt #162 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#162
+   // Motion Prompt #165 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#165
+   // Motion Prompt #167 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#167 */
+
+/* #079 Scroll progress bar: 4px top bar along the viewport */
+.mp-scroll-progress {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(241, 220, 207, 0.55);
+  pointer-events: none;
+}
+.mp-scroll-progress-fill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--sd-red), var(--sd-coral), var(--sd-gold));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+/* #151 Back-to-top button: round orange/crimson circle at bottom-right */
+.mp-back-to-top {
+  position: fixed;
+  z-index: 50;
+  right: clamp(20px, 3vw, 36px);
+  bottom: clamp(20px, 3vw, 36px);
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #ff5a2c;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(28, 35, 51, 0.28);
+  cursor: pointer;
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease;
+}
+.mp-back-to-top:hover {
+  background: #d9431c;
+  box-shadow: 0 10px 24px rgba(214, 40, 57, 0.42);
+}
+.mp-back-to-top svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* #167 Scroll-down cue below hero */
+.mp-scroll-cue-wrap {
+  max-width: 1400px;
+  margin: -12px auto 28px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+.mp-scroll-cue {
+  padding: 8px 20px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--sd-ink);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.mp-scroll-cue-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--sd-muted);
+}
+.mp-scroll-cue-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+}
+.mp-scroll-mouse {
+  width: 24px;
+  height: 38px;
+  border: 2.2px solid var(--sd-ink);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+.mp-scroll-dot {
+  width: 5px;
+  height: 9px;
+  border-radius: 2.5px;
+  background: #ff5a2c;
+  animation: mp-scroll-dot-drop 1.57s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes mp-scroll-dot-drop {
+  0% { transform: translateY(0); opacity: 1; }
+  45% { opacity: 1; }
+  70% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(14px); opacity: 0; }
+}
+.mp-scroll-chevrons {
+  position: relative;
+  width: 16px;
+  height: 34px;
+}
+.mp-chevron {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  border-right: 2.5px solid var(--sd-ink);
+  border-bottom: 2.5px solid var(--sd-ink);
+  transform: rotate(45deg);
+  animation: mp-chevron-flow 1.57s linear infinite;
+}
+.mp-chevron.is-2 {
+  animation-delay: -0.785s;
+}
+@keyframes mp-chevron-flow {
+  0% { top: 0; opacity: 0; }
+  50% { top: 12px; opacity: 0.8; }
+  100% { top: 24px; opacity: 0; }
+}
+
+/* #080 Highlighter animation: yellow marker stroke drawn left to right over 0.8s cubic ease-out */
+[data-highlight],
+mark.mp-highlight {
+  position: relative;
+  z-index: 0;
+  color: inherit;
+  background: transparent;
+  padding-inline: 2px;
+}
+[data-highlight]::before,
+mark.mp-highlight::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -2px;
+  right: -2px;
+  bottom: 0.08em;
+  height: 0.42em;
+  background: rgba(255, 227, 107, 0.78);
+  border-radius: 3px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-highlight].is-highlighted::before,
+mark.mp-highlight.is-highlighted::before {
+  transform: scaleX(1);
+}
+
+/* #086 Underline animation: grows from left over 0.3s cubic ease-out, exits to right on leave */
+.sd-nav nav a,
+.sd-link,
+.sd-contact a {
+  position: relative;
+}
+.sd-nav nav a::after,
+.sd-link::after,
+.sd-contact a::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 6px;
+  height: 2.5px;
+  background: var(--sd-coral);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sd-link::after,
+.sd-contact a::after {
+  left: 0;
+  right: 0;
+  bottom: -2px;
+}
+.sd-nav nav a:hover::after,
+.sd-link:hover::after,
+.sd-contact a:hover::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+/* #081 Hover lift & #153 3D tilt on hover with radial glare */
+[data-tilt] {
+  position: relative;
+  transform: perspective(680px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+[data-tilt]::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--glare-alpha, 0);
+  background: radial-gradient(
+    180px circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.42),
+    rgba(255, 255, 255, 0) 72%
+  );
+  transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sd-stats dl > div {
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sd-stats dl > div:hover {
+  transform: perspective(680px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg)) translateY(-8px);
+  box-shadow: 0 20px 36px -14px rgba(160, 50, 30, 0.28);
+}
+
+/* #007 Count-up bottom progress bar */
+.mp-countup {
+  position: relative;
+}
+.mp-countup-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  background: rgba(241, 220, 207, 0.7);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.mp-countup-bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--sd-red), var(--sd-coral), var(--sd-leaf));
+  border-radius: inherit;
+  transform-origin: left center;
+}
+
+/* #165 Animated wave shape divider */
+.mp-wave-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 36px;
+  display: block;
+  pointer-events: none;
+}
+
+/* News card header row for date + #166 Like button */
+.sd-news-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sd-news-accent .mp-like-btn {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+}
+.sd-news-accent .mp-like-btn.is-liked {
+  color: #ffd6de;
+  border-color: rgba(255, 214, 222, 0.55);
+  background: rgba(242, 61, 92, 0.32);
+}
+
+/* #162 Lightbox: clickable gallery thumbnails + 0.45s cubic ease-out modal zoom */
+[data-lightbox] {
+  cursor: zoom-in;
+}
+[data-lightbox] img {
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-lightbox]:hover img {
+  transform: scale(1.035);
+}
+.mp-lightbox {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  padding: clamp(20px, 4vw, 56px);
+  display: grid;
+  place-items: center;
+  background: rgba(14, 18, 28, 0.84);
+  backdrop-filter: blur(8px);
+  animation: mp-lightbox-bg-in 450ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.mp-lightbox.is-closing {
+  animation: mp-lightbox-bg-out 350ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes mp-lightbox-bg-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes mp-lightbox-bg-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.mp-lightbox-figure {
+  max-width: min(1080px, 88vw);
+  max-height: 82vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: mp-lightbox-zoom-in 450ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.mp-lightbox.is-closing .mp-lightbox-figure {
+  animation: mp-lightbox-zoom-out 350ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes mp-lightbox-zoom-in {
+  from { opacity: 0; transform: scale(0.72) translateY(18px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes mp-lightbox-zoom-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.76) translateY(12px); }
+}
+.mp-lightbox-figure img {
+  max-width: 100%;
+  max-height: 74vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.mp-lightbox-figure figcaption {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+.mp-lightbox-figure figcaption strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+.mp-lightbox-close,
+.mp-lightbox-nav {
+  position: fixed;
+  z-index: 1210;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+.mp-lightbox-close:hover,
+.mp-lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: scale(1.06);
+}
+.mp-lightbox-close {
+  top: 24px;
+  right: 24px;
+}
+.mp-lightbox-nav.is-prev {
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.mp-lightbox-nav.is-next {
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.mp-lightbox-nav.is-prev:hover {
+  transform: translateY(-50%) scale(1.06);
+}
+.mp-lightbox-nav.is-next:hover {
+  transform: translateY(-50%) scale(1.06);
+}
+.mp-lightbox-close svg,
+.mp-lightbox-nav svg {
+  width: 22px;
+  height: 22px;
+}
+
 
