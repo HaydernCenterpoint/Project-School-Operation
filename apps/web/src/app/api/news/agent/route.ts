@@ -1,4 +1,4 @@
-import { json } from "@/lib/academic-api";
+import { apiError, json } from "@/lib/academic-api";
 import { campusNewsFallback, type NewsPost } from "@/lib/news";
 import { isPublicHttpUrl } from "@/lib/news-parse";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -105,10 +105,7 @@ export async function POST(request: Request) {
 
   const customUrl = typeof body.url === "string" && body.url.trim() ? body.url.trim() : undefined;
   if (customUrl && !isPublicHttpUrl(customUrl)) {
-    return json(
-      { error: "invalid_url", message: "Địa chỉ URL cần quét phải là http(s) công khai" },
-      { status: 400 },
-    );
+    return apiError(400, "invalid_url", "Địa chỉ URL cần quét phải là http(s) công khai");
   }
 
   const customName = typeof body.name === "string" ? body.name.trim().slice(0, 80) : undefined;
