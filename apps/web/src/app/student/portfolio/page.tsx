@@ -403,11 +403,8 @@ export default function StudentPortfolioPage() {
   const earnedCredits = allRows.reduce((sum, r) => sum + r.credits, 0);
   const standingText = standing(overallGpa.value);
 
-  const totalSessions = attendanceRecords.reduce((sum, r) => sum + r.completedSessions, 0);
-  const attendedSessions = attendanceRecords.reduce(
-    (sum, r) => sum + (r.completedSessions - r.absentSessions),
-    0,
-  );
+  const totalSessions = attendanceRecords.reduce((sum, r) => sum + r.totalPeriods, 0);
+  const attendedSessions = attendanceRecords.reduce((sum, r) => sum + r.attendedPeriods, 0);
   const attendancePct = totalSessions
     ? ((attendedSessions / totalSessions) * 100).toFixed(1)
     : "100.0";
@@ -553,7 +550,7 @@ export default function StudentPortfolioPage() {
       ? joinedClubObjects.map((club, idx) => ({
           id: `act-club-${idx}`,
           title: club.name,
-          detail: `${club.role} · Sinh hoạt định kỳ (${club.next})`,
+          detail: `${club.category} · ${club.place} (${club.time})`,
         }))
       : [
           {
@@ -893,7 +890,7 @@ export default function StudentPortfolioPage() {
 <meta charset="utf-8" />
 <title>${cvTitle}</title>
 <style>
-  body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
+  body { font-family: "Newsreader", Georgia, serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
   h1 { font-size: 18pt; margin: 0 0 4pt; text-transform: uppercase; color: ${accentColor}; }
   h2 { font-size: 12.5pt; margin: 14pt 0 6pt; text-transform: uppercase; border-bottom: 1.5pt solid ${accentColor}; padding-bottom: 2pt; color: ${accentColor}; }
   p { margin: 3pt 0; }
@@ -991,7 +988,7 @@ export default function StudentPortfolioPage() {
 
     const htmlContent = `<!DOCTYPE html>
 <html><head><meta charset="utf-8" /><title>${tpl.code} - ${tpl.title}</title></head>
-<body style="font-family:'Times New Roman',serif;font-size:12pt;margin:2cm;">
+<body style="font-family:'Newsreader',Georgia,serif;font-size:12pt;margin:2cm;">
   <h2 style="text-align:center;">TRƯỜNG ĐẠI HỌC SAO ĐỎ · ${tpl.code}</h2>
   <h3 style="text-align:center;">${tpl.title}</h3>
   <table style="width:100%;border-collapse:collapse;"><tbody>${rowsHtml}</tbody></table>
