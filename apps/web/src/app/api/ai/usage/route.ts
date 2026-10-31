@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       used: 0,
       limit: 100,
       resetsAt: null,
-      model: cfg?.model ?? "gpt-6-luna",
+      model: "Model SDU 1.3 (Qwen 3.8)",
     };
     return json(fallbackUsage);
   }
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       used: 0,
       limit: 100,
       resetsAt: null,
-      model: cfg?.model ?? "gpt-6-luna",
+      model: "Model SDU 1.3 (Qwen 3.8)",
     } satisfies AiUsage);
   }
   const row = singleRpcRow(data);
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     used: Number(row?.used ?? 0),
     limit: Number(row?.daily_limit ?? 100),
     resetsAt: row?.resets_at ? String(row.resets_at) : null,
-    model: cfg?.model ?? "gpt-6-luna",
+    model: "Model SDU 1.3 (Qwen 3.8)",
   };
   return json(usage);
 }

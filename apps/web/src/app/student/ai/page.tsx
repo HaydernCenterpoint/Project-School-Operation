@@ -11,28 +11,27 @@ import { useAiIntro } from "@/components/AiIntro";
 import { SceneCurtain } from "@/components/landing/SceneTransition";
 import { Icon, type IconName } from "@/components/Icon";
 import { phuongFonts } from "@/components/landing/fonts";
-import { PhuongFlower } from "@/components/landing/Phuong";
 import { Markdown } from "@/components/Markdown";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
 import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
-import { greeting, initials } from "@/lib/format";
 import {
-  courseByCode,
-  courses,
-  exams,
-  gpa,
-  invoices,
-  letter,
-  longDay,
-  money,
-  semester,
-  sessions,
-  sessionTime,
-  standing,
-  terms,
-  total,
-  weekdays,
-} from "@/lib/portal-demo";
+  addStudentMemoryFact,
+  autoLearnFromUserMessage,
+  buildComprehensiveStudentMemoryContext,
+  extractAndSaveAiMemoryTags,
+  MEMORY_CATEGORY_LABELS,
+  type MemoryCategory,
+  readStudentMemories,
+  removeStudentMemoryFact,
+  resetStudentMemoriesForCode,
+  SDU_AI_MODEL_BADGE,
+  SDU_AI_MODEL_DESC,
+  SDU_AI_MODEL_NAME,
+  STUDENT_DETAILED_PROFILES,
+  type StudentMemoryFact,
+  subscribeStudentMemories,
+} from "@/lib/ai-student-memory";
+import { greeting, initials } from "@/lib/format";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
@@ -41,40 +40,41 @@ const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggest
     key: "explain",
     label: "Giải thích",
     icon: "book",
-    hint: "Hỏi về môn học, lịch học, điểm số hoặc khái niệm bạn chưa hiểu…",
+    hint: "Hỏi Model SDU 1.3 về bất kỳ sinh viên nào, thông tin cá nhân, lịch học, điểm số…",
     suggestions: [
-      "Tóm tắt lịch học trong tuần và các bài tập sắp đến hạn của mình",
-      "Giải thích đệ quy và chuẩn hoá cơ sở dữ liệu 3NF kèm ví dụ thực tế",
+      "Bạn là model AI gì, được train dữ liệu từ đâu và nhớ được những gì về mình?",
+      "Cho mình biết đầy đủ thông tin cá nhân, gia đình, CCCD, BHYT, điểm số và đặc điểm học tập của mình",
+      "Tra cứu thông tin chi tiết và đặc điểm học tập của các bạn Phạm Khánh Linh (2200287) và Vũ Quốc Bảo (2200290)",
     ],
   },
   {
     key: "summarize",
     label: "Tóm tắt",
     icon: "list",
-    hint: "Dán ghi chép hoặc hỏi tổng hợp bảng điểm, học phí, lịch thi…",
+    hint: "Hỏi tổng hợp hồ sơ từng sinh viên, bảng điểm, học phí, chuyên cần…",
     suggestions: [
-      "Tổng hợp kết quả học tập (GPA), tiến độ tín chỉ và học phí kỳ này của mình",
-      "Tóm tắt nội dung trọng tâm các môn đang học trong học kỳ HK1 2026-2027",
+      "Tổng hợp bảng so sánh đặc điểm, GPA, chuyên cần và thế mạnh của toàn bộ sinh viên lớp DK13-CNTT1",
+      "Tổng hợp kết quả học tập (GPA), tiến độ tín chỉ, biên lai học phí và lịch thi của mình",
     ],
   },
   {
     key: "practice",
     label: "Luyện tập",
     icon: "question",
-    hint: "Nhập chủ đề hoặc mã học phần muốn luyện tập…",
+    hint: "Nhập chủ đề hoặc mã học phần muốn luyện tập cá nhân hóa theo năng lực…",
     suggestions: [
-      "Ra 5 câu hỏi ôn tập môn IT3080 (Mạng máy tính) và IT3090 (Cơ sở dữ liệu)",
-      "Đố 3 bài toán tự lượng giá về Lập trình hướng đối tượng (IT3040)",
+      "Dựa trên điểm mạnh và điểm yếu trong bộ nhớ của mình, hãy ra 5 câu hỏi ôn tập phù hợp nhất",
+      "Đố 3 bài toán tự lượng giá về Lập trình hướng đối tượng (IT3040) và Cơ sở dữ liệu (IT3090)",
     ],
   },
   {
     key: "plan",
     label: "Lập kế hoạch",
     icon: "calendar",
-    hint: "Mô tả mục tiêu ôn thi hoặc bài tập cần lập tiến độ…",
+    hint: "Mô tả mục tiêu ôn thi hoặc định hướng cá nhân để AI ghi nhớ và lập lộ trình…",
     suggestions: [
-      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ dựa trên lịch thi thật của mình",
-      "Chia nhỏ tiến độ hoàn thành các bài tập đang mở trong lớp học phần",
+      "Hãy nhớ giúp mình: mục tiêu của mình là đạt GPA 3.6 kỳ này và thực tập vị trí AI Engineer, lập lộ trình giúp mình",
+      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ cá nhân hóa dựa trên lịch thi và các môn mình còn yếu",
     ],
   },
 ];
@@ -170,7 +170,20 @@ type Message = AiMessage & {
 };
 
 export default function AiWorkspace() {
-  const { data, account, roster, error: loadError, avatarUrl, refresh } = useStudent();
+  const {
+    data,
+    account,
+    roster,
+    subjectClasses,
+    attendanceSessions,
+    allSubmissions,
+    classAnnouncements,
+    clubMembers,
+    clubEvents,
+    error: loadError,
+    avatarUrl,
+    refresh,
+  } = useStudent();
   const { theme, toggleTheme } = usePhuongTheme();
   const token = data?.token || "local-multi-role-session";
   const [now] = useState(Date.now);
@@ -191,6 +204,12 @@ export default function AiWorkspace() {
   const [status, setStatus] = useState("");
   const [loadingThread, setLoadingThread] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<AiConversation | null>(null);
+  const [memories, setMemories] = useState<StudentMemoryFact[]>([]);
+  const [memoryModalOpen, setMemoryModalOpen] = useState(false);
+  const [selectedMemoryStudentCode, setSelectedMemoryStudentCode] = useState<string>("2200286");
+  const [newMemoryCategory, setNewMemoryCategory] = useState<MemoryCategory>("hoc_tap");
+  const [newMemoryText, setNewMemoryText] = useState("");
+  const [memoryToast, setMemoryToast] = useState("");
   const controller = useRef<AbortController | null>(null);
   const thread = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -201,67 +220,49 @@ export default function AiWorkspace() {
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
 
-  // Build real portal data context so the AI knows the user's real profile, schedule, exams, grades, assignments, and tuition.
+  useEffect(() => {
+    const syncMemories = () => setMemories(readStudentMemories());
+    queueMicrotask(syncMemories);
+    return subscribeStudentMemories(syncMemories);
+  }, []);
+
+  useEffect(() => {
+    if (account.code && roster.some((r) => r.studentCode === account.code)) {
+      setSelectedMemoryStudentCode(account.code);
+    } else if (roster[0]) {
+      setSelectedMemoryStudentCode(roster[0].studentCode);
+    }
+  }, [account.code, roster]);
+
+  // Build comprehensive student memory & portal context so Model SDU 1.3 knows every student's full dossier and learned traits.
   const studentContext = useMemo(() => {
     if (!data) return "";
-    const allGradeRows = terms.flatMap((term) => term.rows);
-    const cumulativeGpa = gpa(allGradeRows);
-    const currentInvoices = invoices(now);
-    const activeInvoice = currentInvoices[0];
-    const invoiceTotal = activeInvoice
-      ? activeInvoice.items.reduce((sum, item) => sum + item.amount, 0)
-      : 0;
-    const invoiceRemaining = activeInvoice ? Math.max(0, invoiceTotal - activeInvoice.paid) : 0;
-
-    const scheduleLines = sessions.map((s) => {
-      const c = courseByCode.get(s.course);
-      return `- ${weekdays[s.day]}: ${s.course} (${c?.name ?? s.course}) · Tiết ${s.from}-${s.to} (${sessionTime(s)}) · Phòng ${s.room} · ${s.kind} · GV: ${c?.lecturer ?? ""}`;
+    return buildComprehensiveStudentMemoryContext({
+      account,
+      roster,
+      subjectClasses,
+      attendanceSessions,
+      allSubmissions,
+      classAnnouncements,
+      clubMembers,
+      clubEvents,
+      assignments: data.assignments,
+      memories,
+      now,
     });
-
-    const examLines = exams(now).map((ex) => {
-      const c = courseByCode.get(ex.course);
-      return `- ${ex.round} ${ex.course} (${c?.name ?? ex.course}): ${longDay(ex.at)} lúc ${new Date(ex.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} · Phòng ${ex.room} · ${ex.seat} · ${ex.form} (${ex.minutes} phút)`;
-    });
-
-    const gradeLines = terms.map((term) => {
-      const termGpa = gpa(term.rows);
-      const rowDetails = term.rows
-        .map((r) => {
-          const score = total(r);
-          const l = letter(score);
-          return `${r.code} ${r.name} (${r.credits} TC): Điểm TK ${score} (${l.grade})`;
-        })
-        .join("; ");
-      return `- ${term.name} (GPA ${termGpa.value}/4.0): ${rowDetails}`;
-    });
-
-    const assignmentLines = data.assignments.map((a) => {
-      const sub = data.submissions.find((s) => s.assignmentId === a.id);
-      const dueStr = a.dueAt ? new Date(a.dueAt).toLocaleDateString("vi-VN") : "Không giới hạn";
-      const subStr = sub
-        ? `Đã nộp (${sub.status === "reviewed" ? `Đã chấm${sub.feedback ? ` - Nhận xét: ${sub.feedback}` : ""}` : "Đang chờ chấm"})`
-        : "Chưa nộp";
-      return `- [${a.id}] ${a.title} (Hạn: ${dueStr}) · Trạng thái: ${subStr} · Yêu cầu: ${a.instructions}`;
-    });
-
-    const rosterSummary = roster
-      .map((acc) => `${acc.fullName} (${acc.studentCode} · GPA ${acc.gpa})`)
-      .join(", ");
-
-    return [
-      `Hồ sơ người dùng đang đăng nhập: ${account.displayName} (Mã: ${account.code})`,
-      `Vai trò: ${account.roleTitle} · Lớp hành chính: ${account.cohortClass} · Khoa: ${account.department} · Email: ${account.email} · Cố vấn học tập: ${account.advisorName}`,
-      `Học kỳ hiện tại: ${semester.name} (${semester.short})`,
-      `Tổng kết học tập tích lũy: GPA ${cumulativeGpa.value}/4.0 (${standing(cumulativeGpa.value)}) · Đã tích lũy ${cumulativeGpa.credits}/150 tín chỉ`,
-      `Học phí kỳ ${semester.short}: Tổng ${money(invoiceTotal)}, đã đóng ${money(activeInvoice?.paid ?? 0)}, còn cần đóng ${money(invoiceRemaining)} (Hạn: ${activeInvoice ? new Date(activeInvoice.due).toLocaleDateString("vi-VN") : "N/A"})`,
-      `Các học phần đang học kỳ này (${courses.reduce((s, c) => s + c.credits, 0)} tín chỉ):\n${courses.map((c) => `- ${c.code}: ${c.name} (${c.credits} tín chỉ) · Giảng viên: ${c.lecturer}`).join("\n")}`,
-      `Thời khóa biểu trong tuần:\n${scheduleLines.join("\n")}`,
-      `Lịch thi sắp tới:\n${examLines.join("\n")}`,
-      `Bài tập & Đồ án trên hệ thống:\n${assignmentLines.join("\n")}`,
-      `Bảng điểm các học kỳ trước:\n${gradeLines.join("\n")}`,
-      `Danh sách thành viên lớp ${account.cohortClass}: ${rosterSummary}`,
-    ].join("\n\n");
-  }, [account, data, now, roster]);
+  }, [
+    account,
+    allSubmissions,
+    attendanceSessions,
+    classAnnouncements,
+    clubEvents,
+    clubMembers,
+    data,
+    memories,
+    now,
+    roster,
+    subjectClasses,
+  ]);
 
   const loadMeta = useCallback(async () => {
     try {
@@ -325,7 +326,7 @@ export default function AiWorkspace() {
     conversations.find((item) => item.id === activeId)?.title ??
     (messages.length ? "Cuộc trò chuyện" : "Cuộc trò chuyện mới");
   useEffect(() => {
-    document.title = `${title} | Trợ lý AI Sao Đỏ`;
+    document.title = `${title} | Đại học Sao Đỏ`;
   }, [title]);
 
   const newConversation = useCallback(() => {
@@ -337,12 +338,13 @@ export default function AiWorkspace() {
     requestAnimationFrame(() => composer.current?.focus());
   }, [streaming]);
 
-  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes the custom delete modal.
+  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes modals.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape" && pendingDelete) {
+      if (event.key === "Escape" && (pendingDelete || memoryModalOpen)) {
         event.preventDefault();
         setPendingDelete(null);
+        setMemoryModalOpen(false);
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "o") {
@@ -352,7 +354,7 @@ export default function AiWorkspace() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newConversation, pendingDelete]);
+  }, [memoryModalOpen, newConversation, pendingDelete]);
 
   async function openConversation(id: string) {
     if (streaming) return;
@@ -415,7 +417,20 @@ export default function AiWorkspace() {
     setNotice("");
     setDraft("");
     if (composer.current) composer.current.style.height = "auto";
-    setStatus("Trợ lý đang soạn câu trả lời…");
+    setStatus("Model SDU 1.3 đang truy xuất bộ nhớ học sinh & soạn câu trả lời…");
+
+    // Automatically learn any self-reported traits from the user's message immediately
+    const fallbackStudentCode =
+      roster.find((r) => r.studentCode === account.code)?.studentCode ??
+      roster[0]?.studentCode ??
+      "2200286";
+    const userLearned = autoLearnFromUserMessage(text, fallbackStudentCode, roster);
+    if (userLearned.length > 0) {
+      setMemories(readStudentMemories());
+      setMemoryToast(
+        `Đã tự động ghi nhớ ${userLearned.length} đặc điểm mới vào Bộ nhớ Học sinh (${userLearned[0]!.studentCode})`,
+      );
+    }
 
     const priorHistory = messages
       .filter(
@@ -436,6 +451,7 @@ export default function AiWorkspace() {
       id: assistantId,
       role: "assistant",
       content: "",
+      model: SDU_AI_MODEL_BADGE,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -465,7 +481,11 @@ export default function AiWorkspace() {
             setActiveId(event.conversationId);
           } else if (event.type === "delta") {
             streamedText += event.text;
-            patch((item) => ({ ...item, content: item.content + event.text }));
+            const visiblePreview = streamedText.replace(
+              /<ghi_nho_sinh_vien[\s\S]*?(?:<\/ghi_nho_sinh_vien>|$)/gi,
+              "",
+            );
+            patch((item) => ({ ...item, content: visiblePreview }));
           } else if (event.type === "complete") {
             patch((item) => ({ ...item, status: "complete" }));
           } else if (event.type === "error") {
@@ -480,6 +500,20 @@ export default function AiWorkspace() {
         abort.signal,
         files.map((file) => ({ blob: file.blob, name: file.name })),
       );
+
+      // Extract & persist any <ghi_nho_sinh_vien> tags emitted by Model SDU 1.3
+      const { cleanedText, savedFacts } = extractAndSaveAiMemoryTags(
+        streamedText,
+        fallbackStudentCode,
+      );
+      if (savedFacts.length > 0) {
+        setMemories(readStudentMemories());
+        setMemoryToast(
+          `Model SDU 1.3 đã tự động ghi nhớ ${savedFacts.length} đặc điểm mới của SV ${savedFacts[0]!.studentCode}`,
+        );
+      }
+      const finalAssistantText = cleanedText || streamedText;
+      patch((item) => ({ ...item, content: finalAssistantText, status: "complete" }));
 
       // Persist the conversation and usage locally so history and quota stay accurate in real time.
       const nowIso = new Date().toISOString();
@@ -500,7 +534,8 @@ export default function AiWorkspace() {
       const completedAssistant: AiMessage = {
         id: assistantId,
         role: "assistant",
-        content: streamedText,
+        content: finalAssistantText,
+        model: SDU_AI_MODEL_BADGE,
         status: "complete",
         createdAt: nowIso,
       };
@@ -639,7 +674,7 @@ export default function AiWorkspace() {
   if (!data || consent === null) {
     return root(
       <div className="aw-center" aria-busy="true">
-        <PhuongFlower size={56} className="aw-loading-flower" />
+        <img src="/sao-do-logo.png" alt="" width={56} height={60} className="aw-loading-logo" />
         <p className="aw-loading-text">Đang mở trợ lý học tập…</p>
       </div>,
     );
@@ -649,7 +684,7 @@ export default function AiWorkspace() {
     return root(
       <div className="aw-center">
         <div className="aw-consent">
-          <PhuongFlower size={44} />
+          <img src="/sao-do-logo.png" alt="" width={44} height={47} />
           <h1>Trước khi dùng trợ lý AI</h1>
           <ul>
             <li>Nội dung bạn nhập (và bài tập bạn chọn đính kèm) được gửi tới nhà cung cấp AI của nhà trường để tạo câu trả lời.</li>
@@ -681,8 +716,56 @@ export default function AiWorkspace() {
     : conversations;
   const empty = !messages.length && !loadingThread;
 
+  const selectedRosterStudent =
+    roster.find((r) => r.studentCode === selectedMemoryStudentCode) ?? roster[0];
+  const selectedStudentDetail = selectedRosterStudent
+    ? STUDENT_DETAILED_PROFILES[selectedRosterStudent.studentCode]
+    : undefined;
+  const selectedStudentMemories = memories.filter(
+    (m) => m.studentCode === selectedMemoryStudentCode,
+  );
+
+  function handleAddManualMemory(event: FormEvent) {
+    event.preventDefault();
+    if (!newMemoryText.trim() || !selectedMemoryStudentCode) return;
+    const added = addStudentMemoryFact({
+      studentCode: selectedMemoryStudentCode,
+      category: newMemoryCategory,
+      fact: newMemoryText.trim(),
+      source: "manual",
+    });
+    if (added) {
+      setMemories(readStudentMemories());
+      setNewMemoryText("");
+      setMemoryToast(
+        `Đã lưu đặc điểm mới vào bộ nhớ của ${selectedRosterStudent?.fullName ?? selectedMemoryStudentCode}`,
+      );
+    }
+  }
+
   const composerForm = (
     <form className="aw-composer" onSubmit={submit}>
+      {memoryToast && (
+        <div className="aw-memory-toast" role="status">
+          <Icon name="sparkle" />
+          <span>{memoryToast}</span>
+          <button
+            type="button"
+            className="aw-toast-open"
+            onClick={() => setMemoryModalOpen(true)}
+          >
+            Xem bộ nhớ
+          </button>
+          <button
+            type="button"
+            className="aw-toast-close"
+            aria-label="Đóng thông báo"
+            onClick={() => setMemoryToast("")}
+          >
+            ×
+          </button>
+        </div>
+      )}
       {notice && (
         <div className="notice error" role="alert">
           <Icon name="alert" />
@@ -756,6 +839,23 @@ export default function AiWorkspace() {
           >
             <Icon name="paperclip" />
           </button>
+          <span
+            className="aw-model-pill"
+            title={SDU_AI_MODEL_DESC}
+          >
+            <Icon name="sparkle" />
+            <strong>{SDU_AI_MODEL_NAME}</strong>
+            <small>Qwen 3.8</small>
+          </span>
+          <button
+            type="button"
+            className="aw-memory-pill"
+            onClick={() => setMemoryModalOpen(true)}
+            title="Mở Hệ thống Bộ nhớ Học sinh — AI tự động ghi nhớ đặc điểm và hồ sơ của từng sinh viên"
+          >
+            <Icon name="users" />
+            <span>Bộ nhớ SV ({roster.length} HS · {memories.length} đặc điểm)</span>
+          </button>
           <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
             <button type="button" onClick={() => pick(imagePicker.current)}>
               <Icon name="sparkle" />
@@ -785,7 +885,9 @@ export default function AiWorkspace() {
           )}
         </div>
       </div>
-      <p className="aw-disclaimer">Trợ lý AI có thể sai. Hãy tự kiểm chứng trước khi dùng cho bài tập.</p>
+      <p className="aw-disclaimer">
+        Vận hành trên <strong>{SDU_AI_MODEL_NAME}</strong> (train dữ liệu từ mô hình mở <strong>Qwen 3.8</strong>) · Tự động ghi nhớ đặc điểm từng sinh viên.
+      </p>
     </form>
   );
 
@@ -796,8 +898,8 @@ export default function AiWorkspace() {
           <Link href="/student" className="aw-brand" aria-label="Về cổng học tập">
             <img src="/sao-do-logo.png" alt="" width={30} height={32} />
             <span>
-              <strong>Trợ lý Sao Đỏ</strong>
-              <small>Học cùng AI</small>
+              <strong>Đại học Sao Đỏ</strong>
+              <small>{SDU_AI_MODEL_BADGE}</small>
             </span>
           </Link>
           <button className="icon-button" type="button" onClick={toggleSide} aria-label="Đóng thanh bên" aria-controls="aw-side">
@@ -807,6 +909,17 @@ export default function AiWorkspace() {
         <button className="aw-new" type="button" onClick={newConversation} disabled={streaming}>
           <Icon name="plus" /> Cuộc trò chuyện mới
           <kbd>Ctrl ⇧ O</kbd>
+        </button>
+        <button
+          className="aw-memory-side-btn"
+          type="button"
+          onClick={() => setMemoryModalOpen(true)}
+        >
+          <Icon name="users" />
+          <span>
+            <strong>Bộ nhớ Học sinh AI</strong>
+            <small>{roster.length} hồ sơ SV · {memories.length} ghi nhớ</small>
+          </span>
         </button>
         <label className="aw-search">
           <Icon name="search" />
@@ -902,6 +1015,18 @@ export default function AiWorkspace() {
             <Icon name="panel" />
           </button>
           <h1>{title}</h1>
+          <span className="aw-top-model-chip" title={SDU_AI_MODEL_DESC}>
+            <Icon name="sparkle" /> {SDU_AI_MODEL_NAME} · Qwen 3.8
+          </span>
+          <button
+            className="aw-top-memory-btn"
+            type="button"
+            onClick={() => setMemoryModalOpen(true)}
+            title="Mở Bộ nhớ Học sinh AI"
+          >
+            <Icon name="users" />
+            <span>Bộ nhớ SV</span>
+          </button>
           <button className="icon-button aw-top-new" type="button" onClick={newConversation} disabled={streaming} aria-label="Cuộc trò chuyện mới">
             <Icon name="plus" />
           </button>
@@ -909,12 +1034,27 @@ export default function AiWorkspace() {
 
         {empty ? (
           <div className="aw-welcome">
+            <div className="aw-welcome-badge-row">
+              <span className="aw-welcome-model-badge">
+                <Icon name="sparkle" />
+                <strong>{SDU_AI_MODEL_NAME}</strong>
+                <span>Train dữ liệu từ mô hình mở Qwen 3.8</span>
+              </span>
+              <button
+                type="button"
+                className="aw-welcome-memory-badge"
+                onClick={() => setMemoryModalOpen(true)}
+              >
+                <Icon name="users" />
+                <span>Đã ghi nhớ {roster.length} hồ sơ SV ({memories.length} đặc điểm)</span>
+              </button>
+            </div>
             <h2>
-              <PhuongFlower size={34} /> {greeting(new Date(now))}, {name}
+              <img src="/sao-do-logo.png" alt="Logo Đại học Sao Đỏ" width={38} height={41} className="aw-welcome-logo" /> {greeting(new Date(now))}, Đại học Sao Đỏ
             </h2>
             <p>
               {enabled
-                ? "Hôm nay bạn muốn học gì? Trợ lý trả lời bằng tiếng Việt và đã kết nối dữ liệu học tập thật của bạn."
+                ? "Model SDU 1.3 (huấn luyện từ Qwen 3.8) tự động ghi nhớ đặc điểm, hồ sơ cá nhân, gia đình, học tập và điểm số của từng sinh viên để trả lời mọi câu hỏi của bạn."
                 : usage
                   ? aiErrorMessage("ai_disabled")
                   : "Đang kiểm tra trạng thái trợ lý…"}
@@ -924,6 +1064,25 @@ export default function AiWorkspace() {
               {modes.map((item) => (
                 <button key={item.key} type="button" aria-pressed={item.key === mode} onClick={() => setMode(item.key)}>
                   <Icon name={item.icon} /> {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="aw-student-quick-bar" aria-label="Tra cứu nhanh hồ sơ sinh viên trong Bộ nhớ AI">
+              <span className="aw-student-quick-label">Hỏi nhanh về SV:</span>
+              {roster.map((stu) => (
+                <button
+                  key={stu.studentCode}
+                  type="button"
+                  className="aw-student-quick-chip"
+                  onClick={() => {
+                    setDraft(
+                      `Cho mình biết đầy đủ thông tin cá nhân, gia đình, điểm số, chuyên cần và các đặc điểm AI đã ghi nhớ về sinh viên ${stu.fullName} (mã SV ${stu.studentCode})`,
+                    );
+                    composer.current?.focus();
+                  }}
+                >
+                  <strong>{stu.fullName}</strong>
+                  <small>{stu.studentCode} · GPA {stu.gpa}</small>
                 </button>
               ))}
             </div>
@@ -976,7 +1135,7 @@ export default function AiWorkspace() {
                       </div>
                     ) : (
                       <div key={message.id} className="aw-msg assistant">
-                        <span className="aw-avatar" aria-hidden="true"><PhuongFlower size={20} /></span>
+                        <span className="aw-avatar" aria-hidden="true"><img src="/sao-do-logo.png" alt="" width={20} height={22} /></span>
                         <div className="aw-answer">
                           {message.status === "pending" && !message.content ? (
                             <span className="typing" aria-label="Đang soạn"><i /><i /><i /></span>
@@ -1066,6 +1225,227 @@ export default function AiWorkspace() {
               >
                 <Icon name="trash" /> Xoá vĩnh viễn
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {memoryModalOpen && (
+        <div
+          className="aw-modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setMemoryModalOpen(false);
+          }}
+        >
+          <div
+            className="aw-memory-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="aw-memory-title"
+          >
+            <div className="aw-memory-modal-head">
+              <div>
+                <div className="aw-memory-head-badges">
+                  <span className="aw-model-tag">
+                    <Icon name="sparkle" /> {SDU_AI_MODEL_NAME} · Train từ Qwen 3.8
+                  </span>
+                  <span className="aw-memory-count-tag">
+                    Tự động ghi nhớ {roster.length} sinh viên · {memories.length} đặc điểm
+                  </span>
+                </div>
+                <h2 id="aw-memory-title">Hệ thống Bộ nhớ Học sinh & Hồ sơ Toàn diện (SDU AI Memory)</h2>
+                <p>
+                  AI tự động ghi nhớ đặc điểm học tập, điểm mạnh, điểm yếu, sở thích, mục tiêu và toàn bộ thông tin sinh viên từ hồ sơ trường & lịch sử trò chuyện.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Đóng bảng bộ nhớ"
+                onClick={() => setMemoryModalOpen(false)}
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <div className="aw-memory-body">
+              <aside className="aw-memory-roster" aria-label="Danh sách sinh viên">
+                <p className="aw-memory-sec-title">Chọn sinh viên ({roster.length})</p>
+                <ul>
+                  {roster.map((stu) => {
+                    const count = memories.filter((m) => m.studentCode === stu.studentCode).length;
+                    const active = stu.studentCode === selectedMemoryStudentCode;
+                    return (
+                      <li key={stu.studentCode}>
+                        <button
+                          type="button"
+                          className={`aw-memory-stu-btn${active ? " is-active" : ""}`}
+                          onClick={() => setSelectedMemoryStudentCode(stu.studentCode)}
+                        >
+                          <span className="aw-memory-stu-avatar">{initials(stu.fullName)}</span>
+                          <span className="aw-memory-stu-meta">
+                            <strong>{stu.fullName}</strong>
+                            <small>
+                              {stu.studentCode} · GPA {stu.gpa} · {count} ghi nhớ
+                            </small>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </aside>
+
+              <div className="aw-memory-detail">
+                {selectedRosterStudent && (
+                  <>
+                    <div className="aw-memory-profile-card">
+                      <div className="aw-memory-profile-top">
+                        <div>
+                          <h3>
+                            {selectedRosterStudent.fullName}{" "}
+                            <span>({selectedRosterStudent.studentCode})</span>
+                          </h3>
+                          <p>
+                            {selectedRosterStudent.roleInClass} · Lớp {selectedRosterStudent.cohortClass} · GPA{" "}
+                            <strong>{selectedRosterStudent.gpa}/4.0</strong> · Chuyên cần{" "}
+                            <strong>{selectedRosterStudent.attendancePct}%</strong>
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="aw-ask-stu-btn"
+                          onClick={() => {
+                            setMemoryModalOpen(false);
+                            void send(
+                              `Hãy tổng hợp toàn bộ hồ sơ cá nhân, gia đình, điểm số, chuyên cần và các đặc điểm trong bộ nhớ của sinh viên ${selectedRosterStudent.fullName} (${selectedRosterStudent.studentCode}).`,
+                            );
+                          }}
+                        >
+                          <Icon name="sparkle" /> Hỏi AI về SV này
+                        </button>
+                      </div>
+
+                      {selectedStudentDetail && (
+                        <div className="aw-memory-static-grid">
+                          <div>
+                            <small>Ngày sinh & Giới tính</small>
+                            <strong>
+                              {selectedStudentDetail.dateOfBirth} · {selectedStudentDetail.gender}
+                            </strong>
+                          </div>
+                          <div>
+                            <small>Số CCCD & Đoàn viên</small>
+                            <strong>
+                              {selectedStudentDetail.cccd} (Đoàn: {selectedStudentDetail.youthUnionDate})
+                            </strong>
+                          </div>
+                          <div>
+                            <small>Quê quán / Nơi sinh</small>
+                            <strong>{selectedStudentDetail.hometown}</strong>
+                          </div>
+                          <div>
+                            <small>Chỗ ở hiện nay</small>
+                            <strong>{selectedStudentDetail.currentResidence}</strong>
+                          </div>
+                          <div>
+                            <small>Chuyên ngành & Cố vấn</small>
+                            <strong>
+                              {selectedStudentDetail.specialization} · CVHT: {selectedStudentDetail.advisorName}
+                            </strong>
+                          </div>
+                          <div>
+                            <small>Điểm rèn luyện & Ngoại ngữ</small>
+                            <strong>
+                              {selectedStudentDetail.conductScore}/100 ({selectedStudentDetail.conductRank}) ·{" "}
+                              {selectedStudentDetail.englishLevel}
+                            </strong>
+                          </div>
+                          <div>
+                            <small>Tài khoản Ngân hàng & BHYT</small>
+                            <strong>
+                              {selectedStudentDetail.bankAccount} · {selectedStudentDetail.bhytCode}
+                            </strong>
+                          </div>
+                          <div>
+                            <small>Thông tin gia đình</small>
+                            <strong>{selectedStudentDetail.familySummary}</strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <form className="aw-memory-add-form" onSubmit={handleAddManualMemory}>
+                      <select
+                        value={newMemoryCategory}
+                        onChange={(e) => setNewMemoryCategory(e.target.value as MemoryCategory)}
+                        aria-label="Phân loại đặc điểm"
+                      >
+                        {(Object.keys(MEMORY_CATEGORY_LABELS) as MemoryCategory[]).map((cat) => (
+                          <option key={cat} value={cat}>
+                            {MEMORY_CATEGORY_LABELS[cat]}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={newMemoryText}
+                        onChange={(e) => setNewMemoryText(e.target.value)}
+                        placeholder={`Thêm đặc điểm ghi nhớ mới cho ${selectedRosterStudent.fullName}…`}
+                      />
+                      <button type="submit" disabled={!newMemoryText.trim()}>
+                        <Icon name="plus" /> Ghi nhớ
+                      </button>
+                    </form>
+
+                    <div className="aw-memory-facts-head">
+                      <strong>
+                        Đặc điểm AI đang ghi nhớ về {selectedRosterStudent.fullName} (
+                        {selectedStudentMemories.length})
+                      </strong>
+                      <button
+                        type="button"
+                        className="aw-memory-reset-btn"
+                        onClick={() => {
+                          resetStudentMemoriesForCode(selectedRosterStudent.studentCode);
+                          setMemories(readStudentMemories());
+                        }}
+                      >
+                        Khôi phục mặc định
+                      </button>
+                    </div>
+
+                    <ul className="aw-memory-facts-list">
+                      {selectedStudentMemories.map((fact) => (
+                        <li key={fact.id} className="aw-memory-fact-item">
+                          <span className={`aw-memory-cat cat-${fact.category}`}>
+                            {MEMORY_CATEGORY_LABELS[fact.category]}
+                          </span>
+                          <span className="aw-memory-fact-text">{fact.fact}</span>
+                          <span className="aw-memory-source">
+                            {fact.source === "chat_auto"
+                              ? "Tự học từ chat"
+                              : fact.source === "manual"
+                                ? "Thủ công"
+                                : "Hồ sơ gốc"}
+                          </span>
+                          <button
+                            type="button"
+                            className="aw-memory-fact-del"
+                            aria-label="Xoá ghi nhớ này"
+                            onClick={() => {
+                              removeStudentMemoryFact(fact.id);
+                              setMemories(readStudentMemories());
+                            }}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -414,7 +414,7 @@ export function AppShell({
           <Link href="/" className="brand-lockup" aria-label="Đại học Sao Đỏ, trang chủ">
             <Image src="/sao-do-logo.png" alt="" width={36} height={38} priority />
             <span>
-              <strong>Sao Đỏ</strong>
+              <strong>Đại học Sao Đỏ</strong>
               <small>Cổng học tập</small>
             </span>
           </Link>

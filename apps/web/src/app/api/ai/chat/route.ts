@@ -211,12 +211,12 @@ export async function POST(request: Request) {
       const startTime = Date.now();
       let firstContentTime: number | null = null;
 
-      send({ type: "start", conversationId: conversation, requestId, model: config.model });
+      send({ type: "start", conversationId: conversation, requestId, model: "Model SDU 1.3 (Qwen 3.8)" });
       send({
         type: "step",
         label: source
           ? `Đang nạp ngữ cảnh bài tập: ${source.title}`
-          : "Đang phân tích yêu cầu và ngữ cảnh học thuật",
+          : "Đang truy xuất Bộ nhớ Học sinh & Hồ sơ học vụ SDU",
       });
       if (attached.names.length > 0) {
         send({
@@ -228,8 +228,8 @@ export async function POST(request: Request) {
         type: "step",
         label:
           config.reasoningEffort === "high"
-            ? `Suy luận sâu (${config.model}) · Kiểm chứng từng bước`
-            : `Khởi tạo luồng suy luận (${config.model})`,
+            ? "Suy luận sâu (Model SDU 1.3 · Qwen 3.8) · Kiểm chứng từng bước"
+            : "Khởi tạo luồng suy luận (Model SDU 1.3 · Train từ Qwen 3.8)",
       });
 
       let text = "";
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
             mode,
             source,
             attached.names.length > 0,
-            typeof studentContext === "string" ? studentContext.slice(0, 8000) : undefined,
+            typeof studentContext === "string" ? studentContext.slice(0, 32000) : undefined,
           ),
           withAttachments(toTurns(historyRows), attached.blocks),
           (delta) => {
