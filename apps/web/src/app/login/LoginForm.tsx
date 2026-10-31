@@ -10,7 +10,6 @@ import { centerOf, closeCurtain } from "@/components/landing/SceneTransition";
 import { academicRequest } from "@/lib/academic-client";
 import {
   findAccountByLoginInput,
-  PORTAL_ACCOUNTS,
   switchActiveAccount,
   type PortalAccount,
 } from "@/lib/accounts";
@@ -96,7 +95,7 @@ export function LoginForm() {
     }
 
     if (!hasSupabaseEnvironment) {
-      setError("Nhập mã tài khoản hợp lệ (2200286, 2200287, 2200288, ductm@saodo.edu.vn) hoặc chọn nhanh bên dưới.");
+      setError("Nhập mã tài khoản hợp lệ (2200286, 2200287, 2200288, ductm@saodo.edu.vn).");
       return;
     }
 
@@ -116,7 +115,7 @@ export function LoginForm() {
         authError?.status === 429
           ? "Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại."
           : authError?.status && authError.status < 500
-            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng. Hoặc chọn nhanh một tài khoản phân quyền bên dưới."
+            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng."
             : "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.",
       );
       return;
@@ -139,8 +138,7 @@ export function LoginForm() {
 
   const describedBy = error ? "login-error" : undefined;
   return (
-    <>
-      <form className="login-form" method="post" onSubmit={signIn}>
+    <form className="login-form" method="post" onSubmit={signIn}>
         <label className="field">
           Mã sinh viên, mã giảng viên hoặc email
           <input
@@ -198,32 +196,5 @@ export function LoginForm() {
           {loading ? "Đang đăng nhập…" : "Đăng nhập"}
         </button>
       </form>
-
-      <section className="auth-role-Section" aria-label="Chọn nhanh tài khoản theo phân quyền">
-        <div className="auth-role-head">
-          <strong>Đăng nhập nhanh theo vai trò & quyền hạn</strong>
-          <small>Chuyển đổi tức thì giữa Giảng viên, Trưởng CLB và các Sinh viên thuộc lớp DK13-CNTT1</small>
-        </div>
-        <div className="auth-role-grid">
-          {PORTAL_ACCOUNTS.map((acc) => (
-            <button
-              key={acc.id}
-              type="button"
-              className={`auth-role-card is-${acc.role}`}
-              disabled={loading}
-              onClick={(event) => void enterWithRoleAccount(acc, event.currentTarget)}
-            >
-              <span className={`role-badge is-${acc.role}`}>{acc.roleBadge}</span>
-              <span className="auth-role-body">
-                <strong>{acc.displayName}</strong>
-                <span>{acc.roleTitle}</span>
-                <code>{acc.code} · {acc.email}</code>
-              </span>
-              <Icon name="arrow" />
-            </button>
-          ))}
-        </div>
-      </section>
-    </>
   );
 }
