@@ -279,7 +279,7 @@ export function PhuongTree({ className, id = "phuong" }: { className?: string; i
   return (
     <svg
       className={className}
-      viewBox="0 42 600 578"
+      viewBox="-56 18 712 596"
       role="img"
       aria-label="Minh họa cây hoa phượng đỏ cổ thụ nở rộ trong nắng hè Hải Phòng"
     >

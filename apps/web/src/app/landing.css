@@ -87,7 +87,7 @@
 .sd-lead { max-width: 36ch; margin: 16px 0 0; color: var(--sd-muted); font-size: clamp(1.05rem, 1.3vw, 1.2rem); line-height: 1.7; }
 .sd-actions { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; }
 .sd-hero-art { position: relative; }
-.sd-tree { display: block; width: 100%; height: auto; }
+.sd-tree { display: block; width: 100%; height: auto; overflow: visible; }
 .sd-tree-sway { transform-origin: 300px 590px; animation: sd-sway-tree 9s ease-in-out infinite alternate; }
 @keyframes sd-sway-tree { from { transform: rotate(-.8deg); } to { transform: rotate(.8deg); } }
 /* Every 12s a gust bends the crown (skew pivots at the roots), then it shakes out */
@@ -162,7 +162,7 @@
 
 /* Hải Phòng band */
 .sd-city-band { position: relative; max-width: 1352px; margin: clamp(72px, 9vw, 120px) auto 0; padding: clamp(40px, 6vw, 72px) clamp(24px, 5vw, 72px); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 32px; overflow: hidden; background: linear-gradient(120deg, #fff0e2 0%, #ffe3d6 50%, #fff4d6 100%); border: 1px solid #ffd8c4; border-radius: 32px; }
-.sd-band-tree { width: 100%; height: auto; transform: scaleX(-1); }
+.sd-band-tree { width: 100%; height: auto; overflow: visible; transform: scaleX(-1); }
 .sd-city-band h2 { margin: 0 0 16px; font-size: clamp(1.9rem, 3.4vw, 3rem); font-weight: 700; line-height: 1.15; }
 .sd-city-band h2 em { display: block; font-size: 1.2em; }
 .sd-city-band .sd-eyebrow { color: var(--sd-leaf-ink); }
