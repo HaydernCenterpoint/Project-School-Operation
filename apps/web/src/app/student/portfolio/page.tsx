@@ -890,7 +890,7 @@ export default function StudentPortfolioPage() {
 <meta charset="utf-8" />
 <title>${cvTitle}</title>
 <style>
-  body { font-family: "Newsreader", Georgia, serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
+  body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
   h1 { font-size: 18pt; margin: 0 0 4pt; text-transform: uppercase; color: ${accentColor}; }
   h2 { font-size: 12.5pt; margin: 14pt 0 6pt; text-transform: uppercase; border-bottom: 1.5pt solid ${accentColor}; padding-bottom: 2pt; color: ${accentColor}; }
   p { margin: 3pt 0; }
@@ -988,7 +988,7 @@ export default function StudentPortfolioPage() {
 
     const htmlContent = `<!DOCTYPE html>
 <html><head><meta charset="utf-8" /><title>${tpl.code} - ${tpl.title}</title></head>
-<body style="font-family:'Newsreader',Georgia,serif;font-size:12pt;margin:2cm;">
+<body style="font-family:Georgia,serif;font-size:12pt;margin:2cm;">
   <h2 style="text-align:center;">TRƯỜNG ĐẠI HỌC SAO ĐỎ · ${tpl.code}</h2>
   <h3 style="text-align:center;">${tpl.title}</h3>
   <table style="width:100%;border-collapse:collapse;"><tbody>${rowsHtml}</tbody></table>
@@ -1605,7 +1605,7 @@ export default function StudentPortfolioPage() {
             className="button button-outline"
             onClick={exportLiveCvToWordDoc}
           >
-            <Icon name="download" />
+            <Icon name="file" />
             <span>Tải CV Word (.doc)</span>
           </button>
           <button
@@ -2387,7 +2387,7 @@ export default function StudentPortfolioPage() {
                     className="button button-outline button-sm"
                     onClick={() => exportTemplateAsWordDoc(activeTemplate)}
                   >
-                    <Icon name="download" />
+                    <Icon name="file" />
                     <span>Tải Word (.doc)</span>
                   </button>
                 </div>
