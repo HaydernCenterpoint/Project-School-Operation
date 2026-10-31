@@ -9,7 +9,7 @@ insert into seed_student values
   ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
   ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
   ('2200304', 'Phạm Quốc Bảo', 'DC.CK17.05', 'Khoa Cơ khí', 'Đội trưởng đội bóng khoa Cơ khí.'),
-  ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, mọi người vào luyện nói nhé!'),
+  ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, điều phối lịch luyện nói chiều thứ Năm.'),
   ('2200306', 'Vũ Thành Đạt', 'DC.CNTT16.08', 'Khoa Công nghệ thông tin', 'Năm cuối, đang thực tập Frontend ở Hải Dương.'),
   ('2200307', 'Đặng Khánh Vy', 'DC.KT18.03', 'Khoa Kinh tế', 'Tân sinh viên K18, ở KTX khu B.'),
   ('2200308', 'Bùi Gia Khánh', 'DC.DT17.04', 'Khoa Điện', 'Mê Arduino và robot. Phó chủ nhiệm CLB Tin học.'),
@@ -50,7 +50,7 @@ select r.id::uuid, 'a0000000-0000-0000-0000-000000000001', 'group', r.name, r.ab
        (select id from seed_user where n = r.owner), now() - interval '30 days'
 from (values
   ('e0000000-0000-0000-0000-000000000001', 'Ôn thi Lập trình Web', 'Hỏi đáp bài tập, chia sẻ đề cũ và mẹo ôn thi môn Lập trình Web.', 'Học tập', 'code', 302),
-  ('e0000000-0000-0000-0000-000000000002', 'CLB Tin học Sao Đỏ', 'Sinh hoạt CLB, cuộc thi lập trình, workshop cuối tuần.', 'Câu lạc bộ', 'sparkle', 308),
+  ('e0000000-0000-0000-0000-000000000002', 'CLB Tin học Sao Đỏ', 'Sinh hoạt CLB, cuộc thi lập trình, workshop cuối tuần.', 'Câu lạc bộ', 'users', 308),
   ('e0000000-0000-0000-0000-000000000003', 'Việc làm & thực tập', 'Tin tuyển thực tập, part-time, review CV cho sinh viên.', 'Việc làm', 'briefcase', 306),
   ('e0000000-0000-0000-0000-000000000004', 'Ký túc xá khu B', 'Đồ thất lạc, ship đồ ăn, lịch dọn vệ sinh KTX khu B.', 'Tự do', 'home', 307),
   ('e0000000-0000-0000-0000-000000000005', 'Góc tiếng Anh', 'Luyện nói, chia sẻ tài liệu IELTS/TOEIC, tìm bạn học cùng.', 'Học tập', 'language', 305),
@@ -95,16 +95,16 @@ from (values
   ('e1000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000001', 302, 'Đúng rồi, chỉ ở dev thôi, build production thì chạy 1 lần.', 'e1000000-0000-0000-0000-000000000002', '{}', 90),
   ('e1000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000001', 306, '@Sinh viên 2200286 hôm trước bạn hỏi về CSS Grid, mình gửi link bài hướng dẫn trong kênh Chia sẻ tài liệu rồi nhé.', null, '{286}', 40),
   ('e1000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000001', 301, 'Tối nay 8h ai vào call ôn bài cùng không?', null, '{}', 12),
-  ('e1000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000002', 308, 'Workshop Git cơ bản 14h thứ 7 này tại phòng B1-Lab 3. Nhớ mang laptop nhé!', null, '{}', 300),
+  ('e1000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000002', 308, 'Workshop Git cơ bản 14h thứ 7 này tại phòng B1-Lab 3, mọi người mang theo laptop.', null, '{}', 300),
   ('e1000000-0000-0000-0000-000000000007', 'e0000000-0000-0000-0000-000000000002', 301, 'Có cần cài sẵn gì không anh?', 'e1000000-0000-0000-0000-000000000006', '{}', 280),
   ('e1000000-0000-0000-0000-000000000008', 'e0000000-0000-0000-0000-000000000002', 308, '@Nguyễn Minh Anh cài Git và VS Code là đủ em ạ.', 'e1000000-0000-0000-0000-000000000007', '{301}', 270),
   ('e1000000-0000-0000-0000-000000000009', 'e0000000-0000-0000-0000-000000000003', 306, 'Công ty phần mềm ở Hải Dương tuyển 5 thực tập sinh Frontend, hạn nộp CV cuối tháng.', null, '{}', 600),
   ('e1000000-0000-0000-0000-000000000010', 'e0000000-0000-0000-0000-000000000003', 303, 'Có chỗ nào tuyển thực tập kế toán không mọi người?', null, '{}', 200),
   ('e1000000-0000-0000-0000-000000000011', 'e0000000-0000-0000-0000-000000000004', 307, 'Ai đánh rơi thẻ sinh viên ở nhà ăn thì qua phòng B204 nhận nha.', null, '{}', 30),
   ('e1000000-0000-0000-0000-000000000012', 'e0000000-0000-0000-0000-000000000005', 305, 'Thứ 5 này Góc tiếng Anh có buổi speaking chủ đề "Job interview". Ai tham gia thì báo mình nhé.', null, '{}', 180),
-  ('e1000000-0000-0000-0000-000000000013', 'e0000000-0000-0000-0000-000000000005', 307, 'Em đăng ký ạ! @Hoàng Ngọc Linh có cần chuẩn bị trước không chị?', 'e1000000-0000-0000-0000-000000000012', '{305}', 150),
+  ('e1000000-0000-0000-0000-000000000013', 'e0000000-0000-0000-0000-000000000005', 307, 'Em đăng ký tham gia. @Hoàng Ngọc Linh có cần chuẩn bị trước không chị?', 'e1000000-0000-0000-0000-000000000012', '{305}', 150),
   ('e1000000-0000-0000-0000-000000000014', 'e0000000-0000-0000-0000-000000000006', 304, 'Chiều nay 5h sân trường, thiếu 2 người, ai đá không?', null, '{}', 60),
-  ('e1000000-0000-0000-0000-000000000015', 'e0000000-0000-0000-0000-000000000006', 310, 'Mình với @Trần Đức Huy nhé!', 'e1000000-0000-0000-0000-000000000014', '{302}', 55),
+  ('e1000000-0000-0000-0000-000000000015', 'e0000000-0000-0000-0000-000000000006', 310, 'Mình đăng ký cùng @Trần Đức Huy chiều nay.', 'e1000000-0000-0000-0000-000000000014', '{302}', 55),
   ('e1000000-0000-0000-0000-000000000016', 'e0000000-0000-0000-0000-000000000007', 309, 'Tổng hợp slide Cấu trúc dữ liệu và giải thuật chương 1-5, link trong mô tả kênh.', null, '{}', 720),
   ('e1000000-0000-0000-0000-000000000017', 'e0000000-0000-0000-0000-000000000008', 301, 'Chào bạn, mai bạn có đi học nhóm môn Lập trình Web không?', null, '{}', 25)
 ) as m(id, room, author, body, reply, pings, ago)

@@ -329,6 +329,10 @@ export default function AccountPage() {
 
           <div className="acc-summary-actions">
             {revealButton}
+            <Link href={"/student/portfolio" as import("next").Route} className="acc-edit-link">
+              <Icon name="briefcase" />
+              <span>Hồ sơ của bạn (Mẫu khách quan)</span>
+            </Link>
             <Link href={"/student/profile-update" as import("next").Route} className="acc-reveal-btn">
               <Icon name="pen" />
               <span>Đề xuất cập nhật thông tin</span>
@@ -337,7 +341,7 @@ export default function AccountPage() {
               <Icon name="shield" />
               <span>Đổi mật khẩu</span>
             </Link>
-            <Link href={"/student/settings" as import("next").Route} className="acc-edit-link">
+            <Link href={"/student/settings" as import("next").Route} className="acc-reveal-btn">
               <Icon name="sparkle" />
               <span>Cài đặt giao diện</span>
             </Link>

@@ -4,7 +4,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { MaskTransitionShowcase } from "@/components/MaskTransition";
 import { centerOf } from "@/components/landing/SceneTransition";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
 import { useStudent } from "@/lib/student-context";
@@ -149,10 +148,6 @@ export default function StudentSettingsPage() {
               Giảm mỏi mắt khi lập trình, soạn bài nộp hoặc đọc tài liệu học phần trong môi trường ánh sáng yếu.
             </p>
           </button>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <MaskTransitionShowcase theme={theme} onToggleTheme={toggleTheme} />
         </div>
       </Section>
 

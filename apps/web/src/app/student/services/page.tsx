@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { DemoBanner, Empty, PageTitle, Section } from "@/components/portal/Parts";
 import { clock, initialRequests, longDay, money, serviceTypes, useDemoState, type ServiceRequest } from "@/lib/portal-demo";
@@ -11,7 +12,8 @@ const statusLabel: Record<ServiceRequest["status"], { text: string; chip: string
   ready: { text: "Đã có kết quả, nhận tại phòng Một cửa", chip: "reviewed" },
 };
 
-export default function ServicesPage() {
+function ServicesContent() {
+  const searchParams = useSearchParams();
   const [now] = useState(Date.now);
   const [requests, setRequests] = useDemoState("services", () => initialRequests(now));
   const [chosen, setChosen] = useState<string | null>(null);
@@ -19,6 +21,17 @@ export default function ServicesPage() {
   const [copies, setCopies] = useState(1);
   const [status, setStatus] = useState("");
   const type = serviceTypes.find((item) => item.id === chosen);
+
+  useEffect(() => {
+    const qType = searchParams.get("type");
+    const qPurpose = searchParams.get("purpose");
+    if (qType && serviceTypes.some((item) => item.id === qType)) {
+      setChosen(qType);
+    }
+    if (qPurpose) {
+      setPurpose(qPurpose);
+    }
+  }, [searchParams]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -100,5 +113,13 @@ export default function ServicesPage() {
       </Section>
       <p className="sr-only" role="status" aria-live="polite">{status}</p>
     </>
+  );
+}
+
+export default function ServicesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ServicesContent />
+    </Suspense>
   );
 }

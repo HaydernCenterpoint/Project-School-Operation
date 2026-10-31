@@ -1,7 +1,6 @@
 "use client";
 
-import { Icon, type IconName } from "@/components/Icon";
-import { initials } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
 export type Kind = "class" | "exam" | "activity" | "club";
 
@@ -24,12 +23,10 @@ export type ScheduleItem = {
   note?: string;
 };
 
-export const kindIcon: Record<Kind, IconName> = { class: "class", exam: "pen", activity: "flag", club: "users" };
-
 const parts = [
-  { key: "morning", label: "Buổi sáng", test: (hour: number) => hour < 12 },
-  { key: "afternoon", label: "Buổi chiều", test: (hour: number) => hour >= 12 && hour < 18 },
-  { key: "evening", label: "Buổi tối", test: (hour: number) => hour >= 18 },
+  { key: "morning", label: "Buổi sáng", short: "Sáng", test: (hour: number) => hour < 12 },
+  { key: "afternoon", label: "Buổi chiều", short: "Chiều", test: (hour: number) => hour >= 12 && hour < 18 },
+  { key: "evening", label: "Buổi tối", short: "Tối", test: (hour: number) => hour >= 18 },
 ] as const;
 
 const hm = (date: Date) => date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
@@ -68,29 +65,30 @@ function ItemCard({ item, now, order }: { item: ScheduleItem; now: number; order
       <span className="sd-rail" aria-hidden="true"><i /></span>
       <article className="sd-card" aria-label={`${item.title}, ${hm(item.start)} đến ${hm(item.end)}`}>
         <header>
-          <span className="sd-tag"><Icon name={kindIcon[item.kind]} /> {item.tag}</span>
-          {item.periods && <span className="sd-periods">{item.periods}</span>}
+          <span className="sd-tag">
+            <i className="sd-dot" aria-hidden="true" />
+            {item.tag}
+          </span>
+          {item.periods && <code className="sd-periods">{item.periods} · {item.place}</code>}
+          {!item.periods && <code className="sd-periods">{item.place}</code>}
           {status.key !== "later" && <span className={`sd-status s-${status.key}`}>{status.text}</span>}
         </header>
         <h3>{item.title}</h3>
         <dl className="sd-meta">
           <div>
-            <dt><Icon name="pin" /> Phòng</dt>
-            <dd>{item.place}</dd>
+            <dt>Phòng học</dt>
+            <dd className="is-mono">{item.place}</dd>
           </div>
           {item.person && (
             <div>
-              <dt><Icon name="user" /> {item.personLabel ?? "Giảng viên"}</dt>
-              <dd className="sd-person">
-                <span aria-hidden="true">{initials(item.person.replace(/^(ThS|TS|PGS|GS)\.\s*/, ""))}</span>
-                {item.person}
-              </dd>
+              <dt>{item.personLabel ?? "Giảng viên"}</dt>
+              <dd>{item.person}</dd>
             </div>
           )}
           {item.note && (
             <div>
-              <dt><Icon name="info" /> Chi tiết</dt>
-              <dd>{item.note}</dd>
+              <dt>Học phần</dt>
+              <dd className="is-mono">{item.note}</dd>
             </div>
           )}
         </dl>
@@ -106,9 +104,7 @@ function ItemCard({ item, now, order }: { item: ScheduleItem; now: number; order
 
 /**
  * All seven days share one grid cell, so the frame is as tall as the busiest day and never
- * changes size when the selection moves. The chosen day fades in from the side it lies on
- * (days before it wait on the left, days after it on the right) and the previous one leaves the
- * other way; cards inside arrive one after another.
+ * changes size when the selection moves.
  */
 export function DayStack({ days, selected, now }: { days: { date: Date; items: ScheduleItem[] }[]; selected: number; now: number }) {
   return (
@@ -129,7 +125,7 @@ export function DayStack({ days, selected, now }: { days: { date: Date; items: S
 
 /** One day as a timeline grouped by part of day, with the free time between items. */
 function DayAgenda({ date, items, now }: { date: Date; items: ScheduleItem[]; now: number }) {
-  const busy = items.length ? `${hm(items[0]!.start)} - ${hm(items.at(-1)!.end)}` : "";
+  const busy = items.length ? `${hm(items[0]!.start)} – ${hm(items.at(-1)!.end)}` : "";
   const classes = items.filter((item) => item.kind === "class").length;
   return (
     <section className="sd-day" aria-label={date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}>
@@ -137,8 +133,8 @@ function DayAgenda({ date, items, now }: { date: Date; items: ScheduleItem[]; no
         <h2>{date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}</h2>
         <p>
           {items.length
-            ? `${classes ? `${classes} buổi học` : ""}${classes && items.length > classes ? " · " : ""}${items.length > classes ? `${items.length - classes} lịch khác` : ""} · bận ${busy}`
-            : "Không có lịch"}
+            ? `${classes ? `${classes} buổi học` : ""}${classes && items.length > classes ? " · " : ""}${items.length > classes ? `${items.length - classes} lịch khác` : ""} · khung giờ ${busy}`
+            : "Không có lịch trong ngày"}
         </p>
       </header>
       {items.length ? (
@@ -155,7 +151,7 @@ function DayAgenda({ date, items, now }: { date: Date; items: ScheduleItem[]; no
                   return [
                     gap >= 15 && (
                       <li key={`gap-${item.id}`} className="sd-gap">
-                        <span>Nghỉ {duration(gap)}</span>
+                        <span>Khoảng trống {duration(gap)}</span>
                       </li>
                     ),
                     <ItemCard key={item.id} item={item} now={now} order={items.indexOf(item)} />,
@@ -167,9 +163,9 @@ function DayAgenda({ date, items, now }: { date: Date; items: ScheduleItem[]; no
         })
       ) : (
         <div className="sd-empty">
-          <Icon name="sun" />
-          <strong>Một ngày trống lịch</strong>
-          <p>Tranh thủ nghỉ ngơi, ôn bài hoặc tham gia hoạt động của trường.</p>
+          <Icon name="calendar" />
+          <strong>Ngày trống lịch</strong>
+          <p>Tranh thủ ôn bài, tự học tại thư viện hoặc tham gia câu lạc bộ</p>
         </div>
       )}
     </section>
@@ -192,31 +188,45 @@ export function WeekPanel({
   now: number;
   onPick: (index: number) => void;
 }) {
-  const next = week.find((item) => item.end.getTime() > now);
+  const next = week.find((item) => item.end.getTime() > now) ?? week[0];
   const nextStatus = next ? statusOf(next, now) : null;
   const names = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   return (
     <aside className="sd-side">
       {next && (
         <section className={`sd-next k-${next.kind}`}>
-          <p className="sd-next-label">{nextStatus?.key === "live" ? "Đang diễn ra" : "Tiếp theo"}</p>
+          <div className="sd-next-head">
+            <span className="sd-next-label">
+              <i className="sd-dot" aria-hidden="true" />
+              {nextStatus?.key === "live" ? "Đang diễn ra" : next.end.getTime() > now ? "Buổi sắp tới" : "Đầu tuần"}
+            </span>
+            {next.periods && <code className="sd-next-code">{next.periods}</code>}
+          </div>
           <h3>{next.title}</h3>
-          <p>
-            {next.start.toLocaleDateString("vi-VN", { weekday: "long" })}, {hm(next.start)} - {hm(next.end)}
+          <p className="sd-next-meta">
+            <span>{next.start.toLocaleDateString("vi-VN", { weekday: "long" })}</span>
+            <span>·</span>
+            <code>{hm(next.start)} – {hm(next.end)}</code>
+            <span>·</span>
+            <code>{next.place}</code>
           </p>
-          <p><Icon name="pin" /> {next.place}</p>
-          {nextStatus && nextStatus.key !== "later" && nextStatus.key !== "done" && <strong>{nextStatus.text}</strong>}
+          {nextStatus && nextStatus.key !== "later" && nextStatus.key !== "done" && (
+            <p className="sd-next-status">{nextStatus.text}</p>
+          )}
         </section>
       )}
       <section className="sd-heat">
-        <h3>Tuần này</h3>
+        <div className="sd-heat-head">
+          <h3>Mật độ tuần</h3>
+          <code>{week.length} mục</code>
+        </div>
         <div className="sd-heat-grid" role="grid" aria-label="Mức độ bận theo ngày và buổi">
           <span />
           {names.map((name, index) => (
             <span key={name} className={`sd-heat-day${index === todayIndex ? " is-today" : ""}`}>{name}</span>
           ))}
           {parts.map((part) => [
-            <span key={`${part.key}-label`} className="sd-heat-part">{part.label.replace("Buổi ", "")}</span>,
+            <span key={`${part.key}-label`} className="sd-heat-part">{part.short}</span>,
             ...byDay.map((dayItems, index) => {
               const count = dayItems.filter((item) => part.test(item.start.getHours())).length;
               return (
@@ -233,7 +243,11 @@ export function WeekPanel({
             }),
           ])}
         </div>
-        <p className="sd-heat-legend"><i className="l-1" /> ít <i className="l-2" /> vừa <i className="l-3" /> nhiều</p>
+        <p className="sd-heat-legend">
+          <span><i className="l-0" /> Trống</span>
+          <span><i className="l-1" /> 1 buổi</span>
+          <span><i className="l-2" /> 2+ buổi</span>
+        </p>
       </section>
     </aside>
   );
