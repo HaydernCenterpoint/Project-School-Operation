@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { AppShell, studentNav, type Notification, type SearchSuggestion } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { initials } from "@/lib/format";
-import { SceneArrival } from "@/components/landing/SceneTransition";
+import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 
 function Frame({ children }: { children: React.ReactNode }) {
-  const { data, error, avatarUrl, account, refresh } = useStudent();
+  const { data, error, avatarUrl, account, refresh, signOut } = useStudent();
   // The AI workspace is its own full-page app (opened in a new tab); it only needs the session.
   if (usePathname().startsWith("/student/ai")) return children;
   const user = data
@@ -68,6 +68,15 @@ function Frame({ children }: { children: React.ReactNode }) {
         notifications={notifications}
         profileHref="/student/account"
         noticesHref="/student/notices"
+        sideCard={
+          <div className="side-foot">
+            <div className="side-links">
+              <button type="button" onClick={(event) => void signOut(centerOf(event.currentTarget))}>
+                <Icon name="logout" /> <span>Đăng xuất</span>
+              </button>
+            </div>
+          </div>
+        }
       >
         {error ? (
           <div className="notice error" role="alert">
