@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { BootSplash } from "@/components/BootSplash";
 import { NavProgress } from "@/components/NavProgress";
+import { AnimatedGradient } from "@/components/landing/AnimatedGradient";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body>
+        <AnimatedGradient />
         <a className="skip-link" href="#noi-dung">
           Bỏ qua đến nội dung chính
         </a>

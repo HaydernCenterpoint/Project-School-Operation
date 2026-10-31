@@ -3,7 +3,7 @@
    Type: Playfair Display (headings), Dancing Script (calligraphic accents), Be Vietnam Pro (body).
    Shapes: buttons pill, photos 24px with a white mat, cards 24-32px. */
 .sd {
-  --sd-bg: #fff8f0;
+  --sd-bg: #fff1eb;
   --sd-surface: #ffffff;
   --sd-raise: #ffefe4;
   --sd-ink: #2b1d1f;
@@ -22,13 +22,7 @@
   overflow-x: clip;
   color: var(--sd-ink);
   font-family: var(--font-body), system-ui, sans-serif;
-  background:
-    radial-gradient(900px 620px at 92% -80px, rgba(255, 214, 120, .55), transparent 65%),
-    radial-gradient(900px 700px at -8% 260px, rgba(255, 138, 110, .22), transparent 65%),
-    radial-gradient(1100px 900px at 104% 2600px, rgba(120, 200, 140, .16), transparent 65%),
-    radial-gradient(1000px 900px at -6% 4400px, rgba(255, 214, 120, .30), transparent 65%),
-    radial-gradient(1200px 900px at 50% 6600px, rgba(255, 138, 110, .18), transparent 65%),
-    var(--sd-bg);
+  background: transparent;
   color-scheme: light;
 }
 .sd > main, .sd > header, .sd > footer { position: relative; z-index: 1; }
@@ -313,7 +307,7 @@
 }
 
 /* Login: same phượng paper as the welcome page, fitted to one screen on desktop */
-.sd.auth-page { min-height: 100dvh; background: radial-gradient(800px 600px at 100% 0, rgba(255, 214, 120, .45), transparent 65%), radial-gradient(700px 600px at 0 100%, rgba(255, 138, 110, .2), transparent 65%), var(--sd-bg); }
+.sd.auth-page { min-height: 100dvh; background: transparent; }
 .sd.auth-page.auth-single { grid-template-columns: minmax(0, 1fr); }
 .sd > aside { position: relative; z-index: 1; }
 .sd .auth-art { grid-template-rows: auto minmax(0, 1fr) auto; gap: clamp(16px, 2.4vh, 28px); padding: clamp(20px, 3.4vh, 40px) clamp(24px, 3vw, 44px); color: var(--sd-ink); background: linear-gradient(165deg, #fffaf4 0%, #ffeede 100%); border: 1px solid var(--sd-line); box-shadow: var(--sd-shadow); }
