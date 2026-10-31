@@ -140,7 +140,7 @@ export function ScrollDownCue({ targetId = "gioi-thieu" }: { targetId?: string }
         onClick={handleClick}
         aria-label="Cuộn xuống phần giới thiệu"
       >
-        <span className="mp-scroll-cue-label">SCROLL</span>
+        <span className="mp-scroll-cue-label">Cuộn xuống</span>
         <span className="mp-scroll-cue-stage" aria-hidden="true">
           <span className="mp-scroll-chevrons is-left">
             <i className="mp-chevron is-1" />

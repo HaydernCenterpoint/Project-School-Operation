@@ -279,7 +279,7 @@ export function PhuongTree({ className, id = "phuong" }: { className?: string; i
   return (
     <svg
       className={className}
-      viewBox="0 0 600 620"
+      viewBox="0 42 600 578"
       role="img"
       aria-label="Minh họa cây hoa phượng đỏ cổ thụ nở rộ trong nắng hè Hải Phòng"
     >
@@ -294,15 +294,11 @@ export function PhuongTree({ className, id = "phuong" }: { className?: string; i
           <stop offset="0%" stopColor="#6B4C39" />
           <stop offset="100%" stopColor="#3B261B" />
         </linearGradient>
-        <radialGradient id={`${id}-sun-halo`} cx="50%" cy="36%" r="48%">
-          <stop offset="0%" stopColor="#FFCC66" stopOpacity="0.36" />
-          <stop offset="65%" stopColor="#FF6B35" stopOpacity="0.1" />
+        <radialGradient id={`${id}-sun-halo`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFCC66" stopOpacity="0.28" />
+          <stop offset="60%" stopColor="#FF6B35" stopOpacity="0.08" />
           <stop offset="100%" stopColor="#FF6B35" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id={`${id}-sunbeam`} x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0%" stopColor="#FFE699" stopOpacity="0.32" />
-          <stop offset="100%" stopColor="#FFE699" stopOpacity="0" />
-        </linearGradient>
 
         {/* Reusable organic blossom bouquet templates (no artificial flat outline) */}
         {(Object.keys(bouquetPalettes) as PaletteKey[]).flatMap((palette) =>
@@ -420,12 +416,8 @@ export function PhuongTree({ className, id = "phuong" }: { className?: string; i
         </g>
       </defs>
 
-      {/* Atmospheric golden summer sun & pulsing sunbeams */}
-      <circle cx="308" cy="210" r="258" fill={`url(#${id}-sun-halo)`} />
-      <g className="sd-sunbeam-pulse" aria-hidden="true">
-        <polygon points="395,28 495,28 345,565 185,565" fill={`url(#${id}-sunbeam)`} />
-        <polygon points="315,28 380,28 225,565 110,565" fill={`url(#${id}-sunbeam)`} opacity="0.65" />
-      </g>
+      {/* Atmospheric golden summer sun glow (contained inside viewBox so no hard top edge is clipped) */}
+      <circle cx="308" cy="240" r="190" fill={`url(#${id}-sun-halo)`} />
 
       {/* Ground shadow plinth */}
       <ellipse cx="338" cy="593" rx="228" ry="17" fill="#B52B22" opacity="0.14" />

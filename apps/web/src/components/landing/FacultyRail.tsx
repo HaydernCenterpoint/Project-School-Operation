@@ -18,14 +18,6 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
 
   return (
     <div className="sd-rail">
-      <div className="sd-rail-controls">
-        <button type="button" className="sd-round" aria-label="Khoa trước" onClick={() => move(-1)}>
-          <Icon name="back" />
-        </button>
-        <button type="button" className="sd-round" aria-label="Khoa tiếp theo" onClick={() => move(1)}>
-          <Icon name="arrow" />
-        </button>
-      </div>
       <ul ref={rail} className="sd-rail-track" aria-label="Các khoa đào tạo">
         {faculties.map((faculty) => (
           <li key={faculty.name}>
@@ -44,6 +36,14 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
           </li>
         ))}
       </ul>
+      <div className="sd-rail-controls">
+        <button type="button" className="sd-round" aria-label="Khoa trước" onClick={() => move(-1)}>
+          <Icon name="back" />
+        </button>
+        <button type="button" className="sd-round" aria-label="Khoa tiếp theo" onClick={() => move(1)}>
+          <Icon name="arrow" />
+        </button>
+      </div>
     </div>
   );
 }
