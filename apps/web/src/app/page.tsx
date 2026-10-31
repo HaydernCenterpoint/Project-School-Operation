@@ -6,7 +6,7 @@ import { FallingPetals } from "@/components/landing/FallingPetals";
 import { phuongFonts } from "@/components/landing/fonts";
 import { SceneArrival, SceneCurtain } from "@/components/landing/SceneTransition";
 import { LandingMotion } from "@/components/landing/LandingMotion";
-import { PhuongDivider, PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
+import { PhuongDivider, PhuongFlower, PhuongHeroShowcase, PhuongTree } from "@/components/landing/Phuong";
 import { aiConfig } from "@/lib/ai-provider";
 import "./landing.css";
 
@@ -95,8 +95,7 @@ export default function WelcomePage() {
               </Link>
             </div>
           </div>
-          <div className="sd-hero-art sd-rise sd-rise-2">
-            <PhuongTree className="sd-tree" />
+          <PhuongHeroShowcase>
             <figure className="sd-hero-photo">
               <div className="sd-hero-frame">
                 <Image
@@ -110,7 +109,7 @@ export default function WelcomePage() {
               </div>
               <figcaption>Nhà B1, cơ sở 1</figcaption>
             </figure>
-          </div>
+          </PhuongHeroShowcase>
         </section>
 
         <section className="sd-stats" aria-label="Trường Đại học Sao Đỏ qua các con số">
