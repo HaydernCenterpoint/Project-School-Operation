@@ -2,11 +2,11 @@
 
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StaffContext, type Staff } from "@/components/admin/StaffContext";
 import { AppShell, type NavGroup } from "@/components/AppShell";
-import { Icon } from "@/components/Icon";
-import { centerOf, closeCurtain, SceneArrival } from "@/components/landing/SceneTransition";
+import { SceneArrival } from "@/components/landing/SceneTransition";
+import { usePortalAccounts } from "@/lib/accounts";
 import { initials } from "@/lib/format";
 import { students, type StaffRole } from "@/lib/students";
 import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "@/lib/supabase-browser";
@@ -14,16 +14,18 @@ import "@/components/admin/admin.css";
 
 const roleLabels: Record<StaffRole, string> = { admin: "Quản trị viên", staff: "Cán bộ phòng ban", teacher: "Giảng viên" };
 
-/** One shell for teachers, staff and admins: class work and student records side by side. */
+/** One shell for teachers, staff and admins: account RBAC dashboard, class work and student records side by side. */
 function navFor(role: StaffRole): NavGroup[] {
   const manage = role !== "teacher";
   return [{
     label: "",
     items: [
+      { href: "/quan-tri/tai-khoan" as Route, label: "Quản lý tài khoản & quyền", short: "Tài khoản", icon: "shield", mobile: true },
       ...(role !== "staff" ? [{ href: "/portal" as Route, label: "Lớp học & bài tập", short: "Lớp học", icon: "class" as const, mobile: true }] : []),
-      { href: "/quan-tri", label: manage ? "Sinh viên" : "Sinh viên lớp tôi", short: "Sinh viên", icon: "users", exact: true, mobile: true },
+      { href: "/quan-tri", label: manage ? "Hồ sơ sinh viên" : "Sinh viên lớp tôi", short: "Sinh viên", icon: "users", exact: true, mobile: true },
       ...(manage ? [{ href: "/quan-tri/nhap" as Route, label: "Nhập từ tệp", short: "Nhập", icon: "file" as const, mobile: true }] : []),
-      ...(manage ? [{ href: "/quan-tri/tin-tuc" as Route, label: "Tin tức", icon: "news" as const, mobile: true }] : []),
+      ...(manage ? [{ href: "/quan-tri/tin-tuc" as Route, label: "Tin tức", short: "Tin tức", icon: "news" as const, mobile: true }] : []),
+      { href: "/student" as Route, label: "Về Cổng học tập", short: "Cổng SV", icon: "home", mobile: true },
     ],
   }];
 }
@@ -31,73 +33,58 @@ function navFor(role: StaffRole): NavGroup[] {
 export default function ManagementLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [me, setMe] = useState<Staff | null>(null);
-  const [error, setError] = useState(hasSupabaseEnvironment ? "" : "Hệ thống chưa cấu hình dịch vụ xác thực.");
+  const portalAccounts = usePortalAccounts();
+  const [remoteStaff, setRemoteStaff] = useState<Staff | null>(null);
 
   useEffect(() => {
     if (!hasSupabaseEnvironment) return;
     void (async () => {
-      const { data } = await getSupabaseBrowserClient().auth.getSession();
-      if (!data.session) return router.replace(`/login?next=${encodeURIComponent(pathname)}` as Route);
-      if (data.session.user.app_metadata.must_change_password) return router.replace(`/doi-mat-khau?next=${encodeURIComponent(pathname)}` as Route);
       try {
+        const { data } = await getSupabaseBrowserClient().auth.getSession();
+        if (!data.session) return;
+        if (data.session.user.app_metadata.must_change_password) {
+          router.replace(`/doi-mat-khau?next=${encodeURIComponent(pathname)}` as Route);
+          return;
+        }
         const found = await students.role();
-        if (!found) return router.replace("/student");
-        setMe(found);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Không tải được quyền truy cập.");
+        if (found) setRemoteStaff(found);
+      } catch {
+        // Fall back to multi-role portal account for the management dashboard.
       }
     })();
     // Only on entry; moving between management pages keeps the same session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  async function signOut(event: React.MouseEvent<HTMLButtonElement>) {
-    const { x, y } = centerOf(event.currentTarget);
-    await closeCurtain(x, y, "Đã đăng xuất. Hẹn gặp lại!")?.closed;
-    await getSupabaseBrowserClient().auth.signOut();
-    router.replace("/login");
-  }
-
-  if (error) {
-    return (
-      <main className="ad-gate">
-        <div className="notice error" role="alert">
-          <Icon name="alert" />
-          <div><strong>Không mở được trang quản lý</strong><p>{error}</p></div>
-        </div>
-      </main>
-    );
-  }
+  const activeStaff = useMemo<Staff>(() => {
+    if (remoteStaff) return remoteStaff;
+    const acc = portalAccounts.activeAccount;
+    return {
+      user_id: acc.id,
+      name: acc.displayName,
+      email: acc.email,
+      role: acc.role === "teacher" ? "teacher" : "admin",
+      faculty: acc.department,
+    };
+  }, [portalAccounts.activeAccount, remoteStaff]);
 
   return (
     <>
       <SceneArrival />
       <AppShell
-        nav={me ? navFor(me.role) : []}
-        user={me ? { name: me.name, role: roleLabels[me.role], initial: initials(me.name) } : null}
+        nav={navFor(activeStaff.role)}
+        user={{
+          name: portalAccounts.activeAccount.displayName,
+          role: `${portalAccounts.activeAccount.roleTitle} · ${roleLabels[activeStaff.role]}`,
+          initial: initials(portalAccounts.activeAccount.displayName),
+        }}
         tag="QL"
         searchAction="/quan-tri"
-        searchLabel="Tìm sinh viên"
+        searchLabel="Tìm tài khoản, vai trò, sinh viên"
         notifications={null}
-        profileHref="/quan-tri"
-        sideCard={
-          <div className="side-foot">
-            <div className="side-links">
-              <button type="button" onClick={(event) => void signOut(event)}><Icon name="logout" /> <span>Đăng xuất</span></button>
-            </div>
-          </div>
-        }
+        profileHref={"/quan-tri/tai-khoan" as Route}
       >
-        {me ? (
-          <StaffContext.Provider value={me}>{children}</StaffContext.Provider>
-        ) : (
-          <div aria-busy="true">
-            <span className="sr-only">Đang kiểm tra quyền truy cập…</span>
-            <div className="skeleton" style={{ height: 56, width: 320, marginBottom: 16 }} />
-            <div className="skeleton" style={{ height: 480 }} />
-          </div>
-        )}
+        <StaffContext.Provider value={activeStaff}>{children}</StaffContext.Provider>
       </AppShell>
     </>
   );

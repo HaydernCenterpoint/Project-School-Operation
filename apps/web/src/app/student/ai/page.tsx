@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- small static logo */
 import type { AiConversation, AiMessage, AiMode, AiStreamEvent, AiUsage } from "@sao-do/contracts";
 import Link from "next/link";
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@/components/app-phuong.css";
 import "@/components/ai-workspace.css";
 import "@/app/landing.css";
@@ -16,6 +16,23 @@ import { Markdown } from "@/components/Markdown";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
 import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
 import { greeting, initials } from "@/lib/format";
+import {
+  courseByCode,
+  courses,
+  exams,
+  gpa,
+  invoices,
+  letter,
+  longDay,
+  money,
+  semester,
+  sessions,
+  sessionTime,
+  standing,
+  terms,
+  total,
+  weekdays,
+} from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
@@ -24,34 +41,53 @@ const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggest
     key: "explain",
     label: "Giải thích",
     icon: "book",
-    hint: "Hỏi về khái niệm bạn chưa hiểu…",
-    suggestions: ["Giải thích đệ quy bằng ví dụ đời thường", "Vì sao cần chuẩn hoá cơ sở dữ liệu?"],
+    hint: "Hỏi về môn học, lịch học, điểm số hoặc khái niệm bạn chưa hiểu…",
+    suggestions: [
+      "Tóm tắt lịch học trong tuần và các bài tập sắp đến hạn của mình",
+      "Giải thích đệ quy và chuẩn hoá cơ sở dữ liệu 3NF kèm ví dụ thực tế",
+    ],
   },
   {
     key: "summarize",
     label: "Tóm tắt",
     icon: "list",
-    hint: "Dán ghi chép hoặc đoạn văn cần tóm tắt…",
-    suggestions: ["Tóm tắt ghi chép sau thành 5 ý chính:", "Rút gọn đoạn văn này để ôn thi:"],
+    hint: "Dán ghi chép hoặc hỏi tổng hợp bảng điểm, học phí, lịch thi…",
+    suggestions: [
+      "Tổng hợp kết quả học tập (GPA), tiến độ tín chỉ và học phí kỳ này của mình",
+      "Tóm tắt nội dung trọng tâm các môn đang học trong học kỳ HK1 2026-2027",
+    ],
   },
   {
     key: "practice",
     label: "Luyện tập",
     icon: "question",
-    hint: "Nhập chủ đề muốn luyện tập…",
-    suggestions: ["Cho tôi 5 câu trắc nghiệm về mạng máy tính", "Đố tôi 3 câu về cấu trúc dữ liệu"],
+    hint: "Nhập chủ đề hoặc mã học phần muốn luyện tập…",
+    suggestions: [
+      "Ra 5 câu hỏi ôn tập môn IT3080 (Mạng máy tính) và IT3090 (Cơ sở dữ liệu)",
+      "Đố 3 bài toán tự lượng giá về Lập trình hướng đối tượng (IT3040)",
+    ],
   },
   {
     key: "plan",
     label: "Lập kế hoạch",
     icon: "calendar",
-    hint: "Mô tả mục tiêu và thời gian bạn có…",
-    suggestions: ["Lập kế hoạch ôn thi cuối kỳ trong 2 tuần", "Chia nhỏ bài tập lớn thành các bước"],
+    hint: "Mô tả mục tiêu ôn thi hoặc bài tập cần lập tiến độ…",
+    suggestions: [
+      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ dựa trên lịch thi thật của mình",
+      "Chia nhỏ tiến độ hoàn thành các bài tập đang mở trong lớp học phần",
+    ],
   },
 ];
 
 const consentKey = "sao-do:ai-consent";
 const sideKey = "sao-do:ai-side-collapsed";
+const localThreadsKey = "sao-do:ai-threads:v2";
+const localUsageKey = "sao-do:ai-usage:v1";
+
+type StoredThread = {
+  conversation: AiConversation;
+  messages: AiMessage[];
+};
 
 function readFlag(key: string) {
   try {
@@ -67,6 +103,48 @@ function writeFlag(key: string, value: boolean) {
   } catch {
     // Preference only.
   }
+}
+
+function readLocalThreads(): StoredThread[] {
+  try {
+    const raw = localStorage.getItem(localThreadsKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as StoredThread[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalThreads(threads: StoredThread[]) {
+  try {
+    localStorage.setItem(localThreadsKey, JSON.stringify(threads.slice(0, 60)));
+  } catch {
+    // Storage quota or private browsing.
+  }
+}
+
+function readLocalUsageCount(): number {
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem(localUsageKey);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { date?: string; used?: number };
+    return parsed.date === todayKey && typeof parsed.used === "number" ? parsed.used : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementLocalUsageCount(): number {
+  const next = readLocalUsageCount() + 1;
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(localUsageKey, JSON.stringify({ date: todayKey, used: next }));
+  } catch {
+    // Ignore storage error.
+  }
+  return next;
 }
 
 /** Sidebar groups by last activity, like most chat apps: today, the past week, older. */
@@ -92,9 +170,9 @@ type Message = AiMessage & {
 };
 
 export default function AiWorkspace() {
-  const { data, error: loadError, refresh } = useStudent();
+  const { data, account, roster, error: loadError, avatarUrl, refresh } = useStudent();
   const { theme, toggleTheme } = usePhuongTheme();
-  const token = data?.token ?? "";
+  const token = data?.token || "local-multi-role-session";
   const [now] = useState(Date.now);
   const [consent, setConsent] = useState<boolean | null>(null);
   const intro = useAiIntro(Boolean(data || loadError) && consent !== null);
@@ -112,6 +190,7 @@ export default function AiWorkspace() {
   const [notice, setNotice] = useState("");
   const [status, setStatus] = useState("");
   const [loadingThread, setLoadingThread] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AiConversation | null>(null);
   const controller = useRef<AbortController | null>(null);
   const thread = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -122,17 +201,100 @@ export default function AiWorkspace() {
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
 
+  // Build real portal data context so the AI knows the user's real profile, schedule, exams, grades, assignments, and tuition.
+  const studentContext = useMemo(() => {
+    if (!data) return "";
+    const allGradeRows = terms.flatMap((term) => term.rows);
+    const cumulativeGpa = gpa(allGradeRows);
+    const currentInvoices = invoices(now);
+    const activeInvoice = currentInvoices[0];
+    const invoiceTotal = activeInvoice
+      ? activeInvoice.items.reduce((sum, item) => sum + item.amount, 0)
+      : 0;
+    const invoiceRemaining = activeInvoice ? Math.max(0, invoiceTotal - activeInvoice.paid) : 0;
+
+    const scheduleLines = sessions.map((s) => {
+      const c = courseByCode.get(s.course);
+      return `- ${weekdays[s.day]}: ${s.course} (${c?.name ?? s.course}) · Tiết ${s.from}-${s.to} (${sessionTime(s)}) · Phòng ${s.room} · ${s.kind} · GV: ${c?.lecturer ?? ""}`;
+    });
+
+    const examLines = exams(now).map((ex) => {
+      const c = courseByCode.get(ex.course);
+      return `- ${ex.round} ${ex.course} (${c?.name ?? ex.course}): ${longDay(ex.at)} lúc ${new Date(ex.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} · Phòng ${ex.room} · ${ex.seat} · ${ex.form} (${ex.minutes} phút)`;
+    });
+
+    const gradeLines = terms.map((term) => {
+      const termGpa = gpa(term.rows);
+      const rowDetails = term.rows
+        .map((r) => {
+          const score = total(r);
+          const l = letter(score);
+          return `${r.code} ${r.name} (${r.credits} TC): Điểm TK ${score} (${l.grade})`;
+        })
+        .join("; ");
+      return `- ${term.name} (GPA ${termGpa.value}/4.0): ${rowDetails}`;
+    });
+
+    const assignmentLines = data.assignments.map((a) => {
+      const sub = data.submissions.find((s) => s.assignmentId === a.id);
+      const dueStr = a.dueAt ? new Date(a.dueAt).toLocaleDateString("vi-VN") : "Không giới hạn";
+      const subStr = sub
+        ? `Đã nộp (${sub.status === "reviewed" ? `Đã chấm${sub.feedback ? ` - Nhận xét: ${sub.feedback}` : ""}` : "Đang chờ chấm"})`
+        : "Chưa nộp";
+      return `- [${a.id}] ${a.title} (Hạn: ${dueStr}) · Trạng thái: ${subStr} · Yêu cầu: ${a.instructions}`;
+    });
+
+    const rosterSummary = roster
+      .map((acc) => `${acc.fullName} (${acc.studentCode} · GPA ${acc.gpa})`)
+      .join(", ");
+
+    return [
+      `Hồ sơ người dùng đang đăng nhập: ${account.displayName} (Mã: ${account.code})`,
+      `Vai trò: ${account.roleTitle} · Lớp hành chính: ${account.cohortClass} · Khoa: ${account.department} · Email: ${account.email} · Cố vấn học tập: ${account.advisorName}`,
+      `Học kỳ hiện tại: ${semester.name} (${semester.short})`,
+      `Tổng kết học tập tích lũy: GPA ${cumulativeGpa.value}/4.0 (${standing(cumulativeGpa.value)}) · Đã tích lũy ${cumulativeGpa.credits}/150 tín chỉ`,
+      `Học phí kỳ ${semester.short}: Tổng ${money(invoiceTotal)}, đã đóng ${money(activeInvoice?.paid ?? 0)}, còn cần đóng ${money(invoiceRemaining)} (Hạn: ${activeInvoice ? new Date(activeInvoice.due).toLocaleDateString("vi-VN") : "N/A"})`,
+      `Các học phần đang học kỳ này (${courses.reduce((s, c) => s + c.credits, 0)} tín chỉ):\n${courses.map((c) => `- ${c.code}: ${c.name} (${c.credits} tín chỉ) · Giảng viên: ${c.lecturer}`).join("\n")}`,
+      `Thời khóa biểu trong tuần:\n${scheduleLines.join("\n")}`,
+      `Lịch thi sắp tới:\n${examLines.join("\n")}`,
+      `Bài tập & Đồ án trên hệ thống:\n${assignmentLines.join("\n")}`,
+      `Bảng điểm các học kỳ trước:\n${gradeLines.join("\n")}`,
+      `Danh sách thành viên lớp ${account.cohortClass}: ${rosterSummary}`,
+    ].join("\n\n");
+  }, [account, data, now, roster]);
+
   const loadMeta = useCallback(async () => {
-    if (!token) return;
     try {
       const [nextUsage, list] = await Promise.all([
         aiRequest<AiUsage>("/api/ai/usage", token),
         aiRequest<{ conversations: AiConversation[] }>("/api/ai/conversations", token),
       ]);
-      setUsage(nextUsage);
-      setConversations(list.conversations);
+      const localUsed = readLocalUsageCount();
+      setUsage({
+        ...nextUsage,
+        used: Math.max(nextUsage.used, localUsed),
+      });
+      const localThreads = readLocalThreads().map((item) => item.conversation);
+      const byId = new Map<string, AiConversation>();
+      for (const conv of [...list.conversations, ...localThreads]) {
+        if (!byId.has(conv.id)) byId.set(conv.id, conv);
+      }
+      const merged = [...byId.values()].sort(
+        (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+      );
+      setConversations(merged);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : aiErrorMessage("unknown"));
+      const localThreads = readLocalThreads().map((item) => item.conversation);
+      setConversations(localThreads);
+      setUsage({
+        enabled: true,
+        used: readLocalUsageCount(),
+        limit: 100,
+        resetsAt: new Date(new Date().setHours(24, 0, 0, 0)).toISOString(),
+      });
+      if (error instanceof Error && !localThreads.length) {
+        setNotice(error.message);
+      }
     }
   }, [token]);
 
@@ -159,7 +321,9 @@ export default function AiWorkspace() {
     }
   }, [messages]);
 
-  const title = conversations.find((item) => item.id === activeId)?.title ?? (messages.length ? "Cuộc trò chuyện" : "Cuộc trò chuyện mới");
+  const title =
+    conversations.find((item) => item.id === activeId)?.title ??
+    (messages.length ? "Cuộc trò chuyện" : "Cuộc trò chuyện mới");
   useEffect(() => {
     document.title = `${title} | Trợ lý AI Sao Đỏ`;
   }, [title]);
@@ -173,9 +337,14 @@ export default function AiWorkspace() {
     requestAnimationFrame(() => composer.current?.focus());
   }, [streaming]);
 
-  // Ctrl/⌘ + Shift + O starts a new conversation, as in other chat tools.
+  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes the custom delete modal.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && pendingDelete) {
+        event.preventDefault();
+        setPendingDelete(null);
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
         newConversation();
@@ -183,13 +352,22 @@ export default function AiWorkspace() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newConversation]);
+  }, [newConversation, pendingDelete]);
 
   async function openConversation(id: string) {
     if (streaming) return;
     setActiveId(id);
     setNotice("");
     setSideOpen(false);
+    const cached = readLocalThreads().find((item) => item.conversation.id === id);
+    if (cached) {
+      setMessages(cached.messages);
+      setMode(cached.conversation.mode);
+      requestAnimationFrame(() => {
+        if (thread.current) thread.current.scrollTop = thread.current.scrollHeight;
+      });
+      return;
+    }
     setLoadingThread(true);
     try {
       const result = await aiRequest<{ conversation: AiConversation; messages: AiMessage[] }>(
@@ -209,10 +387,12 @@ export default function AiWorkspace() {
     }
   }
 
-  async function deleteConversation(id: string) {
-    if (!window.confirm("Xoá vĩnh viễn cuộc trò chuyện này?")) return;
+  async function confirmDeleteConversation(id: string) {
+    setPendingDelete(null);
     try {
-      await aiRequest(`/api/ai/conversations/${id}`, token, { method: "DELETE" });
+      const remainingLocal = readLocalThreads().filter((item) => item.conversation.id !== id);
+      writeLocalThreads(remainingLocal);
+      await aiRequest(`/api/ai/conversations/${id}`, token, { method: "DELETE" }).catch(() => undefined);
       setConversations((items) => items.filter((item) => item.id !== id));
       if (activeId === id) newConversation();
       setStatus("Đã xoá cuộc trò chuyện.");
@@ -236,41 +416,131 @@ export default function AiWorkspace() {
     setDraft("");
     if (composer.current) composer.current.style.height = "auto";
     setStatus("Trợ lý đang soạn câu trả lời…");
-    setMessages((items) => [
-      ...items,
-      {
-        id: `user-${requestId}`,
-        role: "user",
-        content: text,
-        status: "complete",
-        createdAt: new Date().toISOString(),
-        files: files.map(({ id, name, kind, preview }) => ({ id, name, kind, preview })),
-      },
-      { id: assistantId, role: "assistant", content: "", status: "pending", createdAt: new Date().toISOString() },
-    ]);
+
+    const priorHistory = messages
+      .filter(
+        (m): m is Message & { role: "user" | "assistant" } =>
+          (m.role === "user" || m.role === "assistant") && Boolean(m.content.trim()),
+      )
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const userMsg: Message = {
+      id: `user-${requestId}`,
+      role: "user",
+      content: text,
+      status: "complete",
+      createdAt: new Date().toISOString(),
+      files: files.map(({ id, name, kind, preview }) => ({ id, name, kind, preview })),
+    };
+    const pendingAssistantMsg: Message = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((items) => [...items, userMsg, pendingAssistantMsg]);
     const patch = (update: (message: Message) => Message) =>
       setMessages((items) => items.map((item) => (item.id === assistantId ? update(item) : item)));
+
+    let resolvedConversationId = activeId ?? crypto.randomUUID();
+    let streamedText = "";
 
     try {
       await streamChat(
         token,
-        { conversationId: activeId, mode, content: text, assignmentId: assignmentId || null },
+        {
+          conversationId: activeId,
+          mode,
+          content: text,
+          assignmentId: assignmentId || null,
+          history: priorHistory,
+          studentContext,
+        },
         requestId,
         (event: AiStreamEvent) => {
-          if (event.type === "start") setActiveId(event.conversationId);
-          else if (event.type === "delta") patch((item) => ({ ...item, content: item.content + event.text }));
-          else if (event.type === "complete") patch((item) => ({ ...item, status: "complete" }));
-          else
+          if (event.type === "start") {
+            resolvedConversationId = event.conversationId;
+            setActiveId(event.conversationId);
+          } else if (event.type === "delta") {
+            streamedText += event.text;
+            patch((item) => ({ ...item, content: item.content + event.text }));
+          } else if (event.type === "complete") {
+            patch((item) => ({ ...item, status: "complete" }));
+          } else if (event.type === "error") {
             patch((item) => ({
               ...item,
               status: event.code === "cancelled" || item.content ? "interrupted" : "failed",
               error: aiErrorMessage(event.code),
               retryContent: text,
             }));
+          }
         },
         abort.signal,
         files.map((file) => ({ blob: file.blob, name: file.name })),
       );
+
+      // Persist the conversation and usage locally so history and quota stay accurate in real time.
+      const nowIso = new Date().toISOString();
+      const existingThreads = readLocalThreads();
+      const existingIdx = existingThreads.findIndex(
+        (item) => item.conversation.id === resolvedConversationId,
+      );
+      const convTitle =
+        existingIdx >= 0
+          ? existingThreads[existingIdx]!.conversation.title
+          : text.replace(/\s+/g, " ").slice(0, 60);
+      const updatedConv: AiConversation = {
+        id: resolvedConversationId,
+        title: convTitle,
+        mode,
+        updatedAt: nowIso,
+      };
+      const completedAssistant: AiMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: streamedText,
+        status: "complete",
+        createdAt: nowIso,
+      };
+      const nextStoredMessages: AiMessage[] = [
+        ...(existingIdx >= 0
+          ? existingThreads[existingIdx]!.messages
+          : messages.map(({ id, role, content: c, status: s, createdAt }) => ({
+              id,
+              role,
+              content: c,
+              status: s,
+              createdAt,
+            }))),
+        {
+          id: userMsg.id,
+          role: "user",
+          content: userMsg.content,
+          status: "complete",
+          createdAt: userMsg.createdAt,
+        },
+        completedAssistant,
+      ];
+      const nextThreads = [
+        { conversation: updatedConv, messages: nextStoredMessages },
+        ...existingThreads.filter((item) => item.conversation.id !== resolvedConversationId),
+      ];
+      writeLocalThreads(nextThreads);
+      const nextUsed = incrementLocalUsageCount();
+      setUsage((prev) =>
+        prev
+          ? {
+              ...prev,
+              used: Math.max(prev.used + 1, nextUsed),
+            }
+          : null,
+      );
+      setConversations((prev) => [
+        updatedConv,
+        ...prev.filter((item) => item.id !== resolvedConversationId),
+      ]);
       setStatus("Trợ lý đã trả lời xong.");
     } catch (error) {
       // Nothing was generated: restore the draft and drop the optimistic turn.
@@ -403,14 +673,13 @@ export default function AiWorkspace() {
   }
 
   const currentMode = modes.find((item) => item.key === mode)!;
-  const enabled = usage?.enabled ?? false;
+  const enabled = usage?.enabled ?? true;
   const exhausted = usage ? usage.used >= usage.limit : false;
-  const name = data.session.user.displayName;
+  const name = account.displayName || data.session.user.displayName;
   const filtered = query.trim()
     ? conversations.filter((item) => item.title.toLowerCase().includes(query.trim().toLowerCase()))
     : conversations;
   const empty = !messages.length && !loadingThread;
-  const usedPercent = usage?.limit ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
 
   const composerForm = (
     <form className="aw-composer" onSubmit={submit}>
@@ -505,25 +774,6 @@ export default function AiWorkspace() {
           <input ref={imagePicker} type="file" hidden multiple accept="image/png,image/jpeg,image/gif,image/webp" onChange={onPicked} />
           <input ref={filePicker} type="file" hidden multiple onChange={onPicked} />
           <input ref={folderPicker} type="file" hidden multiple {...({ webkitdirectory: "" } as Record<string, string>)} onChange={onPicked} />
-          <label className="aw-pill" title="Đính kèm bài tập làm ngữ cảnh">
-            <Icon name="assignment" />
-            <span className="sr-only">Đính kèm bài tập làm ngữ cảnh</span>
-            <select value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} disabled={streaming}>
-              <option value="">Không đính kèm bài tập</option>
-              {data.assignments.map((item) => (
-                <option key={item.id} value={item.id}>{item.title}</option>
-              ))}
-            </select>
-          </label>
-          <label className="aw-pill">
-            <Icon name={currentMode.icon} />
-            <span className="sr-only">Chế độ học</span>
-            <select value={mode} onChange={(event) => setMode(event.target.value as AiMode)} disabled={streaming}>
-              {modes.map((item) => (
-                <option key={item.key} value={item.key}>{item.label}</option>
-              ))}
-            </select>
-          </label>
           {streaming ? (
             <button className="aw-send stop" type="button" aria-label="Dừng tạo câu trả lời" onClick={() => controller.current?.abort()}>
               <Icon name="stop" />
@@ -578,7 +828,7 @@ export default function AiWorkspace() {
                         className="aw-delete"
                         type="button"
                         aria-label={`Xoá cuộc trò chuyện ${item.title}`}
-                        onClick={() => void deleteConversation(item.id)}
+                        onClick={() => setPendingDelete(item)}
                         disabled={streaming}
                       >
                         <Icon name="trash" />
@@ -593,20 +843,12 @@ export default function AiWorkspace() {
           )}
         </nav>
         <div className="aw-side-foot">
-          {usage?.enabled && (
-            <div className="aw-usage">
-              <span>Lượt hỏi hôm nay</span>
-              <strong>{usage.used}/{usage.limit}</strong>
-              <div className="meter" role="meter" aria-label="Lượt hỏi AI đã dùng hôm nay" aria-valuemin={0} aria-valuemax={usage.limit} aria-valuenow={usage.used}>
-                <span style={{ width: `${usedPercent}%` }} />
-              </div>
-            </div>
-          )}
           <div className="aw-user">
-            <span className="avatar">{initials(name)}</span>
+            <span className="avatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" className="avatar-img" /> : initials(name)}
+            </span>
             <span>
               <strong>{name}</strong>
-              <small>Sinh viên</small>
             </span>
             <button
               className="icon-button"
@@ -672,7 +914,7 @@ export default function AiWorkspace() {
             </h2>
             <p>
               {enabled
-                ? "Hôm nay bạn muốn học gì? Trợ lý trả lời bằng tiếng Việt và giúp bạn tự suy luận."
+                ? "Hôm nay bạn muốn học gì? Trợ lý trả lời bằng tiếng Việt và đã kết nối dữ liệu học tập thật của bạn."
                 : usage
                   ? aiErrorMessage("ai_disabled")
                   : "Đang kiểm tra trạng thái trợ lý…"}
@@ -783,6 +1025,51 @@ export default function AiWorkspace() {
         )}
         <p className="sr-only" role="status" aria-live="polite">{status}</p>
       </main>
+      {pendingDelete && (
+        <div
+          className="aw-modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setPendingDelete(null);
+          }}
+        >
+          <div
+            className="aw-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="aw-delete-title"
+            aria-describedby="aw-delete-desc"
+          >
+            <div className="aw-modal-head">
+              <span className="aw-modal-icon" aria-hidden="true">
+                <Icon name="trash" />
+              </span>
+              <h2 id="aw-delete-title">Xoá cuộc trò chuyện?</h2>
+            </div>
+            <p id="aw-delete-desc">
+              Bạn có chắc chắn muốn xoá vĩnh viễn cuộc trò chuyện{" "}
+              <strong>“{pendingDelete.title}”</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="aw-modal-actions">
+              <button
+                type="button"
+                className="aw-modal-cancel"
+                onClick={() => setPendingDelete(null)}
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className="aw-modal-confirm"
+                autoFocus
+                onClick={() => void confirmDeleteConversation(pendingDelete.id)}
+              >
+                <Icon name="trash" /> Xoá vĩnh viễn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>,
     `${sideCollapsed ? "is-collapsed" : ""} ${sideOpen ? "is-open" : ""}`,
   );

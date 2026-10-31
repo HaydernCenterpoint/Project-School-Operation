@@ -6,6 +6,14 @@ import { FallingPetals } from "@/components/landing/FallingPetals";
 import { phuongFonts } from "@/components/landing/fonts";
 import { SceneArrival, SceneCurtain } from "@/components/landing/SceneTransition";
 import { LandingMotion } from "@/components/landing/LandingMotion";
+import {
+  AnimatedWaveDivider,
+  CountUpStat,
+  GalleryLightbox,
+  LikeBurstButton,
+  ScrollDownCue,
+  ScrollProgressAndBackToTop,
+} from "@/components/landing/MotionPromptEffects";
 import { PhuongDivider, PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
 import { aiConfig } from "@/lib/ai-provider";
 import "./landing.css";
@@ -28,13 +36,13 @@ const milestones = [
 ];
 
 const faculties: Faculty[] = [
-  { name: "Khoa Cơ khí", src: "/truong/khoa-co-khi.jpg", width: 1276, height: 956 },
-  { name: "Khoa Công nghệ thông tin", src: "/truong/khoa-cntt.jpg", width: 1500, height: 1000 },
-  { name: "Khoa Điện", src: "/truong/khoa-dien.jpg", width: 945, height: 567 },
-  { name: "Khoa Ô tô", src: "/truong/khoa-o-to.jpg", width: 600, height: 360 },
-  { name: "Khoa Kinh tế", src: "/truong/khoa-kinh-te.jpg", width: 1488, height: 893 },
-  { name: "Khoa Du lịch và Ngoại ngữ", src: "/truong/khoa-du-lich-ngoai-ngu.jpg", width: 1464, height: 878 },
-  { name: "Khoa May và Thời trang", src: "/truong/khoa-may-thoi-trang.jpg", width: 1300, height: 976 },
+  { name: "Khoa Cơ khí", src: "/truong/khoa-co-khi.jpg", width: 1276, height: 872 },
+  { name: "Khoa Công nghệ thông tin", src: "/truong/khoa-cntt.jpg", width: 1500, height: 894 },
+  { name: "Khoa Điện", src: "/truong/khoa-dien.jpg", width: 945, height: 496 },
+  { name: "Khoa Ô tô", src: "/truong/khoa-o-to.jpg", width: 600, height: 312 },
+  { name: "Khoa Kinh tế", src: "/truong/khoa-kinh-te.jpg", width: 1488, height: 778 },
+  { name: "Khoa Du lịch và Ngoại ngữ", src: "/truong/khoa-du-lich-ngoai-ngu.jpg", width: 1464, height: 764 },
+  { name: "Khoa May và Thời trang", src: "/truong/khoa-may-thoi-trang.jpg", width: 1300, height: 890 },
 ];
 
 const events = [
@@ -51,6 +59,8 @@ export default function WelcomePage() {
   return (
     <div className={`sd ${phuongFonts}`}>
       <LandingMotion />
+      <ScrollProgressAndBackToTop />
+      <GalleryLightbox />
       <SceneArrival />
       <SceneCurtain to="/login" />
       <FallingPetals />
@@ -68,7 +78,7 @@ export default function WelcomePage() {
           <a href="#doi-song">Đời sống</a>
           <a href="#lien-he">Liên hệ</a>
         </nav>
-        <Link className="sd-btn sd-btn-primary sd-btn-sm" href="/login">
+        <Link className="sd-btn sd-btn-primary sd-btn-sm" href="/login" data-magnetic>
           Đăng nhập
         </Link>
       </header>
@@ -87,17 +97,17 @@ export default function WelcomePage() {
               Đào tạo đa ngành gắn với thực tiễn, trên nền truyền thống bắt đầu từ năm 1969.
             </p>
             <div className="sd-actions sd-rise sd-rise-4">
-              <a className="sd-btn sd-btn-primary" href="#gioi-thieu">
+              <a className="sd-btn sd-btn-primary" href="#gioi-thieu" data-magnetic>
                 Khám phá trường <Icon name="arrow" />
               </a>
-              <Link className="sd-btn sd-btn-ghost" href="/login">
+              <Link className="sd-btn sd-btn-ghost" href="/login" data-magnetic>
                 Đăng nhập
               </Link>
             </div>
           </div>
           <div className="sd-hero-art sd-rise sd-rise-2">
             <PhuongTree className="sd-tree" />
-            <figure className="sd-hero-photo">
+            <figure className="sd-hero-photo" data-tilt data-tilt-max="6" data-lightbox>
               <div className="sd-hero-frame">
                 <Image
                   src="/truong/nha-b1.jpg"
@@ -113,12 +123,16 @@ export default function WelcomePage() {
           </div>
         </section>
 
+        <ScrollDownCue targetId="gioi-thieu" />
+
         <section className="sd-stats" aria-label="Trường Đại học Sao Đỏ qua các con số">
           <dl>
             {stats.map((item) => (
-              <div key={item.label} data-reveal>
+              <div key={item.label} data-reveal data-tilt data-tilt-max="5" data-spotlight>
                 <dt>{item.label}</dt>
-                <dd>{item.value}</dd>
+                <dd>
+                  <CountUpStat rawText={item.value} />
+                </dd>
               </div>
             ))}
           </dl>
@@ -126,7 +140,7 @@ export default function WelcomePage() {
         </section>
 
         <section className="sd-section sd-history" id="gioi-thieu" aria-labelledby="history-title">
-          <figure className="sd-history-photo" data-reveal>
+          <figure className="sd-history-photo" data-reveal data-tilt data-tilt-max="5" data-lightbox>
             <Image
               src="/truong/khai-giang-hoi-truong.jpg"
               alt="Hội trường chật kín sinh viên trong lễ khai giảng năm học 2026-2027"
@@ -138,9 +152,9 @@ export default function WelcomePage() {
           </figure>
           <div>
             <p className="sd-eyebrow" data-reveal><PhuongFlower size={16} /> Giới thiệu</p>
-            <h2 id="history-title" className="sd-h2" data-reveal>Hơn nửa thế kỷ <em>đào tạo</em> cho công nghiệp.</h2>
+            <h2 id="history-title" className="sd-h2" data-reveal>Hơn nửa thế kỷ <em data-highlight>đào tạo</em> cho công nghiệp.</h2>
             <p className="sd-body" data-reveal>
-              Trường Đại học Sao Đỏ (mã trường SDU) định hướng đào tạo đa ngành gắn với ứng dụng thực tiễn, phát
+              Trường Đại học Sao Đỏ (mã trường SDU) định hướng <mark className="mp-highlight" data-highlight>đào tạo đa ngành gắn với ứng dụng thực tiễn</mark>, phát
               triển năng lực số, nghiên cứu và phục vụ cộng đồng.
             </p>
             <div className="sd-timeline">
@@ -162,12 +176,13 @@ export default function WelcomePage() {
           <PhuongTree className="sd-band-tree" id="phuong-band" />
           <div data-reveal>
             <p className="sd-eyebrow"><PhuongFlower size={16} /> Hải Phòng</p>
-            <h2 id="city-title">Mùa hè, cả thành phố <em>rực đỏ sắc phượng.</em></h2>
+            <h2 id="city-title">Mùa hè, cả thành phố <em data-highlight>rực đỏ sắc phượng.</em></h2>
             <p className="sd-body">
-              Hoa phượng đỏ là biểu tượng của Hải Phòng, Thành phố Hoa Phượng Đỏ. Sắc phượng đầu hè gắn với mùa thi, mùa
+              Hoa phượng đỏ là biểu tượng của Hải Phòng, <mark className="mp-highlight" data-highlight>Thành phố Hoa Phượng Đỏ</mark>. Sắc phượng đầu hè gắn với mùa thi, mùa
               tốt nghiệp và những kỷ niệm tuổi sinh viên.
             </p>
           </div>
+          <AnimatedWaveDivider fill="#fff4ea" />
         </section>
 
         <PhuongDivider />
@@ -175,7 +190,7 @@ export default function WelcomePage() {
         <section className="sd-section" id="dao-tao" aria-labelledby="faculty-title">
           <div className="sd-faculty-head">
             <div>
-              <h2 id="faculty-title" className="sd-h2" data-reveal>Chọn ngành bạn thích, <em>học để làm được việc.</em></h2>
+              <h2 id="faculty-title" className="sd-h2" data-reveal>Chọn ngành bạn thích, <em data-highlight>học để làm được việc.</em></h2>
               <p className="sd-body" data-reveal>
                 Các lĩnh vực đào tạo gồm kỹ thuật, công nghệ thông tin, trí tuệ nhân tạo, kinh tế, luật, ngoại ngữ, du
                 lịch và sư phạm.
@@ -185,6 +200,7 @@ export default function WelcomePage() {
               className="sd-btn sd-btn-ghost"
               href="https://saodo.edu.vn/vi/news/nganh-dao-tao/gioi-thieu-ve-cac-nganh-dao-tao-cua-truong-dai-hoc-sao-do-2698.html"
               {...external}
+              data-magnetic
             >
               Xem các ngành <Icon name="arrow" />
             </a>
@@ -196,22 +212,22 @@ export default function WelcomePage() {
 
         <section className="sd-section sd-practice" aria-labelledby="practice-title">
           <div className="sd-practice-text" data-reveal>
-            <h2 id="practice-title" className="sd-h2">Học qua thực hành, <em>trên máy thật.</em></h2>
+            <h2 id="practice-title" className="sd-h2">Học qua thực hành, <em data-highlight>trên máy thật.</em></h2>
             <p className="sd-body">
               Nhà trường có các trung tâm thực hành cơ khí, công nghệ thông tin, ô tô và điện. Năm 2025, sinh viên Khoa
-              Cơ khí gia công sản phẩm cho Công ty Cơ khí chính xác và Thương mại Nhật Nam.
+              Cơ khí <mark className="mp-highlight" data-highlight>gia công sản phẩm cho doanh nghiệp</mark> ngay tại xưởng trường.
             </p>
           </div>
-          <figure className="sd-mosaic-a" data-reveal>
+          <figure className="sd-mosaic-a" data-reveal data-lightbox>
             <Image src="/truong/thuc-hanh-01.jpg" alt="Giảng viên hướng dẫn sinh viên kiểm tra chi tiết gia công bên máy CNC" width={1500} height={1000} sizes="(max-width: 767px) 100vw, 40vw" />
           </figure>
-          <figure className="sd-mosaic-b" data-reveal>
+          <figure className="sd-mosaic-b" data-reveal data-lightbox>
             <Image src="/truong/thuc-hanh-05.jpg" alt="Sinh viên vận hành bảng điều khiển máy tiện CNC" width={1500} height={1062} sizes="(max-width: 767px) 100vw, 30vw" />
           </figure>
-          <figure className="sd-mosaic-c" data-reveal>
+          <figure className="sd-mosaic-c" data-reveal data-lightbox>
             <Image src="/truong/thuc-hanh-07.jpg" alt="Sinh viên đo kiểm sản phẩm bằng thước cặp điện tử" width={1500} height={985} sizes="(max-width: 767px) 100vw, 30vw" />
           </figure>
-          <figure className="sd-mosaic-d" data-reveal>
+          <figure className="sd-mosaic-d" data-reveal data-lightbox>
             <Image src="/truong/thuc-hanh-02.jpg" alt="Nhóm sinh viên đọc bản vẽ kỹ thuật cạnh máy phay CNC" width={1500} height={1000} sizes="(max-width: 767px) 100vw, 40vw" />
           </figure>
         </section>
@@ -221,30 +237,30 @@ export default function WelcomePage() {
         <section className="sd-section sd-life" id="doi-song" aria-labelledby="life-title">
           <div className="sd-life-text" data-reveal>
             <p className="sd-eyebrow"><PhuongFlower size={16} /> Đời sống sinh viên</p>
-            <h2 id="life-title" className="sd-h2">Một nơi để đọc, <em>học nhóm và gặp gỡ.</em></h2>
+            <h2 id="life-title" className="sd-h2">Một nơi để đọc, <em data-highlight>học nhóm và gặp gỡ.</em></h2>
             <p className="sd-body">
               Thư viện rộng 988 m² với hơn 4.000 đầu sách, có khu cafe sách, bàn học nhóm và góc đọc yên tĩnh.
             </p>
           </div>
           <div className="sd-life-photos">
-            <figure className="sd-life-main" data-reveal>
+            <figure className="sd-life-main" data-reveal data-lightbox>
               <Image src="/truong/thu-vien-2.jpg" alt="Sinh viên học nhóm trên ghế sofa xanh trong thư viện" width={1000} height={659} sizes="(max-width: 767px) 100vw, 50vw" />
             </figure>
-            <figure data-reveal>
+            <figure data-reveal data-lightbox>
               <Image src="/truong/thu-vien-1.jpg" alt="Nhóm sinh viên trao đổi bài quanh bàn tròn" width={1000} height={667} sizes="(max-width: 767px) 100vw, 25vw" />
             </figure>
-            <figure data-reveal>
+            <figure data-reveal data-lightbox>
               <Image src="/truong/thu-vien-3.jpg" alt="Sinh viên chọn sách giữa các giá sách" width={960} height={640} sizes="(max-width: 767px) 100vw, 25vw" />
             </figure>
           </div>
-          <p className="sd-note">Ảnh tư liệu thư viện năm 2021.</p>
+          <p className="sd-note">Ảnh tư liệu thư viện năm 2021 · Nhấn vào ảnh bất kỳ để phóng to (Lightbox).</p>
         </section>
 
         <section className="sd-section sd-events" aria-labelledby="events-title">
-          <h2 id="events-title" className="sd-h2" data-reveal>Những dấu ấn <em>năm 2025.</em></h2>
+          <h2 id="events-title" className="sd-h2" data-reveal>Những dấu ấn <em data-highlight>năm 2025.</em></h2>
           <div className="sd-events-grid">
             {events.map((item, index) => (
-              <figure key={item.src} className={index === 0 ? "sd-event-wide" : undefined} data-reveal>
+              <figure key={item.src} className={index === 0 ? "sd-event-wide" : undefined} data-reveal data-lightbox>
                 <Image src={item.src} alt={item.alt} width={1500} height={555} sizes={index === 0 ? "100vw" : "(max-width: 767px) 100vw, 50vw"} />
               </figure>
             ))}
@@ -254,32 +270,40 @@ export default function WelcomePage() {
         <PhuongDivider />
 
         <section className="sd-section sd-news" aria-labelledby="news-title">
-          <h2 id="news-title" className="sd-h2" data-reveal>Tin mới <em>từ nhà trường.</em></h2>
+          <h2 id="news-title" className="sd-h2" data-reveal>Tin mới <em data-highlight>từ nhà trường.</em></h2>
           <div className="sd-news-grid">
-            <a
-              className="sd-news-card sd-news-accent"
-              href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/thanh-lap-phan-hieu-truong-dai-hoc-sao-do-tai-ha-noi-dau-moc-moi-tren-hanh-trinh-phat-trien-2959.html"
-              {...external}
-              data-reveal
-            >
-              <time>20/09/2026</time>
+            <div className="sd-news-card sd-news-accent" data-reveal data-tilt data-tilt-max="4">
+              <div className="sd-news-card-top">
+                <time>20/09/2026</time>
+                <LikeBurstButton initialCount={128} storageKey="sdu-like-hanoi-campus" />
+              </div>
               <h3>Thành lập Phân hiệu Trường Đại học Sao Đỏ tại Hà Nội</h3>
               <p>Dấu mốc mới trên hành trình phát triển của nhà trường.</p>
-              <span className="sd-link">Đọc trên saodo.edu.vn <Icon name="arrow" /></span>
-            </a>
-            <a
-              className="sd-news-card sd-news-photo"
-              href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/truong-dai-hoc-sao-do-tung-bung-khai-giang-nam-hoc-2026-2027-2953.html"
-              {...external}
-              data-reveal
-            >
+              <a
+                className="sd-link"
+                href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/thanh-lap-phan-hieu-truong-dai-hoc-sao-do-tai-ha-noi-dau-moc-moi-tren-hanh-trinh-phat-trien-2959.html"
+                {...external}
+              >
+                Đọc trên saodo.edu.vn <Icon name="arrow" />
+              </a>
+            </div>
+            <div className="sd-news-card sd-news-photo" data-reveal data-tilt data-tilt-max="4" data-spotlight>
               <Image src="/truong/khai-giang-sinh-vien.jpg" alt="Tân sinh viên dự lễ khai giảng" width={1173} height={793} sizes="(max-width: 767px) 100vw, 50vw" />
               <div>
-                <time>05/09/2026</time>
+                <div className="sd-news-card-top">
+                  <time>05/09/2026</time>
+                  <LikeBurstButton initialCount={256} storageKey="sdu-like-khai-giang" />
+                </div>
                 <h3>Tưng bừng khai giảng năm học 2026-2027</h3>
-                <span className="sd-link">Đọc trên saodo.edu.vn <Icon name="arrow" /></span>
+                <a
+                  className="sd-link"
+                  href="https://saodo.edu.vn/vi/news/tin-tuc-su-kien/truong-dai-hoc-sao-do-tung-bung-khai-giang-nam-hoc-2026-2027-2953.html"
+                  {...external}
+                >
+                  Đọc trên saodo.edu.vn <Icon name="arrow" />
+                </a>
               </div>
-            </a>
+            </div>
           </div>
         </section>
 
@@ -293,13 +317,14 @@ export default function WelcomePage() {
             </p>
           </div>
           <div className="sd-actions" data-reveal>
-            <Link className="sd-btn sd-btn-light" href="/login">
+            <Link className="sd-btn sd-btn-light" href="/login" data-magnetic>
               Đăng nhập <Icon name="arrow" />
             </Link>
-            <Link className="sd-btn sd-btn-outline-light" href="/guest">
+            <Link className="sd-btn sd-btn-outline-light" href="/guest" data-magnetic>
               Xem bản demo
             </Link>
           </div>
+          <AnimatedWaveDivider fill="rgba(255, 241, 235, 0.25)" />
         </section>
       </main>
 

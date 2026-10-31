@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "consolas",
+        "createdAt": "2026-10-30T16:13:20.411Z",
+        "reason": "Documented monospace font in DESIGN.md for code blocks and technical identifiers"
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@ import {
 } from "@/lib/format";
 import { AssignmentTable, type AssignmentRow } from "./AssignmentTable";
 import { Icon, type IconName } from "./Icon";
+import { CountUpStat } from "./landing/MotionPromptEffects";
 import { PhuongTree } from "./landing/Phuong";
 
 export type DashboardLinks = {
@@ -113,9 +114,9 @@ function DeadlineChart({ weeks }: { weeks: ReturnType<typeof weeklyDeadlines> })
 
 function Stat({ icon, value, label }: { icon: IconName; value: number | string; label: string }) {
   return (
-    <div className="stat-cell">
+    <div className="stat-cell" data-spotlight>
       <span className="icon-box"><Icon name={icon} /></span>
-      <strong>{value}</strong>
+      <strong><CountUpStat rawText={String(value)} showBar={false} /></strong>
       <span>{label}</span>
     </div>
   );
@@ -241,7 +242,7 @@ export function Dashboard({
 
         <div className="frame-gap" aria-hidden="true" />
         <div className="frame-row split-row">
-          <section className="frame-cell" aria-labelledby="progress-title">
+          <section className="frame-cell" id="tien-do" style={{ scrollMarginTop: 88 }} aria-labelledby="progress-title">
             <h3 className="cell-head" id="progress-title"><Icon name="trend" /> Tiến độ nộp bài</h3>
             <div className="cell-body">
               <div className="chart-head">
@@ -263,7 +264,7 @@ export function Dashboard({
               </p>
             </div>
           </section>
-          <section className="frame-cell" aria-labelledby="summary-title">
+          <section className="frame-cell" id="tong-quan-hoc-tap" style={{ scrollMarginTop: 88 }} aria-labelledby="summary-title">
             <h3 className="cell-head" id="summary-title"><Icon name="book" /> Tổng quan học tập</h3>
             <div className="stat-grid">
               <Stat icon="class" value={classes.length} label="Lớp đang học" />
@@ -307,7 +308,7 @@ export function Dashboard({
         </div>
 
         <div className="frame-gap" aria-hidden="true" />
-        <section className="frame-row table-row" aria-labelledby="table-title">
+        <section className="frame-row table-row" id="bang-bai-tap" style={{ scrollMarginTop: 88 }} aria-labelledby="table-title">
           <h3 className="cell-head" id="table-title"><Icon name="list" /> Bài tập & hạn nộp</h3>
           <AssignmentTable rows={rows} />
         </section>

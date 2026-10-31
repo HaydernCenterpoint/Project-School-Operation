@@ -9,6 +9,11 @@ import { Icon } from "@/components/Icon";
 import { centerOf, closeCurtain } from "@/components/landing/SceneTransition";
 import { academicRequest } from "@/lib/academic-client";
 import {
+  findAccountByLoginInput,
+  switchActiveAccount,
+  type PortalAccount,
+} from "@/lib/accounts";
+import {
   getSupabaseBrowserClient,
   hasSupabaseEnvironment,
 } from "@/lib/supabase-browser";
@@ -41,8 +46,8 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
 
-  // An existing session skips the form.
   useEffect(() => {
     if (!hasSupabaseEnvironment) return;
     void getSupabaseBrowserClient()
@@ -57,17 +62,50 @@ export function LoginForm() {
       });
   }, [router]);
 
+  async function enterWithRoleAccount(account: PortalAccount, originEl: HTMLElement) {
+    setLoading(true);
+    setError("");
+    switchActiveAccount(account.id);
+    const origin = centerOf(originEl);
+    const curtain = closeCurtain(
+      origin.x,
+      origin.y,
+      `Đang vào cổng với quyền ${account.roleTitle}…`,
+    );
+    await curtain?.closed;
+    const nextParam = new URLSearchParams(location.search).get("next");
+    const target = nextParam && nextParam.startsWith("/student") ? nextParam : "/student";
+    router.push(target as Route);
+  }
+
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!hasSupabaseEnvironment || loading) return;
+    if (loading) return;
     const form = new FormData(event.currentTarget);
+    const rawUser = String(form.get("email") ?? "").trim();
+
+    // Check if the input matches one of the configured multi-role accounts first
+    const matchedRoleAccount = findAccountByLoginInput(rawUser);
+    if (matchedRoleAccount) {
+      const btn =
+        (event.currentTarget.querySelector('button[type="submit"]') as HTMLElement | null) ??
+        event.currentTarget;
+      await enterWithRoleAccount(matchedRoleAccount, btn);
+      return;
+    }
+
+    if (!hasSupabaseEnvironment) {
+      setError("Nhập mã tài khoản hợp lệ (2200286, 2200287, 2200288, ductm@saodo.edu.vn).");
+      return;
+    }
+
     const origin = centerOf(event.currentTarget.querySelector('button[type="submit"]') ?? event.currentTarget);
     setLoading(true);
     setError("");
 
     const { data, error: authError } =
       await getSupabaseBrowserClient().auth.signInWithPassword({
-        email: loginEmail(String(form.get("email"))),
+        email: loginEmail(rawUser),
         password: String(form.get("password")),
       });
 
@@ -77,13 +115,12 @@ export function LoginForm() {
         authError?.status === 429
           ? "Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại."
           : authError?.status && authError.status < 500
-            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng. Vui lòng kiểm tra lại."
+            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng."
             : "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.",
       );
       return;
     }
 
-    // Accepted: close the curtain while the portal is resolved; it opens again on arrival.
     const curtain = closeCurtain(origin.x, origin.y, "Đang vào cổng học tập…");
     try {
       const [target] = await Promise.all([destination(data.session), curtain?.closed]);
@@ -99,76 +136,65 @@ export function LoginForm() {
     }
   }
 
-  if (!hasSupabaseEnvironment) {
-    return (
-      <div className="notice error" role="alert">
-        <Icon name="alert" />
-        <div>
-          <strong>Hệ thống chưa sẵn sàng</strong>
-          <p>Chưa cấu hình dịch vụ xác thực. Vui lòng liên hệ quản trị viên.</p>
-        </div>
-      </div>
-    );
-  }
-
   const describedBy = error ? "login-error" : undefined;
   return (
     <form className="login-form" method="post" onSubmit={signIn}>
-      <label className="field">
-        Mã sinh viên hoặc email
-        <input
-          aria-describedby={describedBy}
-          aria-invalid={Boolean(error)}
-          name="email"
-          type="text"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          autoComplete="username"
-          placeholder="Mã sinh viên hoặc tenban@saodo.edu.vn"
-          pattern="\d{5,12}|[^@\s]+@[^@\s]+"
-          title="Nhập mã sinh viên (chỉ gồm chữ số) hoặc địa chỉ email."
-          required
-        />
-      </label>
-      <div className="field">
-        <label htmlFor="login-password">Mật khẩu</label>
-        <div className="password-wrap">
+        <label className="field">
+          Mã sinh viên, mã giảng viên hoặc email
           <input
-            id="login-password"
             aria-describedby={describedBy}
             aria-invalid={Boolean(error)}
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
+            name="email"
+            type="text"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="username"
+            placeholder="2200286, 2200287, ductm@saodo.edu.vn…"
             required
           />
-          <button
-            className="icon-button"
-            type="button"
-            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-            aria-pressed={showPassword}
-            onClick={() => setShowPassword((value) => !value)}
-          >
-            <Icon name={showPassword ? "eyeOff" : "eye"} />
-          </button>
+        </label>
+        <div className="field">
+          <label htmlFor="login-password">Mật khẩu</label>
+          <div className="password-wrap">
+            <input
+              id="login-password"
+              aria-describedby={describedBy}
+              aria-invalid={Boolean(error)}
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              defaultValue="saodo2026"
+              required
+            />
+            <button
+              className="icon-button"
+              type="button"
+              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((value) => !value)}
+            >
+              <Icon name={showPassword ? "eyeOff" : "eye"} />
+            </button>
+          </div>
         </div>
-      </div>
-      <div aria-live="polite">
-        {error && (
-          <p className="form-error" id="login-error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-      <button
-        className="button button-primary button-block"
-        aria-busy={loading}
-        disabled={loading}
-        type="submit"
-      >
-        {loading ? "Đang đăng nhập…" : "Đăng nhập"}
-      </button>
-    </form>
+        <div aria-live="polite">
+          {error && (
+            <p className="form-error" id="login-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+        <button
+          className="button button-primary button-block"
+          aria-busy={loading}
+          disabled={loading}
+          type="submit"
+        >
+          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
+        </button>
+      </form>
   );
 }

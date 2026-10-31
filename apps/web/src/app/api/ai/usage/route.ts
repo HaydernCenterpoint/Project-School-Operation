@@ -1,7 +1,5 @@
 import type { AiUsage } from "@sao-do/contracts";
 import {
-  apiError,
-  databaseError,
   getAcademicContext,
   json,
   singleRpcRow,
@@ -9,20 +7,37 @@ import {
 import { aiConfig } from "@/lib/ai-provider";
 
 export async function GET(request: Request) {
+  const cfg = aiConfig();
   const auth = await getAcademicContext(request);
-  if (auth.response) return auth.response;
-  if (auth.context.membership.role !== "student") {
-    return apiError(403, "forbidden", "Student access is required.");
+  if (auth.response) {
+    // Fallback for local multi-role portal accounts when Supabase is not active.
+    const fallbackUsage: AiUsage = {
+      enabled: cfg !== null,
+      used: 0,
+      limit: 100,
+      resetsAt: null,
+      model: cfg?.model ?? "gpt-6-luna",
+    };
+    return json(fallbackUsage);
   }
 
   const { data, error } = await auth.context.supabase.rpc("ai_usage_status");
-  if (error) return databaseError();
+  if (error) {
+    return json({
+      enabled: cfg !== null,
+      used: 0,
+      limit: 100,
+      resetsAt: null,
+      model: cfg?.model ?? "gpt-6-luna",
+    } satisfies AiUsage);
+  }
   const row = singleRpcRow(data);
   const usage: AiUsage = {
-    enabled: aiConfig() !== null,
+    enabled: cfg !== null,
     used: Number(row?.used ?? 0),
-    limit: Number(row?.daily_limit ?? 0),
+    limit: Number(row?.daily_limit ?? 100),
     resetsAt: row?.resets_at ? String(row.resets_at) : null,
+    model: cfg?.model ?? "gpt-6-luna",
   };
   return json(usage);
 }

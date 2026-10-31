@@ -50,6 +50,9 @@ function Students() {
           ? "Hồ sơ và tài khoản sinh viên. Tài khoản mới nhận mật khẩu tạm và phải đổi ở lần đăng nhập đầu."
           : "Sinh viên trong các lớp bạn dạy. Bạn có thể cập nhật số điện thoại, email và ghi chú."}
       >
+        <Link className="button button-outline button-small" href={"/quan-tri/tai-khoan" as import("next").Route}>
+          <Icon name="shield" /> Dashboard Tài khoản & Phân quyền
+        </Link>
         {manage && (
           <>
             <Link className="button button-outline button-small" href="/quan-tri/nhap"><Icon name="file" /> Nhập từ tệp</Link>

@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T13:10:00.000Z",
+  "title": "Design System: Sao Do University Student Mobile",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Maritime Navy Ink",
+        "canonical": "#071a34",
+        "tonalRamp": ["#040e1d", "#071a34", "#122847", "#1d3150", "#384f73", "#647b9e", "#a9bbd4", "#e8eef7"]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "University Blue",
+        "canonical": "#0066cc",
+        "tonalRamp": ["#002b59", "#004080", "#0052a3", "#0066cc", "#2684e6", "#66abf2", "#b3d7fa", "#e8f1fc"]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Crimson Crest Red",
+        "canonical": "#d60000",
+        "tonalRamp": ["#4d0000", "#800000", "#b80000", "#d60000", "#e63939", "#f27979", "#f9b8b8", "#fdeceb"]
+      },
+      "yellow": {
+        "role": "secondary",
+        "displayName": "Crest Gold Yellow",
+        "canonical": "#ffea00",
+        "tonalRamp": ["#4d4600", "#807500", "#b3a400", "#d9c700", "#ffea00", "#ffef4d", "#fff599", "#fffbe0"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Crisp Studio Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1d3150", "#3c4d66", "#61708a", "#94a2b8", "#c5ccd6", "#d8e0ec", "#f4f7fb", "#ffffff"]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Cool Mist Canvas",
+        "canonical": "#f4f7fb",
+        "tonalRamp": ["#1d2736", "#354459", "#52637a", "#7989a1", "#a6b3c7", "#cfd8e6", "#d8e0ec", "#f4f7fb"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Structural Hairline Border",
+        "canonical": "#d8e0ec",
+        "tonalRamp": ["#1c2636", "#34445c", "#526685", "#788dab", "#9fb0c9", "#bcc9dc", "#d8e0ec", "#f0f4f9"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Muted Copy",
+        "canonical": "#61708a",
+        "tonalRamp": ["#141b26", "#253042", "#3b485e", "#4e5d75", "#61708a", "#8593ab", "#b4bfd1", "#e4e9f2"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Overdue Garnet",
+        "canonical": "#b42318",
+        "tonalRamp": ["#450c08", "#73150e", "#941c13", "#b42318", "#d6453a", "#e87c74", "#f5bab5", "#fdeceb"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "BrandHeader School Title",
+        "purpose": "25px 800-weight school title inside the navy BrandHeader."
+      },
+      "headline": {
+        "displayName": "Student & Section Headline",
+        "purpose": "18-20px 700-weight student identity and screen titles."
+      },
+      "title": {
+        "displayName": "Class & Campus Title",
+        "purpose": "17px 700-weight tenant subtitle and class row titles."
+      },
+      "body": {
+        "displayName": "Coursework Body",
+        "purpose": "15px Vietnamese assignment descriptions and submission text."
+      },
+      "label": {
+        "displayName": "Tab & Badge Label",
+        "purpose": "13px 700-weight bottom tab labels and status chips."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      { "name": "compact-phone", "value": "360px" },
+      { "name": "standard-phone", "value": "412px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Mobile Primary Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "48pt minimum touch-target button in University Blue for mobile coursework actions.",
+      "html": "<button class=\"ds-mob-btn\" type=\"button\">Gửi bài nộp</button>",
+      "css": ".ds-mob-btn { min-height: 48px; padding: 14px 20px; display: inline-flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700; color: #ffffff; background: #0066cc; border: none; border-radius: 12px; cursor: pointer; } .ds-mob-btn:hover { background: #0052a3; } .ds-mob-btn:focus-visible { outline: 3px solid #0066cc; outline-offset: 2px; }"
+    },
+    {
+      "name": "Mobile Course Card",
+      "kind": "card",
+      "refersTo": "card-course",
+      "description": "Flat bordered white card for classes and assignments on a cool mist screen.",
+      "html": "<div class=\"ds-mob-card\"><div class=\"ds-mob-card-title\">Lập trình Web nâng cao</div><div class=\"ds-mob-card-meta\">Hạn nộp: 23:59 · 05/11/2026 (giờ Việt Nam)</div></div>",
+      "css": ".ds-mob-card { padding: 16px; display: grid; gap: 6px; font-family: system-ui, sans-serif; color: #071a34; background: #ffffff; border: 1px solid #d8e0ec; border-radius: 12px; } .ds-mob-card-title { font-size: 17px; font-weight: 700; line-height: 1.35; } .ds-mob-card-meta { font-size: 14px; color: #61708a; }"
+    },
+    {
+      "name": "Mobile Bottom Tab Bar",
+      "kind": "nav",
+      "refersTo": "card-course",
+      "description": "72pt 3-tab bottom bar with Crimson active state and Slate Muted inactive state.",
+      "html": "<nav class=\"ds-mob-tabs\"><a class=\"ds-mob-tab ds-mob-tab-active\" href=\"#hom-nay\"><span>⌂</span><small>Hôm nay</small></a><a class=\"ds-mob-tab\" href=\"#lop-hoc\"><span>▤</span><small>Lớp học</small></a><a class=\"ds-mob-tab\" href=\"#tai-khoan\"><span>○</span><small>Tài khoản</small></a></nav>",
+      "css": ".ds-mob-tabs { min-height: 72px; padding: 6px 12px 8px; display: grid; grid-template-columns: repeat(3, 1fr); background: #ffffff; border-top: 1px solid #d8e0ec; font-family: system-ui, sans-serif; } .ds-mob-tab { padding: 7px 0; display: grid; justify-items: center; gap: 4px; color: #61708a; text-decoration: none; font-size: 18px; font-weight: 900; } .ds-mob-tab small { font-size: 13px; font-weight: 700; } .ds-mob-tab-active { color: #d60000; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Red Flamboyant Studio",
+    "overview": "The Sao Do University mobile companion brings the university's Maritime Navy (`#071a34`), University Blue (`#0066cc`), Crimson (`#d60000`), and Crest Yellow (`#ffea00`) palette to students' phones in a pocket-first layout. The top `BrandHeader` echoes the official university emblem with a `124×124` crest lockup, dual tilted gold orbital rings, and angled crimson-and-gold book-spine rules over deep navy (`#071a34`), while the scrollable body below stays on crisp white (`#ffffff`) and mist (`#f4f7fb`) cards bordered by `1px` hairlines (`#d8e0ec`).\n\nEvery screen is built for outdoor legibility between classes, one-handed thumb navigation via a `72pt`-minimum 3-tab bottom bar (`Hôm nay`, `Lớp học`, `Tài khoản`), and resilient Vietnamese typography capped at `maxFontSizeMultiplier={2}` so system font scaling never clips critical submission controls.",
+    "keyCharacteristics": [
+      "Ceremonial navy crest header (`BrandHeader`, `minHeight: 238`) with gold orbital rings and angled crimson/gold rules transitioning into a clean mist-and-paper task list.",
+      "Flat, hairline-bordered coursework and class cards (`border: 1px solid #d8e0ec`) with zero decorative shadow clutter.",
+      "High-visibility 3-tab bottom navigation (`minHeight: 72`) with Crimson (`#d60000`) active tint and `700`-weight Vietnamese labels.",
+      "Accessible dynamic text scaling (`maxFontSizeMultiplier={2}`) and `accessibilityIgnoresInvertColors` on the official university logo."
+    ],
+    "rules": [
+      {
+        "name": "The Navy-Only Yellow Text Rule",
+        "body": "Crest Yellow (`#ffea00`) text and orbital lines may only render atop Maritime Navy (`#071a34`) inside `BrandHeader`, where contrast exceeds 13:1. Never place `#ffea00` text on white or mist surfaces.",
+        "section": "colors"
+      },
+      {
+        "name": "The Multiplier Ceiling Rule",
+        "body": "Every persistent navigation label and header text node must set `maxFontSizeMultiplier={2}` so large OS accessibility text scales legibly without overflowing fixed bars.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do import all palette values from `apps/mobile/lib/theme.ts` (`colors.ink`, `colors.blue`, `colors.red`, `colors.yellow`, `colors.paper`, `colors.mist`, `colors.border`, `colors.muted`, `colors.danger`).",
+      "Do keep `accessibilityIgnoresInvertColors` and `accessibilityLabel=\"Biểu trưng Đại học Sao Đỏ\"` on the university logo `Image`.",
+      "Do size every interactive `Pressable` or `TouchableOpacity` to at least `48×48` dp/pt."
+    ],
+    "donts": [
+      "Don't place `colors.yellow` (`#ffea00`) text on light backgrounds (`colors.paper` or `colors.mist`).",
+      "Don't embed server secrets or service-role keys in mobile styles, config, or bundle code."
+    ]
+  }
+}

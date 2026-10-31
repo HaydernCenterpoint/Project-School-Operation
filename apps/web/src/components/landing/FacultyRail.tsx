@@ -18,6 +18,24 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
 
   return (
     <div className="sd-rail">
+      <ul ref={rail} className="sd-rail-track" aria-label="Các khoa đào tạo">
+        {faculties.map((faculty) => (
+          <li key={faculty.name}>
+            <figure data-lightbox data-tilt data-tilt-max="4">
+              <Image
+                src={faculty.src}
+                alt={faculty.name}
+                width={faculty.width}
+                height={faculty.height}
+                sizes="(max-width: 767px) 80vw, 420px"
+              />
+              <figcaption className="sd-rail-caption">
+                <span>{faculty.name}</span>
+              </figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
       <div className="sd-rail-controls">
         <button type="button" className="sd-round" aria-label="Khoa trước" onClick={() => move(-1)}>
           <Icon name="back" />
@@ -26,21 +44,6 @@ export function FacultyRail({ faculties }: { faculties: Faculty[] }) {
           <Icon name="arrow" />
         </button>
       </div>
-      <ul ref={rail} className="sd-rail-track" aria-label="Các khoa đào tạo">
-        {faculties.map((faculty) => (
-          <li key={faculty.name}>
-            <figure>
-              <Image
-                src={faculty.src}
-                alt={faculty.name}
-                width={faculty.width}
-                height={faculty.height}
-                sizes="(max-width: 767px) 80vw, 420px"
-              />
-            </figure>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

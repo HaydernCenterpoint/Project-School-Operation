@@ -1,11 +1,12 @@
 import { Icon, type IconName } from "@/components/Icon";
+import { CountUpStat } from "@/components/landing/MotionPromptEffects";
 
 /** Shown on every module that still runs on sample data (see lib/portal-demo.ts). */
 export function DemoBanner() {
   return (
-    <div className="guest-banner demo-banner" role="note">
-      <span className="chip demo">Dữ liệu minh họa</span>
-      <p>Chưa kết nối hệ thống của trường; thao tác chỉ lưu trên trình duyệt này.</p>
+    <div className="demo-banner" role="note">
+      <span className="demo-banner-dot" aria-hidden="true" />
+      <span><strong>Dữ liệu minh họa</strong> · Chưa kết nối hệ thống trường, thao tác chỉ lưu tạm trên trình duyệt này</span>
     </div>
   );
 }
@@ -22,22 +23,30 @@ export function PageTitle({ title, lead, children }: { title: string; lead?: Rea
   );
 }
 
-export function StatTile({ icon, label, value, note, tone }: { icon: IconName; label: string; value: React.ReactNode; note?: React.ReactNode; tone?: "good" | "warn" | "danger" }) {
+export function StatTile({ label, value, note, tone }: { icon?: IconName; label: string; value: React.ReactNode; note?: React.ReactNode; tone?: "good" | "warn" | "danger" }) {
   return (
-    <div className={`pt-stat${tone ? ` ${tone}` : ""}`}>
-      <span className="icon-box"><Icon name={icon} /></span>
-      <span className="pt-stat-label">{label}</span>
-      <strong>{value}</strong>
+    <div className={`pt-stat${tone ? ` ${tone}` : ""}`} data-spotlight>
+      <span className="pt-stat-label">
+        {tone && <i className="pt-stat-dot" aria-hidden="true" />}
+        {label}
+      </span>
+      <strong>
+        {typeof value === "string" || typeof value === "number" ? (
+          <CountUpStat rawText={String(value)} showBar={false} />
+        ) : (
+          value
+        )}
+      </strong>
       {note && <span className="pt-stat-note">{note}</span>}
     </div>
   );
 }
 
-export function Section({ title, icon, action, children }: { title: string; icon?: IconName; action?: React.ReactNode; children: React.ReactNode }) {
+export function Section({ title, action, children }: { title: string; icon?: IconName; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="pt-section">
       <header className="pt-section-head">
-        <h3>{icon && <Icon name={icon} />} {title}</h3>
+        <h3>{title}</h3>
         {action}
       </header>
       {children}
