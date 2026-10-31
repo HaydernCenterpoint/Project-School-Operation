@@ -1,51 +1,82 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { Empty, PageTitle } from "@/components/portal/Parts";
-import { ago, news, type NewsPost } from "@/lib/news";
+import { DemoBanner, Empty, PageTitle } from "@/components/portal/Parts";
+import { ago, campusNewsFallback, formatNewsDate, news, type NewsPost } from "@/lib/news";
 import "@/components/news/news.css";
 
-/** Picture of a post; a calm placeholder when there is none or it fails to load. */
+const categoryTone: Record<string, string> = {
+  "Đào tạo": "is-edu",
+  "Nghiên cứu & Công nghệ": "is-tech",
+  "Hợp tác doanh nghiệp": "is-biz",
+  "Học bổng & Khen thưởng": "is-award",
+  "Đời sống sinh viên": "is-life",
+};
+
+/** Picture of a post; a calm institutional plate when there is none or it fails to load. */
 function Cover({ post, eager = false }: { post: NewsPost; eager?: boolean }) {
   const [broken, setBroken] = useState(false);
   return (
     <div className="nw-cover">
       {post.image_url && !broken ? (
-        // eslint-disable-next-line @next/next/no-img-element -- remote images from school sites, sizes unknown
-        <img src={post.image_url} alt="" loading={eager ? "eager" : "lazy"} referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+        // eslint-disable-next-line @next/next/no-img-element -- campus and remote RSS photographs
+        <img
+          src={post.image_url}
+          alt=""
+          loading={eager ? "eager" : "lazy"}
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+        />
       ) : (
-        <span className="nw-cover-empty" aria-hidden="true"><Icon name="news" /></span>
+        <div className="nw-cover-fallback" aria-hidden="true">
+          <span className="nw-cover-seal">SDU</span>
+          <small>{post.source?.name ?? "Trường Đại học Sao Đỏ"}</small>
+        </div>
       )}
     </div>
   );
 }
 
-function Card({ post, lead = false, index = 0 }: { post: NewsPost; lead?: boolean; index?: number }) {
+function Card({ post, lead = false }: { post: NewsPost; lead?: boolean }) {
+  const tone = categoryTone[post.category] ?? "is-edu";
   return (
-    <article className={`nw-card${lead ? " is-lead" : ""}`} style={{ "--i": Math.min(index, 14) } as React.CSSProperties}>
+    <article className={`nw-card${lead ? " is-lead" : ""}`}>
       <Cover post={post} eager={lead} />
       <div className="nw-body">
-        <p className="nw-meta">
-          <span className="chip">{post.category}</span>
-          <span>{post.source?.name}</span>
-          <time dateTime={post.published_at}>{ago(post.published_at)}</time>
-        </p>
+        <div className="nw-meta">
+          <span className={`nw-cat ${tone}`}>
+            <i aria-hidden="true" />
+            {post.category}
+          </span>
+          <time dateTime={post.published_at} title={formatNewsDate(post.published_at)}>
+            {lead ? `${ago(post.published_at)} · ${formatNewsDate(post.published_at)}` : ago(post.published_at)}
+          </time>
+        </div>
         <h3>
-          <a href={post.url} target="_blank" rel="noopener noreferrer" className="nw-link">{post.title}</a>
+          <a href={post.url} target="_blank" rel="noopener noreferrer" className="nw-link">
+            {post.title}
+          </a>
         </h3>
         {post.summary && <p className="nw-summary">{post.summary}</p>}
-        <p className="nw-foot">
-          {post.ai_summary && <span className="nw-ai" title="Đoạn tóm tắt do AI viết từ bài gốc"><Icon name="sparkle" /> Tóm tắt bởi AI</span>}
-          <span className="nw-read">Đọc bài gốc <Icon name="external" /><span className="sr-only"> (mở tab mới)</span></span>
-        </p>
+        <footer className="nw-foot">
+          <code className="nw-source-tag">
+            [{post.source?.name ?? "ĐH Sao Đỏ"}]
+          </code>
+          <span className="nw-read">
+            <span>{lead ? "Đọc toàn văn" : "Xem bài gốc"}</span>
+            <Icon name="external" />
+            <span className="sr-only"> (mở tab mới)</span>
+          </span>
+        </footer>
       </div>
     </article>
   );
 }
 
 export default function NewsPage() {
-  const [posts, setPosts] = useState<NewsPost[] | null>(null);
+  const [livePosts, setLivePosts] = useState<NewsPost[] | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [error, setError] = useState("");
   const [category, setCategory] = useState("Tất cả");
   const [source, setSource] = useState("");
@@ -53,75 +84,247 @@ export default function NewsPage() {
 
   const load = useCallback(async () => {
     try {
-      setPosts(await news.posts());
+      const fetched = await news.posts();
+      if (fetched.length > 0) {
+        setLivePosts(fetched);
+        setUsingFallback(false);
+      } else {
+        setLivePosts(campusNewsFallback);
+        setUsingFallback(true);
+      }
       setError("");
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Không tải được tin tức.");
+    } catch {
+      setLivePosts(campusNewsFallback);
+      setUsingFallback(true);
+      setError("");
     }
   }, []);
+
   useEffect(() => {
     queueMicrotask(() => void load());
-    // New posts arrive from the hourly sync; refresh while the page stays open.
-    const timer = window.setInterval(() => document.visibilityState === "visible" && void load(), 5 * 60_000);
+    const timer = window.setInterval(
+      () => document.visibilityState === "visible" && void load(),
+      5 * 60_000,
+    );
     return () => window.clearInterval(timer);
   }, [load]);
 
-  const categories = ["Tất cả", ...new Set((posts ?? []).map((post) => post.category))];
-  const sources = [...new Set((posts ?? []).map((post) => post.source?.name).filter(Boolean) as string[])].sort();
+  const posts = livePosts ?? campusNewsFallback;
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const post of posts) {
+      counts.set(post.category, (counts.get(post.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [posts]);
+
+  const categories = useMemo(
+    () => ["Tất cả", ...Array.from(categoryCounts.keys())],
+    [categoryCounts],
+  );
+
+  const sources = useMemo(
+    () =>
+      [
+        ...new Set(
+          posts.map((post) => post.source?.name).filter(Boolean) as string[],
+        ),
+      ].sort(),
+    [posts],
+  );
+
   const q = query.trim().toLowerCase();
-  const visible = (posts ?? []).filter((post) =>
-    (category === "Tất cả" || post.category === category)
-    && (!source || post.source?.name === source)
-    && (!q || `${post.title} ${post.summary}`.toLowerCase().includes(q)));
-  const [lead, ...rest] = visible;
+  const isFiltered = category !== "Tất cả" || Boolean(source) || Boolean(q);
+
+  const visible = useMemo(
+    () =>
+      posts.filter(
+        (post) =>
+          (category === "Tất cả" || post.category === category) &&
+          (!source || post.source?.name === source) &&
+          (!q ||
+            `${post.title} ${post.summary} ${post.source?.name ?? ""} ${post.category}`
+              .toLowerCase()
+              .includes(q)),
+      ),
+    [posts, category, source, q],
+  );
+
+  const lead = visible[0];
+  const wirePosts = !isFiltered ? visible.slice(1, 4) : [];
+  const gridPosts = !isFiltered ? visible.slice(4) : visible.slice(1);
+
+  function resetFilters() {
+    setCategory("Tất cả");
+    setSource("");
+    setQuery("");
+  }
 
   return (
     <div className="nw-page">
-      <PageTitle title="Tin tức" lead="Tin mới từ website trường, các khoa và fanpage Đại học Sao Đỏ, tự động cập nhật mỗi giờ." />
+      {usingFallback && <DemoBanner />}
 
-      <div className="nw-toolbar">
-        <label className="nw-search">
-          <Icon name="search" />
-          <span className="sr-only">Tìm tin tức</span>
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tin tức…" />
-        </label>
-        <label className="nw-select">
-          <span className="sr-only">Lọc theo nguồn</span>
-          <select value={source} onChange={(event) => setSource(event.target.value)}>
-            <option value="">Mọi nguồn</option>
-            {sources.map((name) => <option key={name}>{name}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className="segmented pt-scroll nw-tabs" role="group" aria-label="Lọc theo chủ đề">
-        {categories.map((item) => (
-          <button key={item} type="button" aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>
-        ))}
-      </div>
+      <PageTitle
+        title="Bản tin Đại học Sao Đỏ"
+        lead="Tin học vụ, hợp tác doanh nghiệp, nghiên cứu khoa học và đời sống sinh viên từ các đơn vị trong trường"
+      >
+        <div className="reg-window is-open" role="note">
+          <span className="reg-window-dot" aria-hidden="true" />
+          <span>
+            <strong>{posts.length}</strong> bản tin · <strong>{sources.length}</strong> đơn vị phát hành
+          </span>
+        </div>
+      </PageTitle>
+
+      <section className="nw-filter-bar" aria-label="Bộ lọc và tìm kiếm bản tin">
+        <div className="nw-toolbar">
+          <label className="nw-search">
+            <Icon name="search" />
+            <span className="sr-only">Tìm tin tức</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Tìm tiêu đề, khoa, chủ đề…"
+            />
+          </label>
+          <label className="nw-select">
+            <span className="sr-only">Lọc theo đơn vị phát hành</span>
+            <select value={source} onChange={(event) => setSource(event.target.value)}>
+              <option value="">Mọi đơn vị phát hành ({sources.length})</option>
+              {sources.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {isFiltered && (
+            <button type="button" className="nw-reset-btn" onClick={resetFilters}>
+              Xoá bộ lọc
+            </button>
+          )}
+        </div>
+
+        <div className="nw-tabs pt-scroll" role="group" aria-label="Lọc theo chuyên mục">
+          {categories.map((item) => {
+            const count = item === "Tất cả" ? posts.length : (categoryCounts.get(item) ?? 0);
+            const active = category === item;
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`nw-tab${active ? " is-active" : ""}`}
+                aria-pressed={active}
+                onClick={() => setCategory(item)}
+              >
+                <span>{item}</span>
+                <code>{count}</code>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {error ? (
         <div className="notice error" role="alert">
           <Icon name="alert" />
-          <div><strong>Không tải được tin tức</strong><p>{error}</p></div>
-          <button className="button button-outline button-xs" type="button" onClick={() => void load()}><Icon name="retry" /> Thử lại</button>
-        </div>
-      ) : !posts ? (
-        <div aria-busy="true">
-          <span className="sr-only">Đang tải tin tức…</span>
-          <div className="skeleton" style={{ height: 300, marginBottom: 16 }} />
-          <div className="skeleton" style={{ height: 260 }} />
+          <div>
+            <strong>Không tải được bản tin</strong>
+            <p>{error}</p>
+          </div>
+          <button className="button button-outline button-xs" type="button" onClick={() => void load()}>
+            <Icon name="retry" /> Thử lại
+          </button>
         </div>
       ) : !lead ? (
-        <Empty icon="news" title={posts.length ? "Không có tin khớp bộ lọc" : "Chưa có tin tức"} text={posts.length ? "Thử bỏ bớt bộ lọc." : "Tin mới sẽ xuất hiện sau lần cập nhật tới."} />
+        <Empty
+          icon="news"
+          title="Không có bản tin khớp bộ lọc"
+          text="Thử từ khóa khác hoặc chọn lại chuyên mục để xem toàn bộ bản tin nhà trường"
+        />
       ) : (
-        <div key={`${category}|${source}|${q}`}>
-          <Card post={lead} lead />
-          {rest.length > 0 && (
-            <div className="nw-grid">
-              {rest.map((post, index) => <Card key={post.id} post={post} index={index + 1} />)}
+        <>
+          {!isFiltered && wirePosts.length > 0 ? (
+            <div className="nw-desk">
+              <Card post={lead} lead />
+
+              <aside className="nw-wire-card" aria-label="Điểm tin nhanh từ các đơn vị">
+                <header className="nw-wire-head">
+                  <div>
+                    <span className="reg-label">Điểm tin nhanh</span>
+                    <h3>Tin mới từ các Khoa & Phòng ban</h3>
+                  </div>
+                  <code className="reg-table-meta">{wirePosts.length} tin tiêu điểm</code>
+                </header>
+
+                <ul className="nw-wire-list">
+                  {wirePosts.map((post) => {
+                    const tone = categoryTone[post.category] ?? "is-edu";
+                    return (
+                      <li key={post.id} className="nw-wire-item">
+                        <div className="nw-meta">
+                          <span className={`nw-cat ${tone}`}>
+                            <i aria-hidden="true" />
+                            {post.category}
+                          </span>
+                          <time dateTime={post.published_at}>{ago(post.published_at)}</time>
+                        </div>
+                        <a
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="nw-wire-link"
+                        >
+                          {post.title}
+                        </a>
+                        <div className="nw-wire-foot">
+                          <code>[{post.source?.name ?? "ĐH Sao Đỏ"}]</code>
+                          <span>{formatNewsDate(post.published_at)}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <footer className="nw-wire-sources" aria-label="Các nguồn tin đang kết nối">
+                  <span className="nw-wire-sources-label">Kênh đồng bộ:</span>
+                  <div className="nw-wire-badges">
+                    {sources.map((srcName) => (
+                      <button
+                        key={srcName}
+                        type="button"
+                        className={`nw-source-pill${source === srcName ? " is-active" : ""}`}
+                        onClick={() => setSource((prev) => (prev === srcName ? "" : srcName))}
+                      >
+                        {srcName}
+                      </button>
+                    ))}
+                  </div>
+                </footer>
+              </aside>
+            </div>
+          ) : (
+            <div className="nw-filtered-lead">
+              <Card post={lead} lead />
             </div>
           )}
-        </div>
+
+          {gridPosts.length > 0 && (
+            <section className="nw-feed-section" aria-label="Danh sách bản tin">
+              <header className="nw-section-head">
+                <h3>{isFiltered ? "Kết quả lọc bản tin" : "Chuyên mục & Bản tin gần đây"}</h3>
+                <span className="reg-table-meta">{gridPosts.length} bài viết</span>
+              </header>
+              <div className="nw-grid">
+                {gridPosts.map((post) => (
+                  <Card key={post.id} post={post} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
