@@ -12,8 +12,10 @@ import { StudentProvider, useStudent } from "@/lib/student-context";
 function Frame({ children }: { children: React.ReactNode }) {
   const { data, error, avatarUrl, account, switchAccount, refresh, signOut } = useStudent();
   const pathname = usePathname();
-  // The AI workspace is its own full-page app (opened in a new tab); it only needs the session.
-  if (pathname.startsWith("/student/ai")) return children;
+  // The AI workspace and Teacher Classroom Management web app are full-page standalone apps; they only need the session.
+  if (pathname.startsWith("/student/ai") || pathname.startsWith("/student/teacher-classes")) {
+    return children;
+  }
   const isTeacher = account.role === "teacher" || account.permissions.canManageClassRoster;
   const isOnTeacherClasses = pathname.startsWith("/student/teacher-classes");
   const user = data
