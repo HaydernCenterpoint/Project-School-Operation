@@ -312,7 +312,9 @@ export default function TuitionPage() {
                     ),
                   )}
                 </svg>
-                <span className="tui-qr-seal">SDU</span>
+                <span className="tui-qr-seal">
+                  <img src="/sao-do-logo.png" alt="SDU" width={20} height={22} />
+                </span>
               </div>
               <div className="tui-qr-caption">
                 <strong>{owed > 0 ? money(owed) : "Đã hoàn thành"}</strong>

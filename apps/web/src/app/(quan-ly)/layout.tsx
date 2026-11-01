@@ -9,6 +9,7 @@ import { AppShell, type NavGroup } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { SceneArrival } from "@/components/landing/SceneTransition";
 import { usePortalAccounts } from "@/lib/accounts";
+import { useAvatarSync } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { students, type StaffRole } from "@/lib/students";
 import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "@/lib/supabase-browser";
@@ -36,6 +37,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
   const router = useRouter();
   const pathname = usePathname();
   const portalAccounts = usePortalAccounts();
+  const avatarUrl = useAvatarSync(portalAccounts.activeAccount.id, false);
   const [remoteStaff, setRemoteStaff] = useState<Staff | null>(null);
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
           name: portalAccounts.activeAccount.displayName,
           role: `${portalAccounts.activeAccount.roleTitle} · ${roleLabels[activeStaff.role]}`,
           initial: initials(portalAccounts.activeAccount.displayName),
+          avatarUrl,
         }}
         tag="QL"
         searchAction="/quan-tri"

@@ -3,9 +3,64 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "./supabase-browser";
 
-const CURRENT_KEY = "sao-do:avatar:current";
+const LEGACY_CURRENT_KEY = "sao-do:avatar:current";
 const USER_PREFIX = "sao-do:avatar:user:";
+const MAP_STORAGE_KEY = "sao-do:avatar:by-user:v2";
+const KV_AVATARS_KEY = "portal_user_avatars";
 const EVENT_NAME = "sao-do:avatar-change";
+
+const USER_ID_ALIASES: Record<string, string> = {
+  "acc-teacher-duc": "acc-teacher-duc",
+  "gv.cntt.018": "acc-teacher-duc",
+  "ductm@saodo.edu.vn": "acc-teacher-duc",
+  "acc-leader-minh": "acc-leader-minh",
+  "2200286": "acc-leader-minh",
+  "10000000-0000-0000-0000-000002200286": "acc-leader-minh",
+  "2200286@sv.saodo.edu.vn": "acc-leader-minh",
+  "acc-student-linh": "acc-student-linh",
+  "2200287": "acc-student-linh",
+  "10000000-0000-0000-0000-000002200287": "acc-student-linh",
+  "2200287@sv.saodo.edu.vn": "acc-student-linh",
+  "acc-student-hoang": "acc-student-hoang",
+  "2200288": "acc-student-hoang",
+  "10000000-0000-0000-0000-000002200288": "acc-student-hoang",
+  "2200288@sv.saodo.edu.vn": "acc-student-hoang",
+};
+
+export function normalizeAvatarUserId(userId?: string | null): string | null {
+  if (!userId) return null;
+  const clean = userId.trim();
+  if (!clean) return null;
+  const mapped = USER_ID_ALIASES[clean.toLowerCase()];
+  if (mapped) return mapped;
+  const uidMatch = /^10000000-0000-0000-0000-00000(\d{7})$/.exec(clean);
+  if (uidMatch) return `acc-student-${uidMatch[1]}`;
+  return clean;
+}
+
+function readAvatarMap(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(MAP_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAvatarMap(next: Record<string, string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage quota errors in private browsing.
+  }
+}
 
 export type AvatarPreset = {
   id: string;
@@ -52,15 +107,38 @@ export const avatarPresets: AvatarPreset[] = [
   },
 ];
 
+function ensurePerUserMigration(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(LEGACY_CURRENT_KEY);
+    const migKey = "sao-do:avatar:per-user-migrated:v2";
+    if (localStorage.getItem(migKey) === "1") return;
+    const tAvatar = localStorage.getItem(`${USER_PREFIX}acc-teacher-duc`);
+    const lAvatar = localStorage.getItem(`${USER_PREFIX}acc-leader-minh`);
+    if (tAvatar && lAvatar && tAvatar === lAvatar) {
+      localStorage.removeItem(`${USER_PREFIX}acc-teacher-duc`);
+    }
+    localStorage.setItem(migKey, "1");
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function readStoredAvatar(userId?: string | null): string | null {
   if (typeof window === "undefined") return null;
+  ensurePerUserMigration();
+  const canonicalId = normalizeAvatarUserId(userId);
+  if (!canonicalId) return null;
   try {
-    if (userId) {
-      const byUser = localStorage.getItem(`${USER_PREFIX}${userId}`);
-      if (byUser) return byUser;
+    const map = readAvatarMap();
+    if (map[canonicalId]) return map[canonicalId]!;
+    const byCanonical = localStorage.getItem(`${USER_PREFIX}${canonicalId}`);
+    if (byCanonical) return byCanonical;
+    if (userId && userId !== canonicalId) {
+      const byRaw = localStorage.getItem(`${USER_PREFIX}${userId}`);
+      if (byRaw) return byRaw;
     }
-    const current = localStorage.getItem(CURRENT_KEY);
-    return current || null;
+    return null;
   } catch {
     return null;
   }
@@ -68,29 +146,51 @@ export function readStoredAvatar(userId?: string | null): string | null {
 
 export async function persistAvatar(userId: string | null | undefined, dataUrl: string | null): Promise<void> {
   if (typeof window === "undefined") return;
+  const canonicalId = normalizeAvatarUserId(userId);
+  if (!canonicalId) return;
+
+  const nextMap = { ...readAvatarMap() };
   try {
+    // Remove legacy global key so one account's photo never leaks to other accounts.
+    localStorage.removeItem(LEGACY_CURRENT_KEY);
     if (dataUrl) {
-      localStorage.setItem(CURRENT_KEY, dataUrl);
-      if (userId) localStorage.setItem(`${USER_PREFIX}${userId}`, dataUrl);
+      nextMap[canonicalId] = dataUrl;
+      localStorage.setItem(`${USER_PREFIX}${canonicalId}`, dataUrl);
+      if (userId && userId !== canonicalId) {
+        localStorage.setItem(`${USER_PREFIX}${userId}`, dataUrl);
+      }
     } else {
-      localStorage.removeItem(CURRENT_KEY);
-      if (userId) localStorage.removeItem(`${USER_PREFIX}${userId}`);
+      delete nextMap[canonicalId];
+      localStorage.removeItem(`${USER_PREFIX}${canonicalId}`);
+      if (userId && userId !== canonicalId) {
+        localStorage.removeItem(`${USER_PREFIX}${userId}`);
+      }
     }
+    writeAvatarMap(nextMap);
   } catch {
     // Ignore storage quota errors in private browsing.
   }
 
   window.dispatchEvent(
     new CustomEvent(EVENT_NAME, {
-      detail: { userId: userId ?? null, avatarUrl: dataUrl },
+      detail: { userId: canonicalId, avatarUrl: dataUrl },
     }),
   );
 
   if (hasSupabaseEnvironment) {
     try {
+      const sb = getSupabaseBrowserClient();
+      await sb.from("portal_kv_store").upsert(
+        {
+          key: KV_AVATARS_KEY,
+          value: nextMap,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
       // Never embed large base64 data URLs into JWT user_metadata (causes HTTP 431 Header Too Large)
       const safeMetaUrl = dataUrl && dataUrl.length <= 512 ? dataUrl : "";
-      await getSupabaseBrowserClient().auth.updateUser({
+      await sb.auth.updateUser({
         data: { avatar_url: safeMetaUrl },
       });
     } catch {
@@ -140,41 +240,61 @@ export async function cropAvatarFile(file: File): Promise<string> {
   }
 }
 
+let remoteAvatarsPulled = false;
+
+async function pullRemoteAvatarsOnce(): Promise<void> {
+  if (remoteAvatarsPulled || typeof window === "undefined" || !hasSupabaseEnvironment) return;
+  remoteAvatarsPulled = true;
+  try {
+    const sb = getSupabaseBrowserClient();
+    const { data, error } = await sb
+      .from("portal_kv_store")
+      .select("value")
+      .eq("key", KV_AVATARS_KEY)
+      .maybeSingle();
+    if (error || !data?.value || typeof data.value !== "object" || Array.isArray(data.value)) return;
+    const remoteMap = data.value as Record<string, string>;
+    const localMap = readAvatarMap();
+    const merged: Record<string, string> = { ...remoteMap, ...localMap };
+    writeAvatarMap(merged);
+    for (const [k, v] of Object.entries(merged)) {
+      if (typeof v === "string" && v) {
+        localStorage.setItem(`${USER_PREFIX}${k}`, v);
+      }
+    }
+    window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: { userId: null, avatarUrl: null } }));
+  } catch {
+    // Keep local avatars when offline.
+  }
+}
+
 /**
- * React hook that stays in sync with avatar changes across tabs and components.
+ * React hook that stays in sync with per-user avatar changes across tabs and components.
  */
-export function useAvatarSync(userId?: string | null, fallbackCurrent = false): string | null {
+export function useAvatarSync(userId?: string | null, _fallbackCurrent = false): string | null {
+  const canonicalId = normalizeAvatarUserId(userId);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const sync = () => {
       if (typeof window === "undefined") return;
       try {
-        if (userId) {
-          const specific = localStorage.getItem(`${USER_PREFIX}${userId}`);
-          if (specific) {
-            setAvatarUrl(specific);
-            return;
-          }
-        }
-        if (fallbackCurrent) {
-          setAvatarUrl(localStorage.getItem(CURRENT_KEY) || null);
-        } else {
-          setAvatarUrl(null);
-        }
+        localStorage.removeItem(LEGACY_CURRENT_KEY);
       } catch {
-        setAvatarUrl(null);
+        // Ignore storage errors
       }
+      setAvatarUrl(readStoredAvatar(canonicalId));
     };
 
     sync();
+    void pullRemoteAvatarsOnce();
     window.addEventListener(EVENT_NAME, sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener(EVENT_NAME, sync);
       window.removeEventListener("storage", sync);
     };
-  }, [userId, fallbackCurrent]);
+  }, [canonicalId]);
 
   return avatarUrl;
 }

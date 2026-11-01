@@ -182,8 +182,9 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       if (!token) return;
       tokenRef.current = token;
       const metaAvatar = auth.session!.user.user_metadata?.avatar_url;
-      if (typeof metaAvatar === "string" && metaAvatar && !readStoredAvatar(auth.session!.user.id)) {
-        void persistAvatar(auth.session!.user.id, metaAvatar);
+      const authKey = auth.session!.user.email || auth.session!.user.id;
+      if (typeof metaAvatar === "string" && metaAvatar && !readStoredAvatar(authKey)) {
+        void persistAvatar(authKey, metaAvatar);
       }
       void fetchFor(token);
     });
@@ -219,7 +220,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   }, [portalAccounts.state, remoteData]);
 
   const userId = portalAccounts.activeAccount.id;
-  const avatarUrl = useAvatarSync(userId, true);
+  const avatarUrl = useAvatarSync(userId, false);
 
   const setAvatarUrl = useCallback(
     async (next: string | null) => {

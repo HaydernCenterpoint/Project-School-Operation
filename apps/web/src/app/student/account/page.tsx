@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { centerOf } from "@/components/landing/SceneTransition";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
@@ -51,6 +51,11 @@ export default function AccountPage() {
   const [avatarError, setAvatarError] = useState("");
   const [savingAvatar, setSavingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setAvatarNotice("");
+    setAvatarError("");
+  }, [account.id]);
 
   if (!data) return null;
 
@@ -103,7 +108,7 @@ export default function AccountPage() {
     try {
       const cropped = await cropAvatarFile(file);
       await setAvatarUrl(cropped);
-      setAvatarNotice("Đã lưu ảnh đại diện — đồng bộ trên toàn cổng");
+      setAvatarNotice(`Đã lưu ảnh đại diện riêng cho ${account.displayName}`);
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : "Không thể cập nhật ảnh đại diện");
     } finally {
@@ -116,7 +121,7 @@ export default function AccountPage() {
     setAvatarError("");
     try {
       await setAvatarUrl(dataUrl);
-      setAvatarNotice(`Đã chọn mẫu "${label}" — đồng bộ trên toàn cổng`);
+      setAvatarNotice(`Đã chọn mẫu "${label}" cho ${account.displayName}`);
     } finally {
       setSavingAvatar(false);
     }
@@ -127,7 +132,7 @@ export default function AccountPage() {
     setAvatarError("");
     try {
       await setAvatarUrl(null);
-      setAvatarNotice("Đã khôi phục chữ cái viết tắt mặc định");
+      setAvatarNotice(`Đã đặt lại ảnh mặc định cho ${account.displayName}`);
     } finally {
       setSavingAvatar(false);
     }
@@ -165,7 +170,9 @@ export default function AccountPage() {
         <article className="acc-id-card" aria-label="Thẻ định danh điện tử">
           <header className="acc-id-head">
             <div className="acc-id-school">
-              <span className="acc-id-seal" aria-hidden="true">SDU</span>
+              <span className="acc-id-seal" aria-hidden="true">
+                <img src="/sao-do-logo.png" alt="" width={28} height={30} />
+              </span>
               <div>
                 <strong>Trường Đại học Sao Đỏ</strong>
                 <span>
