@@ -95,19 +95,19 @@ export default function AssignmentDetailPage() {
     setSending(true);
     setError("");
     try {
+      if (data.token && data.token !== "local-multi-role-session") {
+        await academicRequest("/api/submissions", data.token, {
+          method: "POST",
+          headers: { "Idempotency-Key": attempt.current.key },
+          body: JSON.stringify({ assignmentId: id, content: trimmed }),
+        });
+      }
       // Save immediately to shared multi-role state so Teacher sees it right away
       submitStudentWork({
         assignmentId: id,
         content: trimmed,
         account,
       });
-      if (data.token && data.token !== "local-multi-role-session") {
-        await academicRequest("/api/submissions", data.token, {
-          method: "POST",
-          headers: { "Idempotency-Key": attempt.current.key },
-          body: JSON.stringify({ assignmentId: id, content: trimmed }),
-        }).catch(() => undefined);
-      }
       writeDraft(id, account.code, "");
       setNotice(
         `Đã nộp bài thành công với tài khoản ${account.displayName} (${account.code}). Giảng viên ${account.advisorName} đã nhận được bài làm.`,
@@ -364,7 +364,7 @@ export default function AssignmentDetailPage() {
                 <div className="notice">
                   <Icon name="clock" />
                   <div>
-                    <strong>Đang chờ giảng viên {account.advisorName} nhận xét</strong>
+                    <strong>Đang chờ giảng viên nhận xét ({account.advisorName})</strong>
                     <p>
                       Bài đã được ghi nhận. Bạn có thể chuyển sang tài khoản{" "}
                       <button

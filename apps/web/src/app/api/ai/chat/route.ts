@@ -6,6 +6,7 @@ import {
 } from "@sao-do/contracts";
 import {
   apiError,
+  databaseError,
   getAcademicContext,
   isUuid,
   readJsonObject,
@@ -125,23 +126,37 @@ export async function POST(request: Request) {
   }
   const saved = content + attachmentNote(attached.names, 8_000 - content.length);
 
-  // Check if Supabase session is active; otherwise run in direct stateless gateway mode.
+  // Check if Supabase session is active; otherwise run in direct stateless gateway mode for local portal accounts.
+  const isLocalPortalSession =
+    request.headers.get("authorization") === "Bearer local-multi-role-session";
   const auth = await getAcademicContext(request);
+  if (auth.response && !isLocalPortalSession) {
+    return auth.response;
+  }
+  if (auth.context && auth.context.membership.role !== "student") {
+    return apiError(403, "forbidden", "Student access is required.");
+  }
   const supabase = auth.context?.supabase ?? null;
 
   let source: { title: string; instructions: string } | undefined;
   if (typeof assignmentId === "string" && assignmentId) {
-    const localMatch = DEFAULT_ASSIGNMENTS.find((a) => a.id === assignmentId);
-    if (localMatch) {
-      source = { title: localMatch.title, instructions: localMatch.instructions };
-    } else if (supabase && isUuid(assignmentId)) {
-      const { data } = await supabase
+    if (supabase && !isLocalPortalSession) {
+      if (!isUuid(assignmentId)) {
+        return apiError(400, "invalid_body", "Chat request is invalid.");
+      }
+      const { data, error } = await supabase
         .from("assignments")
         .select("title,instructions")
         .eq("id", assignmentId)
         .eq("status", "published")
         .maybeSingle();
-      if (data) source = data;
+      if (error) return databaseError();
+      if (!data) return apiError(404, "not_found", "Assignment not found.");
+      source = data;
+    } else {
+      const localMatch = DEFAULT_ASSIGNMENTS.find((a) => a.id === assignmentId);
+      if (!localMatch) return apiError(404, "not_found", "Assignment not found.");
+      source = { title: localMatch.title, instructions: localMatch.instructions };
     }
   }
 
@@ -158,19 +173,27 @@ export async function POST(request: Request) {
       p_mode: mode,
       p_content: saved,
     });
-    if (!reserved.error && reserved.data !== "duplicate") {
-      const history = await supabase
-        .from("ai_messages")
-        .select("role,content")
-        .eq("conversation_id", conversation)
-        .eq("status", "complete")
-        .order("created_at", { ascending: false })
-        .order("role", { ascending: false })
-        .limit(30);
-      if (!history.error && history.data) {
-        dbHistoryRows = history.data;
-      }
+    if (reserved.error) {
+      const msg = reserved.error.message ?? "";
+      if (msg.includes("not_found")) return apiError(404, "not_found", "Resource not found.");
+      if (msg.includes("ai_busy")) return apiError(409, "ai_busy", "Another AI request is in progress.");
+      if (msg.includes("ai_quota_exceeded")) return apiError(429, "ai_quota_exceeded", "Daily AI quota exceeded.");
+      if (reserved.error.code === "42501") return apiError(403, "forbidden", "Student access is required.");
+      return databaseError();
     }
+    if (reserved.data === "duplicate") {
+      return apiError(409, "duplicate_request", "Duplicate request.");
+    }
+    const history = await supabase
+      .from("ai_messages")
+      .select("role,content")
+      .eq("conversation_id", conversation)
+      .eq("status", "complete")
+      .order("created_at", { ascending: false })
+      .order("role", { ascending: false })
+      .limit(30);
+    if (history.error) return databaseError();
+    dbHistoryRows = history.data ?? [];
   }
 
   const sanitizedClientHistory: { role: "user" | "assistant"; content: string }[] = Array.isArray(

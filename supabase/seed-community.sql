@@ -2,21 +2,21 @@
 -- student code and password 1111, like 2200286. Every name, class and message is fictional.
 -- Idempotent, so it can also be applied to a running database without a reset.
 
-create temporary table seed_student(code text primary key, name text, class_name text, faculty text, bio text);
-insert into seed_student values
-  ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
-  ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
-  ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
-  ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
-  ('2200304', 'Phạm Quốc Bảo', 'DC.CK17.05', 'Khoa Cơ khí', 'Đội trưởng đội bóng khoa Cơ khí.'),
-  ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, điều phối lịch luyện nói chiều thứ Năm.'),
-  ('2200306', 'Vũ Thành Đạt', 'DC.CNTT16.08', 'Khoa Công nghệ thông tin', 'Năm cuối, đang thực tập Frontend ở Hải Dương.'),
-  ('2200307', 'Đặng Khánh Vy', 'DC.KT18.03', 'Khoa Kinh tế', 'Tân sinh viên K18, ở KTX khu B.'),
-  ('2200308', 'Bùi Gia Khánh', 'DC.DT17.04', 'Khoa Điện', 'Mê Arduino và robot. Phó chủ nhiệm CLB Tin học.'),
-  ('2200309', 'Đỗ Phương Thảo', 'DC.CNTT18.02', 'Khoa Công nghệ thông tin', 'Đang học Python, hay chia sẻ tài liệu.'),
-  ('2200310', 'Ngô Hải Nam', 'DC.OTO17.01', 'Khoa Công nghệ ô tô', 'Thích bóng đá và xe cộ.');
-
 -- 2200286 already exists in seed.sql; conflicts leave it untouched.
+with seed_student(code, name, class_name, faculty, bio) as (
+  values
+    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
+    ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
+    ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
+    ('2200304', 'Phạm Quốc Bảo', 'DC.CK17.05', 'Khoa Cơ khí', 'Đội trưởng đội bóng khoa Cơ khí.'),
+    ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, điều phối lịch luyện nói chiều thứ Năm.'),
+    ('2200306', 'Vũ Thành Đạt', 'DC.CNTT16.08', 'Khoa Công nghệ thông tin', 'Năm cuối, đang thực tập Frontend ở Hải Dương.'),
+    ('2200307', 'Đặng Khánh Vy', 'DC.KT18.03', 'Khoa Kinh tế', 'Tân sinh viên K18, ở KTX khu B.'),
+    ('2200308', 'Bùi Gia Khánh', 'DC.DT17.04', 'Khoa Điện', 'Mê Arduino và robot. Phó chủ nhiệm CLB Tin học.'),
+    ('2200309', 'Đỗ Phương Thảo', 'DC.CNTT18.02', 'Khoa Công nghệ thông tin', 'Đang học Python, hay chia sẻ tài liệu.'),
+    ('2200310', 'Ngô Hải Nam', 'DC.OTO17.01', 'Khoa Công nghệ ô tô', 'Thích bóng đá và xe cộ.')
+)
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -28,23 +28,49 @@ select '00000000-0000-0000-0000-000000000000', ('10000000-0000-0000-0000-00000' 
 from seed_student
 on conflict (id) do nothing;
 
+with seed_student(code, name, class_name, faculty, bio) as (
+  values
+    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
+    ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
+    ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
+    ('2200304', 'Phạm Quốc Bảo', 'DC.CK17.05', 'Khoa Cơ khí', 'Đội trưởng đội bóng khoa Cơ khí.'),
+    ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, điều phối lịch luyện nói chiều thứ Năm.'),
+    ('2200306', 'Vũ Thành Đạt', 'DC.CNTT16.08', 'Khoa Công nghệ thông tin', 'Năm cuối, đang thực tập Frontend ở Hải Dương.'),
+    ('2200307', 'Đặng Khánh Vy', 'DC.KT18.03', 'Khoa Kinh tế', 'Tân sinh viên K18, ở KTX khu B.'),
+    ('2200308', 'Bùi Gia Khánh', 'DC.DT17.04', 'Khoa Điện', 'Mê Arduino và robot. Phó chủ nhiệm CLB Tin học.'),
+    ('2200309', 'Đỗ Phương Thảo', 'DC.CNTT18.02', 'Khoa Công nghệ thông tin', 'Đang học Python, hay chia sẻ tài liệu.'),
+    ('2200310', 'Ngô Hải Nam', 'DC.OTO17.01', 'Khoa Công nghệ ô tô', 'Thích bóng đá và xe cộ.')
+)
 insert into public.memberships (tenant_id, user_id, role, display_name, email)
 select 'a0000000-0000-0000-0000-000000000001', ('10000000-0000-0000-0000-00000' || code)::uuid,
        'student', name, code || '@sv.saodo.edu.vn'
 from seed_student
 on conflict do nothing;
 
+with seed_student(code, name, class_name, faculty, bio) as (
+  values
+    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
+    ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
+    ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
+    ('2200304', 'Phạm Quốc Bảo', 'DC.CK17.05', 'Khoa Cơ khí', 'Đội trưởng đội bóng khoa Cơ khí.'),
+    ('2200305', 'Hoàng Ngọc Linh', 'DC.NNA17.01', 'Khoa Ngoại ngữ', 'IELTS 7.5. Chủ nhiệm Góc tiếng Anh, điều phối lịch luyện nói chiều thứ Năm.'),
+    ('2200306', 'Vũ Thành Đạt', 'DC.CNTT16.08', 'Khoa Công nghệ thông tin', 'Năm cuối, đang thực tập Frontend ở Hải Dương.'),
+    ('2200307', 'Đặng Khánh Vy', 'DC.KT18.03', 'Khoa Kinh tế', 'Tân sinh viên K18, ở KTX khu B.'),
+    ('2200308', 'Bùi Gia Khánh', 'DC.DT17.04', 'Khoa Điện', 'Mê Arduino và robot. Phó chủ nhiệm CLB Tin học.'),
+    ('2200309', 'Đỗ Phương Thảo', 'DC.CNTT18.02', 'Khoa Công nghệ thông tin', 'Đang học Python, hay chia sẻ tài liệu.'),
+    ('2200310', 'Ngô Hải Nam', 'DC.OTO17.01', 'Khoa Công nghệ ô tô', 'Thích bóng đá và xe cộ.')
+)
 insert into public.community_profiles (user_id, tenant_id, display_name, student_code, class_name, faculty, bio)
 select ('10000000-0000-0000-0000-00000' || code)::uuid, 'a0000000-0000-0000-0000-000000000001', name, code, class_name, faculty, bio
 from seed_student
 on conflict (user_id) do nothing;
 
--- u(N) is the seeded student with code 22003NN; 286 is the original local student.
-create temporary table seed_user(n int primary key, id uuid);
-insert into seed_user
-select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid
-from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n;
-
+with seed_user as (
+  select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid as id
+  from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n
+)
 insert into public.community_rooms (id, tenant_id, kind, name, about, topic, icon, created_by, created_at)
 select r.id::uuid, 'a0000000-0000-0000-0000-000000000001', 'group', r.name, r.about, r.topic, r.icon,
        (select id from seed_user where n = r.owner), now() - interval '30 days'
@@ -59,6 +85,10 @@ from (values
 ) as r(id, name, about, topic, icon, owner)
 on conflict (id) do nothing;
 
+with seed_user as (
+  select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid as id
+  from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n
+)
 insert into public.community_members (room_id, user_id, joined_at, last_read_at)
 select m.room::uuid, u.id, now() - interval '20 days', now() - interval '20 days'
 from (values
@@ -75,16 +105,29 @@ join seed_user u on u.n = p.n
 on conflict do nothing;
 
 -- One direct conversation, so the "Tin nhắn riêng" list is not empty.
+with seed_user as (
+  select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid as id
+  from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n
+)
 insert into public.community_rooms (id, tenant_id, kind, created_by, dm_key, created_at)
 select 'e0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000001', 'dm', a.id,
        least(a.id::text, b.id::text) || ':' || greatest(a.id::text, b.id::text), now() - interval '2 days'
 from seed_user a, seed_user b where a.n = 301 and b.n = 286
 on conflict do nothing;
+
+with seed_user as (
+  select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid as id
+  from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n
+)
 insert into public.community_members (room_id, user_id, joined_at, last_read_at)
 select 'e0000000-0000-0000-0000-000000000008', id, now() - interval '2 days', now() - interval '2 days'
 from seed_user where n in (286, 301)
 on conflict do nothing;
 
+with seed_user as (
+  select n, ('10000000-0000-0000-0000-00000' || (2200000 + n))::text::uuid as id
+  from unnest(array[286, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310]) n
+)
 insert into public.community_messages (id, room_id, author_id, body, reply_to, mentions, created_at)
 select m.id::uuid, m.room::uuid, a.id, m.body, m.reply::uuid,
        coalesce((select array_agg(s.id) from seed_user s where s.n = any(m.pings)), '{}'),
@@ -110,6 +153,6 @@ from (values
 ) as m(id, room, author, body, reply, pings, ago)
 join seed_user a on a.n = m.author
 order by m.ago desc
-on conflict (id) do nothing;
-
-drop table seed_student, seed_user;
+on conflict (id) do update set
+  created_at = excluded.created_at,
+  mentions = excluded.mentions;

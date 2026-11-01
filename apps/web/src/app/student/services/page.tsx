@@ -25,12 +25,14 @@ function ServicesContent() {
   useEffect(() => {
     const qType = searchParams.get("type");
     const qPurpose = searchParams.get("purpose");
-    if (qType && serviceTypes.some((item) => item.id === qType)) {
-      setChosen(qType);
-    }
-    if (qPurpose) {
-      setPurpose(qPurpose);
-    }
+    queueMicrotask(() => {
+      if (qType && serviceTypes.some((item) => item.id === qType)) {
+        setChosen(qType);
+      }
+      if (qPurpose) {
+        setPurpose(qPurpose);
+      }
+    });
   }, [searchParams]);
 
   function submit(event: FormEvent) {

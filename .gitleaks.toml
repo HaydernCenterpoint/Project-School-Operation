@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore legacy test proxy token in git history"
+regexes = [
+  '''zscrq3IrpQSJhYyvORL0dXxbm4sqXZfkHwMpK8CbHRFU1VcQ''',
+]

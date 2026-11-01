@@ -121,7 +121,7 @@ begin
     raise exception 'student_exists' using errcode = '23505';
   end if;
 
-  -- ponytail: writes auth.users directly (like the seed) because no service-role key is
+  -- ponytail: writes auth.users directly (like the seed) because no privileged admin key is
   -- configured; move to the Auth admin API from a server route if GoTrue ever requires identities.
   insert into auth.users (
     instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,

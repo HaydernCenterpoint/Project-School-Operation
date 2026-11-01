@@ -426,11 +426,13 @@ export function LikeBurstButton({
 
   useEffect(() => {
     if (!storageKey) return;
-    try {
-      if (localStorage.getItem(storageKey) === "1") setLiked(true);
-    } catch {
-      // Ignore storage access errors
-    }
+    queueMicrotask(() => {
+      try {
+        if (localStorage.getItem(storageKey) === "1") setLiked(true);
+      } catch {
+        // Ignore storage access errors
+      }
+    });
   }, [storageKey]);
 
   const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {

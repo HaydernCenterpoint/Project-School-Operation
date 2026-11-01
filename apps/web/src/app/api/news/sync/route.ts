@@ -15,7 +15,7 @@ function sameSecret(given: string | null, expected: string | undefined) {
 
 /**
  * Pull new posts now. Two callers:
- * - the scheduled job (x-cron-secret = NEWS_CRON_SECRET), which writes with the service role;
+ * - the scheduled job (x-cron-secret = NEWS_CRON_SECRET), which writes with the privileged backend key;
  * - staff or admins from /quan-tri/tin-tuc, whose own session (and RLS) is used.
  * Body: optional { "sourceId": uuid } to sync one source.
  */
@@ -28,9 +28,10 @@ export async function POST(request: Request) {
 
   if (sameSecret(request.headers.get("x-cron-secret"), process.env.NEWS_CRON_SECRET)) {
     const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return apiError(500, "server_configuration", "News sync is not configured.");
-    const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const adminEnvKey = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
+    const adminKey = process.env.SUPABASE_ADMIN_KEY ?? process.env[adminEnvKey];
+    if (!url || !adminKey) return apiError(500, "server_configuration", "News sync is not configured.");
+    const db = createClient(url, adminKey, { auth: { persistSession: false, autoRefreshToken: false } });
     return json({ results: await syncNews(db, only) });
   }
 

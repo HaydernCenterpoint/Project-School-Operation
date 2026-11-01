@@ -491,7 +491,7 @@ export default function PortalPage() {
                       <div className="lp-instructions">{selectedAssignment.instructions || "Không có yêu cầu bổ sung."}</div>
 
                       {session.role === "teacher" && (
-                        <div className="lp-submissions">
+                        <div className="submission-list lp-submissions">
                           <div className="lp-submissions-head">
                             <h4>Bài nộp ({submissions.length})</h4>
                             {submissions.length > 0 && (

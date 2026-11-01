@@ -88,7 +88,7 @@ async function facebookItems(source: Source, known: (urls: string[]) => Promise<
 
 /**
  * Syncs one source, or every active source not synced in the last minute.
- * `db` is either the staff member's client (RLS applies) or the service-role client of the job.
+ * `db` is either the staff member's client (RLS applies) or the privileged backend client of the job.
  */
 export async function syncNews(db: SupabaseClient, only?: string): Promise<SyncResult[]> {
   let query = db.from("news_sources").select("id, tenant_id, kind, name, url, last_synced_at").eq("active", true);

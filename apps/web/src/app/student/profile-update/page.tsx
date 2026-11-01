@@ -48,14 +48,16 @@ function ProfileUpdateContent() {
     const qNew = searchParams.get("new");
     const qReason = searchParams.get("reason");
     const qSource = searchParams.get("from");
-    if (qCat && categories.includes(qCat)) setCategory(qCat);
-    if (qField) setFieldLabel(qField);
-    if (qOld !== null) setOldValue(qOld);
-    if (qNew !== null) setNewValue(qNew);
-    if (qReason !== null) setReason(qReason);
-    if (qSource === "portfolio") {
-      setNotice("Đã nạp dữ liệu trích xuất từ Hồ sơ của bạn vào biểu mẫu chỉnh sửa. Vui lòng kiểm tra và gửi duyệt.");
-    }
+    queueMicrotask(() => {
+      if (qCat && categories.includes(qCat)) setCategory(qCat);
+      if (qField) setFieldLabel(qField);
+      if (qOld !== null) setOldValue(qOld);
+      if (qNew !== null) setNewValue(qNew);
+      if (qReason !== null) setReason(qReason);
+      if (qSource === "portfolio") {
+        setNotice("Đã nạp dữ liệu trích xuất từ Hồ sơ của bạn vào biểu mẫu chỉnh sửa. Vui lòng kiểm tra và gửi duyệt.");
+      }
+    });
   }, [searchParams]);
 
   function submitProposal(event: FormEvent) {

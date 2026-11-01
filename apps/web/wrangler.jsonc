@@ -14,7 +14,6 @@
     "AI_ENABLED": "true",
     "AI_PROVIDER": "openai",
     "AI_API_BASE_URL": "https://api.vnaipro.app/v1",
-    "AI_API_KEY": "sk-zscrq3IrpQSJhYyvORL0dXxbm4sqXZfkHwMpK8CbHRFU1VcQ",
     "AI_MODEL": "gpt-6-luna",
     "AI_REASONING_EFFORT": "medium",
     "AI_MAX_OUTPUT_TOKENS": "4096"

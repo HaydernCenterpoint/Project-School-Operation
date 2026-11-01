@@ -103,7 +103,7 @@ jobs:
           pnpm test:e2e:web
 
           # AI flow against the fake provider started inside the test.
-          AI_ENABLED=true AI_PROVIDER=anthropic AI_MODEL=claude-haiku-4-5-20251001           AI_API_KEY=ci-fake-provider AI_API_BASE_URL=http://127.0.0.1:3999             pnpm --filter web exec next start --hostname 127.0.0.1 --port 3211             > /tmp/ai-next.log 2>&1 &
+          AI_ENABLED=true AI_PROVIDER=anthropic AI_MODEL=claude-haiku-4-5-20251001 AI_API_KEY=test-provider-key AI_API_BASE_URL=http://127.0.0.1:3999 pnpm --filter web exec next start --hostname 127.0.0.1 --port 3211 > /tmp/ai-next.log 2>&1 &
           ai_pid=$!
           trap 'kill "$server_pid" "$ai_pid" 2>/dev/null || true' EXIT
           for attempt in {1..30}; do

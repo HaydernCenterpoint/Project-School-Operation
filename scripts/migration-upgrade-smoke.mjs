@@ -29,6 +29,9 @@ function run(command, args) {
 function runPnpm(args) {
   const cli = process.env.npm_execpath;
   if (!cli) throw new Error("Run this smoke through pnpm.");
+  if (cli.toLowerCase().endsWith(".exe")) {
+    return run(cli, args);
+  }
   return run(process.execPath, [cli, ...args]);
 }
 

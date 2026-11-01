@@ -41,7 +41,9 @@ function Cover({ post, eager = false }: { post: NewsPost; eager?: boolean }) {
         />
       ) : (
         <div className="nw-cover-fallback" aria-hidden="true">
-          <span className="nw-cover-seal">SDU</span>
+          <span className="nw-cover-seal">
+            <img src="/sao-do-logo.png" alt="" width={36} height={38} />
+          </span>
           <small>{post.source?.name ?? "Trường Đại học Sao Đỏ"}</small>
         </div>
       )}
@@ -125,12 +127,14 @@ export default function NewsPage() {
   const [tinyfishKey, setTinyfishKey] = useState("");
 
   useEffect(() => {
-    try {
-      const savedKey = localStorage.getItem(TINYFISH_KEY_STORAGE);
-      if (savedKey) setTinyfishKey(savedKey);
-    } catch {
-      // Ignore storage errors in private mode.
-    }
+    queueMicrotask(() => {
+      try {
+        const savedKey = localStorage.getItem(TINYFISH_KEY_STORAGE);
+        if (savedKey) setTinyfishKey(savedKey);
+      } catch {
+        // Ignore storage errors in private mode.
+      }
+    });
   }, []);
 
   const load = useCallback(async () => {

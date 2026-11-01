@@ -55,8 +55,11 @@ export async function GET(request: Request, route: RouteContext) {
 export async function DELETE(request: Request, route: RouteContext) {
   const { id } = await route.params;
   if (!isUuid(id)) return apiError(404, "not_found", "Resource not found.");
+  const isLocalPortalSession =
+    request.headers.get("authorization") === "Bearer local-multi-role-session";
   const auth = await getAcademicContext(request);
   if (auth.response) {
+    if (!isLocalPortalSession) return auth.response;
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }
 

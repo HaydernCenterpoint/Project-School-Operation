@@ -8,8 +8,11 @@ import { aiConfig } from "@/lib/ai-provider";
 
 export async function GET(request: Request) {
   const cfg = aiConfig();
+  const isLocalPortalSession =
+    request.headers.get("authorization") === "Bearer local-multi-role-session";
   const auth = await getAcademicContext(request);
   if (auth.response) {
+    if (!isLocalPortalSession) return auth.response;
     // Fallback for local multi-role portal accounts when Supabase is not active.
     const fallbackUsage: AiUsage = {
       enabled: cfg !== null,

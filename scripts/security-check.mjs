@@ -78,7 +78,11 @@ function filesUnder(path, generated = false) {
   if (statSync(absolute).isFile()) return [{ absolute, generated }];
 
   return readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.isDirectory() && ignoredDirectories.has(entry.name) && !generated) {
+    if (
+      entry.isDirectory() &&
+      (entry.name === "node_modules" ||
+        (ignoredDirectories.has(entry.name) && !generated))
+    ) {
       return [];
     }
     if (

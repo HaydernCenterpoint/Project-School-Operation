@@ -952,10 +952,20 @@ export function buildSessionForAccount(
     })),
   };
 
+  const seenSubmissionKeys = new Set<string>();
+  const submissions: Submission[] = [];
+  for (const item of [...(remote?.submissions ?? []), ...mappedShared]) {
+    const key = `${item.assignmentId}:${item.studentId}`;
+    if (seenSubmissionKeys.has(item.id) || seenSubmissionKeys.has(key)) continue;
+    seenSubmissionKeys.add(item.id);
+    seenSubmissionKeys.add(key);
+    submissions.push(item);
+  }
+
   return {
     session,
     assignments,
-    submissions: mappedShared,
+    submissions,
   };
 }
 

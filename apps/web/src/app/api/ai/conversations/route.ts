@@ -13,8 +13,11 @@ export async function GET(request: Request) {
     return apiError(400, "invalid_query", "before must be an ISO timestamp.");
   }
 
+  const isLocalPortalSession =
+    request.headers.get("authorization") === "Bearer local-multi-role-session";
   const auth = await getAcademicContext(request);
   if (auth.response) {
+    if (!isLocalPortalSession) return auth.response;
     return json({ conversations: [], nextCursor: null });
   }
 
