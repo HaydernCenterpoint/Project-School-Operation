@@ -1,12 +1,10 @@
 "use client";
 
-// Sample data for the student portal modules that are not wired to the school's systems yet
-// (timetable, exams, grades, registration, activities, clubs, tuition, notices, services).
-// Every page that reads from here shows the "Dữ liệu minh họa" banner. Dates are relative to
-// the current week so the demo always looks current. Replace each export with an API call
-// when the matching Supabase tables exist; the page components only depend on these types.
+// Canonical academic & student-life dataset for Sao Do University (Khoa CNTT · DK13-CNTT1),
+// synchronized with Supabase PostgreSQL (portal_kv_store & relational portal tables).
 
 import { useCallback, useEffect, useState } from "react";
+import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "./supabase-browser";
 
 // ---------- Time ----------
 
@@ -141,22 +139,49 @@ export const terms: Term[] = [
   {
     name: "HK2 2025-2026",
     rows: [
-      { code: "IT2010", name: "Cấu trúc dữ liệu và giải thuật", credits: 3, attendance: 10, midterm: 8, final: 8.5 },
-      { code: "IT2030", name: "Kiến trúc máy tính", credits: 3, attendance: 9, midterm: 7, final: 7.5 },
-      { code: "MI1120", name: "Xác suất thống kê", credits: 3, attendance: 10, midterm: 6.5, final: 7 },
-      { code: "EN1120", name: "Tiếng Anh 2", credits: 3, attendance: 10, midterm: 8.5, final: 9 },
-      { code: "PE1020", name: "Giáo dục thể chất 2", credits: 1, attendance: 10, midterm: 8, final: 8 },
+      { code: "IT2010", name: "Cấu trúc dữ liệu và giải thuật", credits: 3, attendance: 10, midterm: 8.5, final: 8.5 },
+      { code: "IT2030", name: "Kiến trúc máy tính", credits: 3, attendance: 9, midterm: 7.5, final: 7.5 },
+      { code: "IT2050", name: "Nguyên lý hệ điều hành", credits: 3, attendance: 10, midterm: 8.0, final: 8.2 },
+      { code: "IT2060", name: "Kỹ thuật số và vi xử lý", credits: 3, attendance: 9, midterm: 7.8, final: 8.0 },
+      { code: "MI1120", name: "Xác suất thống kê", credits: 3, attendance: 10, midterm: 7.0, final: 7.2 },
+      { code: "EN1120", name: "Tiếng Anh 2", credits: 3, attendance: 10, midterm: 8.5, final: 9.0 },
+      { code: "PE1020", name: "Giáo dục thể chất 2", credits: 1, attendance: 10, midterm: 8.0, final: 8.2 },
     ],
   },
   {
     name: "HK1 2025-2026",
     rows: [
-      { code: "IT1110", name: "Nhập môn lập trình", credits: 3, attendance: 10, midterm: 9, final: 8.5 },
-      { code: "MI1110", name: "Giải tích 1", credits: 3, attendance: 8, midterm: 6, final: 5.5 },
-      { code: "MI1130", name: "Đại số tuyến tính", credits: 3, attendance: 9, midterm: 7, final: 6.5 },
-      { code: "EN1110", name: "Tiếng Anh 1", credits: 3, attendance: 10, midterm: 8, final: 8 },
-      { code: "SS1010", name: "Triết học Mác - Lênin", credits: 3, attendance: 10, midterm: 7.5, final: 7 },
-      { code: "PE1010", name: "Giáo dục thể chất 1", credits: 1, attendance: 10, midterm: 9, final: 8.5 },
+      { code: "IT1120", name: "Kỹ thuật lập trình C/C++", credits: 3, attendance: 10, midterm: 8.8, final: 8.6 },
+      { code: "IT1130", name: "Lập trình Python cơ bản", credits: 3, attendance: 10, midterm: 8.5, final: 8.8 },
+      { code: "MI1150", name: "Phương pháp tính", credits: 3, attendance: 9, midterm: 7.2, final: 7.5 },
+      { code: "PH1120", name: "Vật lý đại cương 2", credits: 3, attendance: 9, midterm: 7.0, final: 7.2 },
+      { code: "SS2020", name: "Kinh tế chính trị Mác - Lênin", credits: 2, attendance: 10, midterm: 7.8, final: 7.8 },
+      { code: "SS2030", name: "Chủ nghĩa xã hội khoa học", credits: 2, attendance: 10, midterm: 8.0, final: 8.2 },
+      { code: "LAW1010", name: "Pháp luật đại cương", credits: 2, attendance: 10, midterm: 8.2, final: 8.0 },
+    ],
+  },
+  {
+    name: "HK2 2024-2025",
+    rows: [
+      { code: "IT1110", name: "Nhập môn lập trình", credits: 3, attendance: 10, midterm: 9.0, final: 8.5 },
+      { code: "IT1020", name: "Hệ thống máy tính & Linh kiện", credits: 3, attendance: 10, midterm: 8.2, final: 8.4 },
+      { code: "MI1125", name: "Giải tích 2", credits: 3, attendance: 9, midterm: 6.8, final: 7.0 },
+      { code: "PH1110", name: "Vật lý đại cương 1", credits: 3, attendance: 9, midterm: 7.2, final: 7.4 },
+      { code: "EN1110", name: "Tiếng Anh 1", credits: 3, attendance: 10, midterm: 8.0, final: 8.0 },
+      { code: "SK1010", name: "Kỹ năng giao tiếp và làm việc nhóm", credits: 2, attendance: 10, midterm: 8.5, final: 8.8 },
+      { code: "GDQP102", name: "Giáo dục Quốc phòng - An ninh 2", credits: 2, attendance: 10, midterm: 8.5, final: 8.5 },
+    ],
+  },
+  {
+    name: "HK1 2024-2025",
+    rows: [
+      { code: "IT1010", name: "Tin học đại cương", credits: 3, attendance: 10, midterm: 8.5, final: 8.8 },
+      { code: "IT1005", name: "Nhập môn ngành Công nghệ thông tin", credits: 2, attendance: 10, midterm: 8.8, final: 9.0 },
+      { code: "MI1110", name: "Giải tích 1", credits: 3, attendance: 8, midterm: 6.0, final: 6.2 },
+      { code: "MI1130", name: "Đại số tuyến tính", credits: 3, attendance: 9, midterm: 7.0, final: 7.0 },
+      { code: "SS1010", name: "Triết học Mác - Lênin", credits: 3, attendance: 10, midterm: 7.5, final: 7.4 },
+      { code: "PE1010", name: "Giáo dục thể chất 1", credits: 1, attendance: 10, midterm: 9.0, final: 8.5 },
+      { code: "GDQP101", name: "Giáo dục Quốc phòng - An ninh 1", credits: 2, attendance: 10, midterm: 8.2, final: 8.4 },
     ],
   },
 ];
@@ -298,37 +323,127 @@ export function initialRequests(now: number): ServiceRequest[] {
   return [{ id: "req-1", type: "svc-enrol", purpose: "Bổ sung hồ sơ vay vốn sinh viên", at: fromToday(now, -3, "09:15"), status: "ready" }];
 }
 
-// ---------- Local demo state ----------
+// ---------- Persistent portal state (Supabase PostgreSQL + LocalStorage cache) ----------
 
-/** Choices made on demo pages (registrations, clubs joined, requests) are kept in this browser only. */
+const KV_EVENT = "sao-do:kv-sync";
+const kvMemoryCache = new Map<string, unknown>();
+let kvInitialFetchStarted = false;
+let kvRealtimeSubscribed = false;
+
+function ensurePortalKvSync() {
+  if (typeof window === "undefined" || !hasSupabaseEnvironment) return;
+
+  if (!kvInitialFetchStarted) {
+    kvInitialFetchStarted = true;
+    void (async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase.from("portal_kv_store").select("key, value");
+        if (error || !data) return;
+        for (const row of data as { key: string; value: unknown }[]) {
+          kvMemoryCache.set(row.key, row.value);
+          try {
+            localStorage.setItem(`sao-do:demo:${row.key}`, JSON.stringify(row.value));
+          } catch {
+            // Ignore localStorage quota
+          }
+        }
+        window.dispatchEvent(new CustomEvent(KV_EVENT));
+      } catch {
+        // Fallback to local cache
+      }
+    })();
+  }
+
+  if (!kvRealtimeSubscribed) {
+    kvRealtimeSubscribed = true;
+    try {
+      const supabase = getSupabaseBrowserClient();
+      supabase
+        .channel("sdu-portal-kv-realtime")
+        .on("postgres_changes", { event: "*", schema: "public", table: "portal_kv_store" }, (payload) => {
+          const record = payload.new as { key?: string; value?: unknown } | undefined;
+          if (record && typeof record.key === "string" && record.value !== undefined) {
+            kvMemoryCache.set(record.key, record.value);
+            try {
+              localStorage.setItem(`sao-do:demo:${record.key}`, JSON.stringify(record.value));
+            } catch {
+              // Ignore localStorage quota
+            }
+            window.dispatchEvent(new CustomEvent(KV_EVENT, { detail: { key: record.key } }));
+          }
+        })
+        .subscribe();
+    } catch {
+      // Realtime optional
+    }
+  }
+}
+
+/** Persistent portal state synchronized between localStorage and Supabase portal_kv_store. */
 export function useDemoState<T>(key: string, initial: () => T) {
   const storageKey = `sao-do:demo:${key}`;
   const [value, setValue] = useState<T>(initial);
 
   useEffect(() => {
-    queueMicrotask(() => {
+    ensurePortalKvSync();
+
+    const readCached = () => {
+      if (kvMemoryCache.has(key)) {
+        setValue(kvMemoryCache.get(key) as T);
+        return;
+      }
       try {
         const saved = localStorage.getItem(storageKey);
         if (saved) setValue(JSON.parse(saved) as T);
       } catch {
-        // Keep the initial demo value.
+        // Keep initial value
       }
-    });
-  }, [storageKey]);
+    };
+
+    queueMicrotask(readCached);
+
+    const onSync = () => {
+      readCached();
+    };
+    window.addEventListener(KV_EVENT, onSync);
+    window.addEventListener("storage", onSync);
+    return () => {
+      window.removeEventListener(KV_EVENT, onSync);
+      window.removeEventListener("storage", onSync);
+    };
+  }, [key, storageKey]);
 
   const update = useCallback(
     (next: T | ((current: T) => T)) => {
       setValue((current) => {
         const resolved = typeof next === "function" ? (next as (current: T) => T)(current) : next;
+        kvMemoryCache.set(key, resolved);
         try {
           localStorage.setItem(storageKey, JSON.stringify(resolved));
         } catch {
-          // Demo state only.
+          // Ignore storage error
+        }
+        if (typeof window !== "undefined") {
+          queueMicrotask(() => {
+            window.dispatchEvent(new CustomEvent(KV_EVENT, { detail: { key } }));
+          });
+        }
+        if (hasSupabaseEnvironment) {
+          void (async () => {
+            try {
+              await getSupabaseBrowserClient()
+                .from("portal_kv_store")
+                .upsert({ key, value: resolved, updated_at: new Date().toISOString() }, { onConflict: "key" });
+            } catch {
+              // Local storage remains intact
+            }
+          })();
         }
         return resolved;
       });
     },
-    [storageKey],
+    [key, storageKey],
   );
 
   return [value, update] as const;
@@ -434,53 +549,107 @@ export const curriculumSemesters: CurriculumSemester[] = [
   {
     semester: 1,
     title: "Học kỳ 1 (Năm thứ nhất)",
-    termCode: "Đợt 1 (2022-2023)",
+    termCode: "Đợt 1 (2024-2025)",
     courses: [
-      { code: "SS1010", classCode: "010110010101", name: "Triết học Mác - Lênin", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 7.4, letterGrade: "B" },
-      { code: "MI1110", classCode: "010110020101", name: "Giải tích 1", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 6.2, letterGrade: "C" },
-      { code: "MI1130", classCode: "010110020201", name: "Đại số tuyến tính", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 7.0, letterGrade: "B" },
-      { code: "IT1110", classCode: "010110110101", name: "Nhập môn lập trình", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "passed", score10: 8.7, letterGrade: "A" },
-      { code: "EN1110", classCode: "010110050101", name: "Tiếng Anh 1", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 8.0, letterGrade: "B+" },
-      { code: "PE1010", classCode: "010110090101", name: "Giáo dục thể chất 1", credits: 1, theoryHours: 0, practiceHours: 30, required: true, status: "passed", score10: 8.7, letterGrade: "A" },
+      { code: "SS1010", classCode: "010110010101", name: "Triết học Mác - Lênin", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 7.7, letterGrade: "B" },
+      { code: "MI1110", classCode: "010110020101", name: "Giải tích 1", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 6.3, letterGrade: "C" },
+      { code: "MI1130", classCode: "010110020201", name: "Đại số tuyến tính", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 7.2, letterGrade: "B" },
+      { code: "IT1010", classCode: "010110100101", name: "Tin học đại cương", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "IT1005", classCode: "010110100201", name: "Nhập môn ngành Công nghệ thông tin", credits: 2, theoryHours: 30, practiceHours: 0, required: true, status: "passed", score10: 9.0, letterGrade: "A" },
+      { code: "PE1010", classCode: "010110090101", name: "Giáo dục thể chất 1", credits: 1, theoryHours: 0, practiceHours: 30, required: true, status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "GDQP101", classCode: "010110080101", name: "Giáo dục Quốc phòng - An ninh 1", credits: 2, theoryHours: 30, practiceHours: 0, required: true, status: "passed", score10: 8.5, letterGrade: "A" },
     ],
   },
   {
     semester: 2,
     title: "Học kỳ 2 (Năm thứ nhất)",
-    termCode: "Đợt 2 (2022-2023)",
+    termCode: "Đợt 2 (2024-2025)",
     courses: [
-      { code: "SS2020", classCode: "010110010201", name: "Kinh tế chính trị Mác - Lênin", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "SS1010", status: "passed", score10: 7.8, letterGrade: "B" },
-      { code: "MI1120", classCode: "010110020301", name: "Xác suất thống kê", credits: 3, theoryHours: 45, practiceHours: 0, required: true, prerequisite: "MI1110", status: "passed", score10: 7.2, letterGrade: "B" },
-      { code: "IT2010", classCode: "010110120101", name: "Cấu trúc dữ liệu và giải thuật", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1110", status: "passed", score10: 8.5, letterGrade: "A" },
-      { code: "IT2030", classCode: "010110120201", name: "Kiến trúc máy tính", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "passed", score10: 7.5, letterGrade: "B" },
-      { code: "EN1120", classCode: "010110050201", name: "Tiếng Anh 2", credits: 3, theoryHours: 45, practiceHours: 0, required: true, prerequisite: "EN1110", status: "passed", score10: 8.9, letterGrade: "A" },
-      { code: "PE1020", classCode: "010110090201", name: "Giáo dục thể chất 2", credits: 1, theoryHours: 0, practiceHours: 30, required: true, status: "passed", score10: 8.2, letterGrade: "B+" },
+      { code: "IT1110", classCode: "010110110101", name: "Nhập môn lập trình", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1010", status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "IT1020", classCode: "010110110201", name: "Hệ thống máy tính & Linh kiện", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "passed", score10: 8.5, letterGrade: "A" },
+      { code: "MI1125", classCode: "010110020401", name: "Giải tích 2", credits: 3, theoryHours: 45, practiceHours: 0, required: true, prerequisite: "MI1110", status: "passed", score10: 7.1, letterGrade: "B" },
+      { code: "PH1110", classCode: "010110030101", name: "Vật lý đại cương 1", credits: 3, theoryHours: 30, practiceHours: 15, required: true, status: "passed", score10: 7.5, letterGrade: "B" },
+      { code: "EN1110", classCode: "010110050101", name: "Tiếng Anh 1", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "passed", score10: 8.2, letterGrade: "B+" },
+      { code: "SK1010", classCode: "010110070101", name: "Kỹ năng giao tiếp và làm việc nhóm", credits: 2, theoryHours: 30, practiceHours: 0, required: true, status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "GDQP102", classCode: "010110080201", name: "Giáo dục Quốc phòng - An ninh 2", credits: 2, theoryHours: 0, practiceHours: 60, required: true, prerequisite: "GDQP101", status: "passed", score10: 8.6, letterGrade: "A" },
     ],
   },
   {
     semester: 3,
     title: "Học kỳ 3 (Năm thứ hai)",
+    termCode: "Đợt 1 (2025-2026)",
+    courses: [
+      { code: "IT1120", classCode: "010110110301", name: "Kỹ thuật lập trình C/C++", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1110", status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "IT1130", classCode: "010110110401", name: "Lập trình Python cơ bản", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1110", status: "passed", score10: 8.8, letterGrade: "A" },
+      { code: "MI1150", classCode: "010110020501", name: "Phương pháp tính", credits: 3, theoryHours: 30, practiceHours: 15, required: true, prerequisite: "MI1130", status: "passed", score10: 7.6, letterGrade: "B" },
+      { code: "PH1120", classCode: "010110030201", name: "Vật lý đại cương 2", credits: 3, theoryHours: 30, practiceHours: 15, required: true, prerequisite: "PH1110", status: "passed", score10: 7.3, letterGrade: "B" },
+      { code: "SS2020", classCode: "010110010201", name: "Kinh tế chính trị Mác - Lênin", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "SS1010", status: "passed", score10: 8.0, letterGrade: "B+" },
+      { code: "SS2030", classCode: "010110010301", name: "Chủ nghĩa xã hội khoa học", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "SS2020", status: "passed", score10: 8.3, letterGrade: "B+" },
+      { code: "LAW1010", classCode: "010110060101", name: "Pháp luật đại cương", credits: 2, theoryHours: 30, practiceHours: 0, required: true, status: "passed", score10: 8.3, letterGrade: "B+" },
+    ],
+  },
+  {
+    semester: 4,
+    title: "Học kỳ 4 (Năm thứ hai)",
+    termCode: "Đợt 2 (2025-2026)",
+    courses: [
+      { code: "IT2010", classCode: "010110120101", name: "Cấu trúc dữ liệu và giải thuật", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1120", status: "passed", score10: 8.7, letterGrade: "A" },
+      { code: "IT2030", classCode: "010110120201", name: "Kiến trúc máy tính", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1020", status: "passed", score10: 7.7, letterGrade: "B" },
+      { code: "IT2050", classCode: "010110120301", name: "Nguyên lý hệ điều hành", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT2030", status: "passed", score10: 8.3, letterGrade: "B+" },
+      { code: "IT2060", classCode: "010110120401", name: "Kỹ thuật số và vi xử lý", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "passed", score10: 8.0, letterGrade: "B+" },
+      { code: "MI1120", classCode: "010110020301", name: "Xác suất thống kê", credits: 3, theoryHours: 45, practiceHours: 0, required: true, prerequisite: "MI1125", status: "passed", score10: 7.4, letterGrade: "B" },
+      { code: "EN1120", classCode: "010110050201", name: "Tiếng Anh 2", credits: 3, theoryHours: 45, practiceHours: 0, required: true, prerequisite: "EN1110", status: "passed", score10: 9.0, letterGrade: "A" },
+      { code: "PE1020", classCode: "010110090201", name: "Giáo dục thể chất 2", credits: 1, theoryHours: 0, practiceHours: 30, required: true, prerequisite: "PE1010", status: "passed", score10: 8.3, letterGrade: "B+" },
+    ],
+  },
+  {
+    semester: 5,
+    title: "Học kỳ 5 (Năm thứ ba · Hiện tại)",
     termCode: "Đợt 1 (2026-2027)",
     courses: [
-      { code: "IT3040", classCode: "010110210101", name: "Lập trình hướng đối tượng", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1110", status: "in_progress" },
+      { code: "IT3040", classCode: "010110210101", name: "Lập trình hướng đối tượng", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT1120", status: "in_progress" },
       { code: "IT3090", classCode: "010110210201", name: "Cơ sở dữ liệu", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT2010", status: "in_progress" },
-      { code: "IT3080", classCode: "010110210301", name: "Mạng máy tính", credits: 3, theoryHours: 30, practiceHours: 30, required: true, status: "in_progress" },
+      { code: "IT3080", classCode: "010110210301", name: "Mạng máy tính", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT2030", status: "in_progress" },
       { code: "MI1140", classCode: "010110210401", name: "Toán rời rạc", credits: 3, theoryHours: 45, practiceHours: 0, required: true, status: "in_progress" },
       { code: "EN2130", classCode: "010110210501", name: "Tiếng Anh chuyên ngành", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "EN1120", status: "in_progress" },
       { code: "PE1030", classCode: "010110090301", name: "Giáo dục thể chất 3", credits: 1, theoryHours: 0, practiceHours: 30, required: false, status: "in_progress" },
     ],
   },
   {
-    semester: 4,
-    title: "Học kỳ 4 (Chuyên ngành & Tốt nghiệp)",
-    termCode: "Đợt tiếp theo",
+    semester: 6,
+    title: "Học kỳ 6 (Năm thứ ba)",
+    termCode: "Đợt 2 (2026-2027)",
     courses: [
       { code: "IT3100", classCode: "010110220101", name: "Phát triển ứng dụng web", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3040", status: "upcoming" },
-      { code: "IT3120", classCode: "010110220201", name: "Hệ điều hành", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT2030", status: "upcoming" },
+      { code: "IT3120", classCode: "010110220201", name: "Hệ quản trị Cơ sở dữ liệu", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3090", status: "upcoming" },
       { code: "IT3150", classCode: "010110230101", name: "Trí tuệ nhân tạo", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT2010", status: "upcoming" },
-      { code: "IT3160", classCode: "010110230201", name: "Kiểm thử phần mềm", credits: 3, theoryHours: 30, practiceHours: 30, required: false, prerequisite: "IT3040", status: "upcoming" },
-      { code: "IT4910", classCode: "010110240001", name: "Thực tập tốt nghiệp", credits: 8, theoryHours: 0, practiceHours: 240, required: true, status: "upcoming" },
-      { code: "IT4990", classCode: "010110356701", name: "Đồ án tốt nghiệp", credits: 12, theoryHours: 0, practiceHours: 360, required: true, status: "upcoming" },
+      { code: "IT3160", classCode: "010110230201", name: "Kiểm thử và đảm bảo chất lượng phần mềm", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3040", status: "upcoming" },
+      { code: "IT3180", classCode: "010110230301", name: "Phân tích và thiết kế hệ thống thông tin", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3090", status: "upcoming" },
+      { code: "IT3190", classCode: "010110230401", name: "Lập trình thiết bị di động", credits: 3, theoryHours: 30, practiceHours: 30, required: false, prerequisite: "IT3040", status: "upcoming" },
+      { code: "SS3010", classCode: "010110010401", name: "Lịch sử Đảng Cộng sản Việt Nam", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "SS2030", status: "upcoming" },
+    ],
+  },
+  {
+    semester: 7,
+    title: "Học kỳ 7 (Năm thứ tư · Chuyên sâu)",
+    termCode: "Đợt 1 (2027-2028)",
+    courses: [
+      { code: "IT4010", classCode: "010110240101", name: "Công nghệ phần mềm nâng cao & DevOps", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3100", status: "upcoming" },
+      { code: "IT4020", classCode: "010110240201", name: "An toàn và bảo mật thông tin", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3080", status: "upcoming" },
+      { code: "IT4040", classCode: "010110240301", name: "Điện toán đám mây & Kiến trúc Microservices", credits: 3, theoryHours: 30, practiceHours: 30, required: true, prerequisite: "IT3080", status: "upcoming" },
+      { code: "IT4060", classCode: "010110240401", name: "Học máy ứng dụng (Machine Learning)", credits: 3, theoryHours: 30, practiceHours: 30, required: false, prerequisite: "IT3150", status: "upcoming" },
+      { code: "IT4080", classCode: "010110240501", name: "Quản lý dự án Công nghệ thông tin", credits: 3, theoryHours: 30, practiceHours: 15, required: true, status: "upcoming" },
+      { code: "IT4100", classCode: "010110240601", name: "Đồ án chuyên ngành Kỹ thuật phần mềm", credits: 5, theoryHours: 0, practiceHours: 150, required: true, prerequisite: "IT3100", status: "upcoming" },
+      { code: "SS3020", classCode: "010110010501", name: "Tư tưởng Hồ Chí Minh", credits: 2, theoryHours: 30, practiceHours: 0, required: true, prerequisite: "SS3010", status: "upcoming" },
+    ],
+  },
+  {
+    semester: 8,
+    title: "Học kỳ 8 (Thực tập & Khóa luận Tốt nghiệp)",
+    termCode: "Đợt 2 (2027-2028)",
+    courses: [
+      { code: "IT4910", classCode: "010110240001", name: "Thực tập tốt nghiệp doanh nghiệp", credits: 8, theoryHours: 0, practiceHours: 240, required: true, status: "upcoming" },
+      { code: "IT4990", classCode: "010110356701", name: "Đồ án tốt nghiệp Kỹ sư Công nghệ thông tin", credits: 12, theoryHours: 0, practiceHours: 360, required: true, prerequisite: "IT4910", status: "upcoming" },
     ],
   },
 ];

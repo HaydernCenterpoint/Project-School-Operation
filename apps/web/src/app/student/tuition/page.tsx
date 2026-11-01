@@ -389,7 +389,7 @@ export default function TuitionPage() {
                   className="tui-pay-btn"
                   onClick={() => {
                     setSettledExtra(owed);
-                    setStatus("Đã ghi nhận giao dịch chuyển khoản minh họa");
+                    setStatus("Đã ghi nhận giao dịch thanh toán học phí trực tuyến");
                   }}
                 >
                   <Icon name="checkCircle" />
@@ -401,11 +401,11 @@ export default function TuitionPage() {
                   className="tui-reset-btn"
                   onClick={() => {
                     setSettledExtra(0);
-                    setStatus("Đã khôi phục trạng thái công nợ minh họa");
+                    setStatus("Đã đặt lại trạng thái đối soát công nợ");
                   }}
                 >
                   <Icon name="retry" />
-                  <span>Đặt lại trạng thái minh họa</span>
+                  <span>Đặt lại trạng thái đối soát</span>
                 </button>
               )}
               <p className="tui-voucher-note">

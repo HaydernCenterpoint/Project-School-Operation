@@ -46,7 +46,14 @@ export type ClassStudentRosterItem = {
   email: string;
   phone: string;
   cohortClass: string;
-  roleInClass: "Lớp trưởng" | "Bí thư Chi đoàn" | "Trưởng CLB Tin học" | "Thành viên lớp";
+  roleInClass:
+    | "Lớp trưởng"
+    | "Lớp phó học tập"
+    | "Bí thư Chi đoàn"
+    | "Phó bí thư Chi đoàn"
+    | "Ủy viên BCH lớp"
+    | "Trưởng CLB Tin học"
+    | "Thành viên lớp";
   attendancePct: number;
   gpa: number;
   status: "active" | "warning";
@@ -436,6 +443,58 @@ const INITIAL_ROSTER: ClassStudentRosterItem[] = [
     gpa: 3.32,
     status: "active",
     teacherNote: "Hoàn thành sớm các bài tập truy vấn SQL và tích cực đặt câu hỏi trên lớp.",
+  },
+  {
+    accountId: "acc-student-anh",
+    studentCode: "2200292",
+    fullName: "Đỗ Thị Ngọc Ánh",
+    email: "2200292@sv.saodo.edu.vn",
+    phone: "0973519284",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Lớp phó học tập",
+    attendancePct: 99,
+    gpa: 3.61,
+    status: "active",
+    teacherNote: "Phụ trách nhóm ôn tập Toán rời rạc và Cơ sở dữ liệu của lớp DK13-CNTT1; đặc tả lược đồ 3NF rất chặt chẽ.",
+  },
+  {
+    accountId: "acc-student-manh",
+    studentCode: "2200293",
+    fullName: "Vũ Đức Mạnh",
+    email: "2200293@sv.saodo.edu.vn",
+    phone: "0918472630",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Thành viên lớp",
+    attendancePct: 91,
+    gpa: 3.04,
+    status: "active",
+    teacherNote: "Kỹ năng cấu hình mạng và quản trị hệ thống Linux tốt, thực hành bấm cáp và định tuyến đạt điểm tối đa.",
+  },
+  {
+    accountId: "acc-student-thao",
+    studentCode: "2200294",
+    fullName: "Bùi Phương Thảo",
+    email: "2200294@sv.saodo.edu.vn",
+    phone: "0989304172",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Phó bí thư Chi đoàn",
+    attendancePct: 98,
+    gpa: 3.52,
+    status: "active",
+    teacherNote: "Tích cực trong phong trào Sinh viên 5 Tốt, bài tập lớn môn OOP và Kiểm thử phần mềm hoàn thành vượt yêu cầu.",
+  },
+  {
+    accountId: "acc-student-tung",
+    studentCode: "2200295",
+    fullName: "Ngô Thanh Tùng",
+    email: "2200295@sv.saodo.edu.vn",
+    phone: "0945718293",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Ủy viên BCH lớp",
+    attendancePct: 94,
+    gpa: 3.24,
+    status: "active",
+    teacherNote: "Thành viên Ban chuyên môn CLB Tin học Sao Đỏ, phụ trách kỹ thuật giao diện Web và kiểm thử tự động.",
   },
 ];
 

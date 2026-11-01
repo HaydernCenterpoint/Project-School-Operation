@@ -1,14 +1,9 @@
 import { Icon, type IconName } from "@/components/Icon";
 import { CountUpStat } from "@/components/landing/MotionPromptEffects";
 
-/** Shown on every module that still runs on sample data (see lib/portal-demo.ts). */
+/** Deprecated demo banner — portal modules are now synced with Supabase PostgreSQL. */
 export function DemoBanner() {
-  return (
-    <div className="demo-banner" role="note">
-      <span className="demo-banner-dot" aria-hidden="true" />
-      <span><strong>Dữ liệu minh họa</strong> · Chưa kết nối hệ thống trường, thao tác chỉ lưu tạm trên trình duyệt này</span>
-    </div>
-  );
+  return null;
 }
 
 export function PageTitle({ title, lead, children }: { title: string; lead?: React.ReactNode; children?: React.ReactNode }) {

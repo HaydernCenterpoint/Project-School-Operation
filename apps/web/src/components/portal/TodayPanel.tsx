@@ -9,7 +9,6 @@ import { countdown, daysUntil } from "@/components/portal/Parts";
 import { greeting, initials } from "@/lib/format";
 import {
   courseByCode,
-  courses,
   curriculumSemesters,
   exams,
   gpa,
@@ -33,7 +32,7 @@ export function TodayPanel({ now }: { now: number }) {
   const { account, avatarUrl } = useStudent();
   const [read] = useDemoState<string[]>("notices-read", () => []);
   const [gradeTermIdx, setGradeTermIdx] = useState(0);
-  const [courseSemIdx, setCourseSemIdx] = useState(2);
+  const [courseSemIdx, setCourseSemIdx] = useState(4);
 
   const today = (new Date(now).getDay() + 6) % 7;
   const classes = sessions.filter((item) => item.day === today).sort((a, b) => a.from - b.from);
@@ -46,9 +45,9 @@ export function TodayPanel({ now }: { now: number }) {
   const pickEdu = (label: string) => profile.education.find((f) => f.label === label)?.value ?? "-";
 
   const allCurrCourses = curriculumSemesters.flatMap((s) => s.courses);
-  const earnedCredits =
-    allCurrCourses.filter((c) => c.status === "passed").reduce((sum, c) => sum + c.credits, 0) +
-    courses.reduce((sum, c) => sum + c.credits, 0);
+  const earnedCredits = allCurrCourses
+    .filter((c) => c.status === "passed")
+    .reduce((sum, c) => sum + c.credits, 0);
   const totalProgramCredits = program.requiredCredits;
   const creditPct = Math.min(100, Math.round((earnedCredits / totalProgramCredits) * 100));
 
@@ -355,7 +354,6 @@ export function TodayPanel({ now }: { now: number }) {
             </span>
           </Link>
         </div>
-        <p className="today-note">Lịch học, thi, thông báo và học phí đang dùng dữ liệu minh họa.</p>
       </section>
     </>
   );

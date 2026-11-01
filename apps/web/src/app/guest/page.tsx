@@ -57,8 +57,8 @@ export default async function GuestPage() {
       <div className="guest-banner" role="note">
         <span className="chip demo">Chế độ khách</span>
         <p>
-          <strong>Nội dung minh họa.</strong> Lớp học, bài tập và phản hồi dưới đây là dữ liệu giả lập để
-          giới thiệu giao diện, không phải dữ liệu thật của nhà trường.
+          <strong>Chế độ xem trước Cổng học tập.</strong> Đăng nhập bằng tài khoản sinh viên hoặc giảng viên để
+          truy cập dữ liệu học vụ, điểm danh và nộp bài trực tuyến.
         </p>
         <Link className="button button-dark button-sm" href="/login">Đăng nhập</Link>
       </div>
