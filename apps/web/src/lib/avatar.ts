@@ -88,8 +88,10 @@ export async function persistAvatar(userId: string | null | undefined, dataUrl: 
 
   if (hasSupabaseEnvironment) {
     try {
+      // Never embed large base64 data URLs into JWT user_metadata (causes HTTP 431 Header Too Large)
+      const safeMetaUrl = dataUrl && dataUrl.length <= 512 ? dataUrl : "";
       await getSupabaseBrowserClient().auth.updateUser({
-        data: { avatar_url: dataUrl ?? "" },
+        data: { avatar_url: safeMetaUrl },
       });
     } catch {
       // Local storage remains the source of truth if offline.

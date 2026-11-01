@@ -49,6 +49,7 @@ type StudentState = {
   /** Active account persona & role permissions */
   account: PortalAccount;
   accounts: PortalAccount[];
+  supabaseConnected: boolean;
   switchAccount: (accountId: string) => void;
   roster: ClassStudentRosterItem[];
   subjectClasses: TeacherSubjectClass[];
@@ -247,6 +248,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       },
       account: portalAccounts.activeAccount,
       accounts: portalAccounts.accounts,
+      supabaseConnected: portalAccounts.supabaseConnected,
       switchAccount: portalAccounts.setActiveAccount,
       roster: portalAccounts.roster,
       subjectClasses: portalAccounts.subjectClasses,

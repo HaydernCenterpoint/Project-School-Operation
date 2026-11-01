@@ -2,6 +2,7 @@
 
 import type { AcademicSession, ApiClass, Assignment, Submission } from "@sao-do/contracts";
 import { useCallback, useEffect, useState } from "react";
+import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "./supabase-browser";
 
 export type AccountRole = "teacher" | "club_leader" | "class_student";
 
@@ -901,17 +902,232 @@ export function buildSessionForAccount(
 
 export function usePortalAccounts() {
   const [state, setState] = useState<SharedPortalState>(buildDefaultState);
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
+
+  const pullFromSupabase = useCallback(async () => {
+    if (!hasSupabaseEnvironment) return;
+    try {
+      const sb = getSupabaseBrowserClient();
+      const [
+        rosterRes,
+        subjectsRes,
+        attendanceRes,
+        customAsgRes,
+        submissionsRes,
+        announcementsRes,
+        clubMembersRes,
+        clubEventsRes,
+      ] = await Promise.all([
+        sb.from("teacher_class_roster").select("*").order("student_code", { ascending: true }),
+        sb.from("teacher_subject_classes").select("*").order("created_at", { ascending: true }),
+        sb.from("teacher_attendance_sessions").select("*").order("created_at", { ascending: false }),
+        sb.from("portal_custom_assignments").select("*").order("created_at", { ascending: false }),
+        sb.from("portal_submissions").select("*").order("submitted_at", { ascending: false }),
+        sb.from("class_announcements").select("*").order("created_at", { ascending: false }),
+        sb.from("club_members").select("*").order("joined_at", { ascending: true }),
+        sb.from("club_events").select("*").order("created_at", { ascending: false }),
+      ]);
+
+      if (rosterRes.error && subjectsRes.error) return;
+      setSupabaseConnected(true);
+
+      writeSharedPortalState((prev) => {
+        const nextRoster: ClassStudentRosterItem[] =
+          rosterRes.data && rosterRes.data.length > 0
+            ? rosterRes.data.map((r) => ({
+                accountId: String(r.account_id),
+                studentCode: String(r.student_code),
+                fullName: String(r.full_name),
+                email: String(r.email),
+                phone: String(r.phone),
+                cohortClass: String(r.cohort_class),
+                roleInClass: r.role_in_class as ClassStudentRosterItem["roleInClass"],
+                attendancePct: Number(r.attendance_pct),
+                gpa: Number(r.gpa),
+                status: (r.status === "warning" ? "warning" : "active") as "active" | "warning",
+                teacherNote: String(r.teacher_note ?? ""),
+              }))
+            : prev.roster;
+
+        const nextSubjects: TeacherSubjectClass[] =
+          subjectsRes.data && subjectsRes.data.length > 0
+            ? subjectsRes.data.map((s) => ({
+                id: String(s.id),
+                classCode: String(s.class_code),
+                courseCode: String(s.course_code),
+                name: String(s.name),
+                credits: Number(s.credits),
+                cohortClass: String(s.cohort_class),
+                schedule: String(s.schedule),
+                room: String(s.room),
+                semester: String(s.semester),
+                totalPeriods: Number(s.total_periods),
+                completedPeriods: Number(s.completed_periods),
+                teacherId: String(s.teacher_id),
+                teacherName: String(s.teacher_name),
+              }))
+            : prev.subjectClasses;
+
+        const nextAttendance: TeacherAttendanceSessionRecord[] =
+          attendanceRes.data && attendanceRes.data.length > 0
+            ? attendanceRes.data.map((a) => ({
+                id: String(a.id),
+                subjectClassId: String(a.subject_class_id),
+                date: String(a.date),
+                periods: String(a.periods),
+                topic: String(a.topic),
+                marks: (a.marks ?? {}) as Record<string, AttendanceMarkStatus>,
+                notes: (a.notes ?? {}) as Record<string, string>,
+                createdAt: String(a.created_at),
+              }))
+            : prev.attendanceSessions;
+
+        const nextCustomAssignments: Assignment[] =
+          customAsgRes.data && customAsgRes.data.length > 0
+            ? customAsgRes.data.map((asg) => ({
+                id: String(asg.id),
+                tenantId: String(asg.tenant_id),
+                classId: String(asg.class_id),
+                createdBy: String(asg.created_by),
+                title: String(asg.title),
+                instructions: String(asg.instructions),
+                status: "published" as const,
+                dueAt: asg.due_at ? String(asg.due_at) : null,
+                createdAt: String(asg.created_at),
+              }))
+            : prev.customAssignments;
+
+        const nextSubmissions: SharedSubmissionRecord[] =
+          submissionsRes.data && submissionsRes.data.length > 0
+            ? submissionsRes.data.map((sub) => ({
+                id: String(sub.id),
+                assignmentId: String(sub.assignment_id),
+                studentAccountId: String(sub.student_account_id),
+                studentCode: String(sub.student_code),
+                studentName: String(sub.student_name),
+                content: String(sub.content),
+                submittedAt: String(sub.submitted_at),
+                status: (sub.status === "reviewed" ? "reviewed" : "submitted") as "submitted" | "reviewed",
+                score: sub.score !== null && sub.score !== undefined ? Number(sub.score) : null,
+                feedback: sub.feedback ? String(sub.feedback) : null,
+                feedbackAt: sub.feedback_at ? String(sub.feedback_at) : null,
+                gradedBy: sub.graded_by ? String(sub.graded_by) : null,
+              }))
+            : prev.submissions;
+
+        const nextAnnouncements: ClassAnnouncement[] =
+          announcementsRes.data && announcementsRes.data.length > 0
+            ? announcementsRes.data.map((ann) => ({
+                id: String(ann.id),
+                classId: String(ann.class_id),
+                title: String(ann.title),
+                body: String(ann.body),
+                authorName: String(ann.author_name),
+                pinned: Boolean(ann.pinned),
+                createdAt: String(ann.created_at),
+              }))
+            : prev.classAnnouncements;
+
+        const nextClubMembers: ClubMemberRecord[] =
+          clubMembersRes.data && clubMembersRes.data.length > 0
+            ? clubMembersRes.data.map((cm) => ({
+                id: String(cm.id),
+                clubId: String(cm.club_id),
+                studentCode: String(cm.student_code),
+                fullName: String(cm.full_name),
+                cohortClass: String(cm.cohort_class),
+                memberRole: cm.member_role as ClubMemberRecord["memberRole"],
+                status: (cm.status === "active" ? "active" : "pending") as "active" | "pending",
+                joinedAt: String(cm.joined_at),
+                note: cm.note ? String(cm.note) : undefined,
+              }))
+            : prev.clubMembers;
+
+        const nextClubEvents: ClubEventRecord[] =
+          clubEventsRes.data && clubEventsRes.data.length > 0
+            ? clubEventsRes.data.map((ce) => ({
+                id: String(ce.id),
+                clubId: String(ce.club_id),
+                title: String(ce.title),
+                time: String(ce.time),
+                place: String(ce.place),
+                summary: String(ce.summary),
+                createdBy: String(ce.created_by),
+                createdAt: String(ce.created_at),
+              }))
+            : prev.clubEvents;
+
+        return {
+          ...prev,
+          roster: nextRoster,
+          subjectClasses: nextSubjects,
+          attendanceSessions: nextAttendance,
+          customAssignments: nextCustomAssignments,
+          submissions: nextSubmissions,
+          classAnnouncements: nextAnnouncements,
+          clubMembers: nextClubMembers,
+          clubEvents: nextClubEvents,
+        };
+      });
+    } catch {
+      // Keep local state if offline
+    }
+  }, []);
 
   useEffect(() => {
     const sync = () => setState(readSharedPortalState());
-    queueMicrotask(sync);
+    queueMicrotask(() => {
+      sync();
+      void pullFromSupabase();
+    });
     window.addEventListener(SYNC_EVENT, sync);
     window.addEventListener("storage", sync);
+
+    let cleanupRealtime: (() => void) | undefined;
+    if (hasSupabaseEnvironment) {
+      try {
+        const sb = getSupabaseBrowserClient();
+        const channel = sb
+          .channel("sdu-portal-realtime-sync")
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_class_roster" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_subject_classes" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_attendance_sessions" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "portal_custom_assignments" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "portal_submissions" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "class_announcements" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "club_members" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "club_events" }, () => {
+            void pullFromSupabase();
+          })
+          .subscribe();
+        cleanupRealtime = () => {
+          void sb.removeChannel(channel);
+        };
+      } catch {
+        // Ignore realtime errors if WebSocket is blocked
+      }
+    }
+
     return () => {
       window.removeEventListener(SYNC_EVENT, sync);
       window.removeEventListener("storage", sync);
+      cleanupRealtime?.();
     };
-  }, []);
+  }, [pullFromSupabase]);
 
   const activeAccount = getAccountById(state.activeAccountId);
 
@@ -930,6 +1146,17 @@ export function usePortalAccounts() {
           student.studentCode === studentCode ? { ...student, ...patch } : student,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        const dbPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (patch.teacherNote !== undefined) dbPatch.teacher_note = patch.teacherNote;
+        if (patch.attendancePct !== undefined) dbPatch.attendance_pct = patch.attendancePct;
+        if (patch.gpa !== undefined) dbPatch.gpa = patch.gpa;
+        if (patch.status !== undefined) dbPatch.status = patch.status;
+        void getSupabaseBrowserClient()
+          .from("teacher_class_roster")
+          .update(dbPatch)
+          .eq("student_code", studentCode);
+      }
     },
     [],
   );
@@ -944,26 +1171,41 @@ export function usePortalAccounts() {
       const code = input.studentCode.trim();
       const name = input.fullName.trim();
       if (!code || !name) return;
+      const nextItem: ClassStudentRosterItem = {
+        accountId: `acc-student-${code}`,
+        studentCode: code,
+        fullName: name,
+        email: `${code}@sv.saodo.edu.vn`,
+        phone: input.phone.trim() || "0980000000",
+        cohortClass: "DK13-CNTT1",
+        roleInClass: input.roleInClass,
+        attendancePct: 100,
+        gpa: 3.2,
+        status: "active",
+        teacherNote: "Sinh viên mới bổ sung vào danh sách lớp DK13-CNTT1.",
+      };
       writeSharedPortalState((prev) => {
         if (prev.roster.some((item) => item.studentCode === code)) return prev;
-        const nextItem: ClassStudentRosterItem = {
-          accountId: `acc-student-${code}`,
-          studentCode: code,
-          fullName: name,
-          email: `${code}@sv.saodo.edu.vn`,
-          phone: input.phone.trim() || "0980000000",
-          cohortClass: "DK13-CNTT1",
-          roleInClass: input.roleInClass,
-          attendancePct: 100,
-          gpa: 3.2,
-          status: "active",
-          teacherNote: "Sinh viên mới bổ sung vào danh sách lớp DK13-CNTT1.",
-        };
         return {
           ...prev,
           roster: [...prev.roster, nextItem],
         };
       });
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("teacher_class_roster").upsert({
+          student_code: nextItem.studentCode,
+          account_id: nextItem.accountId,
+          full_name: nextItem.fullName,
+          email: nextItem.email,
+          phone: nextItem.phone,
+          cohort_class: nextItem.cohortClass,
+          role_in_class: nextItem.roleInClass,
+          attendance_pct: nextItem.attendancePct,
+          gpa: nextItem.gpa,
+          status: nextItem.status,
+          teacher_note: nextItem.teacherNote,
+        });
+      }
     },
     [],
   );
@@ -985,6 +1227,19 @@ export function usePortalAccounts() {
         ...prev,
         customAssignments: [newAssignment, ...prev.customAssignments],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("portal_custom_assignments").upsert({
+          id: newAssignment.id,
+          tenant_id: newAssignment.tenantId,
+          class_id: newAssignment.classId,
+          created_by: newAssignment.createdBy,
+          title: newAssignment.title,
+          instructions: newAssignment.instructions,
+          status: newAssignment.status,
+          due_at: newAssignment.dueAt,
+          created_at: newAssignment.createdAt,
+        });
+      }
       return newAssignment;
     },
     [activeAccount.id],
@@ -993,6 +1248,7 @@ export function usePortalAccounts() {
   const submitStudentWork = useCallback(
     (input: { assignmentId: string; content: string; account?: PortalAccount }) => {
       const actor = input.account ?? activeAccount;
+      let savedRecord: SharedSubmissionRecord | null = null;
       writeSharedPortalState((prev) => {
         const existingIndex = prev.submissions.findIndex(
           (item) => item.assignmentId === input.assignmentId && item.studentCode === actor.code,
@@ -1011,6 +1267,7 @@ export function usePortalAccounts() {
           feedbackAt: existingIndex >= 0 ? prev.submissions[existingIndex]!.feedbackAt : null,
           gradedBy: existingIndex >= 0 ? prev.submissions[existingIndex]!.gradedBy : null,
         };
+        savedRecord = record;
         const nextSubmissions =
           existingIndex >= 0
             ? prev.submissions.map((item, idx) => (idx === existingIndex ? record : item))
@@ -1020,6 +1277,23 @@ export function usePortalAccounts() {
           submissions: nextSubmissions,
         };
       });
+      if (hasSupabaseEnvironment && savedRecord) {
+        const rec = savedRecord as SharedSubmissionRecord;
+        void getSupabaseBrowserClient().from("portal_submissions").upsert({
+          id: rec.id,
+          assignment_id: rec.assignmentId,
+          student_account_id: rec.studentAccountId,
+          student_code: rec.studentCode,
+          student_name: rec.studentName,
+          content: rec.content,
+          submitted_at: rec.submittedAt,
+          status: rec.status,
+          score: rec.score,
+          feedback: rec.feedback,
+          feedback_at: rec.feedbackAt,
+          graded_by: rec.gradedBy,
+        });
+      }
     },
     [activeAccount],
   );
@@ -1028,6 +1302,11 @@ export function usePortalAccounts() {
     (input: { submissionId: string; score: number; feedback: string; gradedBy?: string }) => {
       const normalizedScore = Math.max(0, Math.min(10, Math.round(input.score * 10) / 10));
       const cleanFeedback = input.feedback.trim();
+      const formattedFeedback = cleanFeedback.startsWith("Điểm ")
+        ? cleanFeedback
+        : `Điểm ${normalizedScore}/10 · ${cleanFeedback}`;
+      const nowIso = new Date().toISOString();
+      const grader = input.gradedBy ?? activeAccount.displayName;
       writeSharedPortalState((prev) => ({
         ...prev,
         submissions: prev.submissions.map((item) =>
@@ -1036,15 +1315,25 @@ export function usePortalAccounts() {
                 ...item,
                 status: "reviewed",
                 score: normalizedScore,
-                feedback: cleanFeedback.startsWith("Điểm ")
-                  ? cleanFeedback
-                  : `Điểm ${normalizedScore}/10 · ${cleanFeedback}`,
-                feedbackAt: new Date().toISOString(),
-                gradedBy: input.gradedBy ?? activeAccount.displayName,
+                feedback: formattedFeedback,
+                feedbackAt: nowIso,
+                gradedBy: grader,
               }
             : item,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient()
+          .from("portal_submissions")
+          .update({
+            status: "reviewed",
+            score: normalizedScore,
+            feedback: formattedFeedback,
+            feedback_at: nowIso,
+            graded_by: grader,
+          })
+          .eq("id", input.submissionId);
+      }
     },
     [activeAccount.displayName],
   );
@@ -1064,12 +1353,24 @@ export function usePortalAccounts() {
         ...prev,
         classAnnouncements: [item, ...prev.classAnnouncements],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("class_announcements").upsert({
+          id: item.id,
+          class_id: item.classId,
+          title: item.title,
+          body: item.body,
+          author_name: item.authorName,
+          pinned: Boolean(item.pinned),
+          created_at: item.createdAt,
+        });
+      }
     },
     [activeAccount.displayName],
   );
 
   const requestJoinClub = useCallback(
     (clubId: string, note?: string) => {
+      let createdMember: ClubMemberRecord | null = null;
       writeSharedPortalState((prev) => {
         const exists = prev.clubMembers.find(
           (item) => item.clubId === clubId && item.studentCode === activeAccount.code,
@@ -1089,11 +1390,26 @@ export function usePortalAccounts() {
           joinedAt: new Date().toISOString().slice(0, 10),
           note: note?.trim() || `Sinh viên lớp ${activeAccount.cohortClass} đăng ký tham gia câu lạc bộ.`,
         };
+        createdMember = nextMember;
         return {
           ...prev,
           clubMembers: [...prev.clubMembers, nextMember],
         };
       });
+      if (hasSupabaseEnvironment && createdMember) {
+        const cm = createdMember as ClubMemberRecord;
+        void getSupabaseBrowserClient().from("club_members").upsert({
+          id: cm.id,
+          club_id: cm.clubId,
+          student_code: cm.studentCode,
+          full_name: cm.fullName,
+          cohort_class: cm.cohortClass,
+          member_role: cm.memberRole,
+          status: cm.status,
+          joined_at: cm.joinedAt,
+          note: cm.note ?? null,
+        });
+      }
     },
     [activeAccount],
   );
@@ -1105,6 +1421,12 @@ export function usePortalAccounts() {
         item.id === memberId ? { ...item, status: "active" } : item,
       ),
     }));
+    if (hasSupabaseEnvironment) {
+      void getSupabaseBrowserClient()
+        .from("club_members")
+        .update({ status: "active" })
+        .eq("id", memberId);
+    }
   }, []);
 
   const updateClubMemberRole = useCallback(
@@ -1115,6 +1437,12 @@ export function usePortalAccounts() {
           item.id === memberId ? { ...item, memberRole } : item,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient()
+          .from("club_members")
+          .update({ member_role: memberRole })
+          .eq("id", memberId);
+      }
     },
     [],
   );
@@ -1124,6 +1452,12 @@ export function usePortalAccounts() {
       ...prev,
       clubMembers: prev.clubMembers.filter((item) => item.id !== memberId),
     }));
+    if (hasSupabaseEnvironment) {
+      void getSupabaseBrowserClient()
+        .from("club_members")
+        .delete()
+        .eq("id", memberId);
+    }
   }, []);
 
   const createClubEvent = useCallback(
@@ -1142,6 +1476,18 @@ export function usePortalAccounts() {
         ...prev,
         clubEvents: [event, ...prev.clubEvents],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("club_events").upsert({
+          id: event.id,
+          club_id: event.clubId,
+          title: event.title,
+          time: event.time,
+          place: event.place,
+          summary: event.summary,
+          created_by: event.createdBy,
+          created_at: event.createdAt,
+        });
+      }
     },
     [activeAccount],
   );
@@ -1176,6 +1522,23 @@ export function usePortalAccounts() {
         ...prev,
         subjectClasses: [created, ...prev.subjectClasses],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("teacher_subject_classes").upsert({
+          id: created.id,
+          class_code: created.classCode,
+          course_code: created.courseCode,
+          name: created.name,
+          credits: created.credits,
+          cohort_class: created.cohortClass,
+          schedule: created.schedule,
+          room: created.room,
+          semester: created.semester,
+          total_periods: created.totalPeriods,
+          completed_periods: created.completedPeriods,
+          teacher_id: created.teacherId,
+          teacher_name: created.teacherName,
+        });
+      }
       return created;
     },
     [activeAccount.displayName, activeAccount.id],
@@ -1200,6 +1563,7 @@ export function usePortalAccounts() {
         notes: input.notes ?? {},
         createdAt: new Date().toISOString(),
       };
+      let updatedRoster: ClassStudentRosterItem[] = [];
       writeSharedPortalState((prev) => {
         const nextSessions = [sessionRecord, ...prev.attendanceSessions];
         // Recompute student attendance percentages based on recorded sessions
@@ -1222,12 +1586,32 @@ export function usePortalAccounts() {
             status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
           };
         });
+        updatedRoster = nextRoster;
         return {
           ...prev,
           attendanceSessions: nextSessions,
           roster: nextRoster,
         };
       });
+      if (hasSupabaseEnvironment) {
+        const sb = getSupabaseBrowserClient();
+        void sb.from("teacher_attendance_sessions").upsert({
+          id: sessionRecord.id,
+          subject_class_id: sessionRecord.subjectClassId,
+          date: sessionRecord.date,
+          periods: sessionRecord.periods,
+          topic: sessionRecord.topic,
+          marks: sessionRecord.marks,
+          notes: sessionRecord.notes,
+          created_at: sessionRecord.createdAt,
+        });
+        for (const st of updatedRoster) {
+          void sb
+            .from("teacher_class_roster")
+            .update({ attendance_pct: st.attendancePct, status: st.status })
+            .eq("student_code", st.studentCode);
+        }
+      }
       return sessionRecord;
     },
     [],
@@ -1240,6 +1624,8 @@ export function usePortalAccounts() {
       mark: AttendanceMarkStatus,
       note?: string,
     ) => {
+      let updatedSession: TeacherAttendanceSessionRecord | null = null;
+      let updatedStudent: ClassStudentRosterItem | null = null;
       writeSharedPortalState((prev) => {
         const nextSessions = prev.attendanceSessions.map((session) => {
           if (session.id !== sessionId) return session;
@@ -1248,7 +1634,7 @@ export function usePortalAccounts() {
             if (note.trim()) nextNotes[studentCode] = note.trim();
             else delete nextNotes[studentCode];
           }
-          return {
+          const next = {
             ...session,
             marks: {
               ...session.marks,
@@ -1256,6 +1642,8 @@ export function usePortalAccounts() {
             },
             notes: nextNotes,
           };
+          updatedSession = next;
+          return next;
         });
         const nextRoster = prev.roster.map((student) => {
           if (student.studentCode !== studentCode) return student;
@@ -1269,11 +1657,13 @@ export function usePortalAccounts() {
             50,
             Math.min(100, 100 - missedUnexcused * 6 - missedExcused * 2),
           );
-          return {
+          const nextSt = {
             ...student,
             attendancePct: computedPct,
             status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
           };
+          updatedStudent = nextSt;
+          return nextSt;
         });
         return {
           ...prev,
@@ -1281,12 +1671,30 @@ export function usePortalAccounts() {
           roster: nextRoster,
         };
       });
+      if (hasSupabaseEnvironment) {
+        const sb = getSupabaseBrowserClient();
+        if (updatedSession) {
+          const sess = updatedSession as TeacherAttendanceSessionRecord;
+          void sb
+            .from("teacher_attendance_sessions")
+            .update({ marks: sess.marks, notes: sess.notes })
+            .eq("id", sess.id);
+        }
+        if (updatedStudent) {
+          const st = updatedStudent as ClassStudentRosterItem;
+          void sb
+            .from("teacher_class_roster")
+            .update({ attendance_pct: st.attendancePct, status: st.status })
+            .eq("student_code", st.studentCode);
+        }
+      }
     },
     [],
   );
 
   return {
     state,
+    supabaseConnected,
     accounts: PORTAL_ACCOUNTS,
     activeAccount,
     setActiveAccount,

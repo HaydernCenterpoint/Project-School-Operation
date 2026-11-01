@@ -61,6 +61,7 @@ export default function TeacherClassesLayout({
     data,
     avatarUrl,
     account,
+    supabaseConnected,
     subjectClasses,
     attendanceSessions,
     allSubmissions,
@@ -187,6 +188,11 @@ export default function TeacherClassesLayout({
               <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>
                 {account.displayName} · {subjectClasses.length} lớp bộ môn · {pendingSubmissions.length} bài chờ chấm
               </p>
+              <div style={{ marginTop: 6 }}>
+                <span className={`chip ${supabaseConnected ? "reviewed" : ""}`} style={{ fontSize: 11 }}>
+                  {supabaseConnected ? "● Supabase Realtime · Đã kết nối" : "○ Đang kết nối Supabase…"}
+                </span>
+              </div>
               {account.role !== "teacher" && (
                 <button
                   type="button"
