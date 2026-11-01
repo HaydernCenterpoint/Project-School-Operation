@@ -8,10 +8,12 @@ import "@/components/app-phuong.css";
 import "@/components/ai-workspace.css";
 import "@/app/landing.css";
 import { useAiIntro } from "@/components/AiIntro";
+import { SduEngineeringStudioModal } from "@/components/AiEngineeringWidgets";
 import { SceneCurtain } from "@/components/landing/SceneTransition";
 import { Icon, type IconName } from "@/components/Icon";
 import { phuongFonts } from "@/components/landing/fonts";
 import { Markdown } from "@/components/Markdown";
+import { ensureVisualBlocksInAnswer } from "@/lib/ai-cad-chart-engine";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
 import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
 import {
@@ -40,11 +42,12 @@ const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggest
     key: "explain",
     label: "Giải thích",
     icon: "book",
-    hint: "Hỏi Model SDU 1.3 về bất kỳ sinh viên nào, thông tin cá nhân, lịch học, điểm số…",
+    hint: "Hỏi Model SDU 1.3 về bất kỳ sinh viên nào, vẽ biểu đồ, vẽ chi tiết máy AutoCAD / 3D…",
     suggestions: [
       "Bạn là model AI gì, được train dữ liệu từ đâu và nhớ được những gì về mình?",
+      "Vẽ chi tiết máy Bánh răng trụ răng thẳng Z24-M2.5, dựng mô hình 3D và xuất file AutoCAD (.DXF) + 3D (.STL)",
+      "Vẽ biểu đồ so sánh GPA, điểm rèn luyện và chuyên cần của 6 sinh viên lớp DK13-CNTT1",
       "Cho mình biết đầy đủ thông tin cá nhân, gia đình, CCCD, BHYT, điểm số và đặc điểm học tập của mình",
-      "Tra cứu thông tin chi tiết và đặc điểm học tập của các bạn Phạm Khánh Linh (2200287) và Vũ Quốc Bảo (2200290)",
     ],
   },
   {
@@ -206,6 +209,7 @@ export default function AiWorkspace() {
   const [pendingDelete, setPendingDelete] = useState<AiConversation | null>(null);
   const [memories, setMemories] = useState<StudentMemoryFact[]>([]);
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);
+  const [engStudioOpen, setEngStudioOpen] = useState(false);
   const [selectedMemoryStudentCode, setSelectedMemoryStudentCode] = useState<string>("2200286");
   const [newMemoryCategory, setNewMemoryCategory] = useState<MemoryCategory>("hoc_tap");
   const [newMemoryText, setNewMemoryText] = useState("");
@@ -512,7 +516,10 @@ export default function AiWorkspace() {
           `Model SDU 1.3 đã tự động ghi nhớ ${savedFacts.length} đặc điểm mới của SV ${savedFacts[0]!.studentCode}`,
         );
       }
-      const finalAssistantText = cleanedText || streamedText;
+      const finalAssistantText = ensureVisualBlocksInAnswer(
+        text,
+        cleanedText || streamedText,
+      );
       patch((item) => ({ ...item, content: finalAssistantText, status: "complete" }));
 
       // Persist the conversation and usage locally so history and quota stay accurate in real time.
@@ -856,6 +863,15 @@ export default function AiWorkspace() {
             <Icon name="users" />
             <span>Bộ nhớ SV ({roster.length} HS · {memories.length} đặc điểm)</span>
           </button>
+          <button
+            type="button"
+            className="aw-memory-pill aw-cad-pill"
+            onClick={() => setEngStudioOpen(true)}
+            title="Mở Xưởng Kỹ thuật CAD / 3D & Biểu đồ Trực quan (Xuất AutoCAD .DXF, 3D .STL/.OBJ, Biểu đồ .SVG/.CSV)"
+          >
+            <Icon name="sparkle" />
+            <span>Xưởng CAD / 3D & Biểu đồ</span>
+          </button>
           <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
             <button type="button" onClick={() => pick(imagePicker.current)}>
               <Icon name="sparkle" />
@@ -919,6 +935,17 @@ export default function AiWorkspace() {
           <span>
             <strong>Bộ nhớ Học sinh AI</strong>
             <small>{roster.length} hồ sơ SV · {memories.length} ghi nhớ</small>
+          </span>
+        </button>
+        <button
+          className="aw-memory-side-btn aw-cad-side-btn"
+          type="button"
+          onClick={() => setEngStudioOpen(true)}
+        >
+          <Icon name="sparkle" />
+          <span>
+            <strong>Xưởng CAD / 3D & Biểu đồ</strong>
+            <small>AutoCAD .DXF · 3D .STL/.OBJ · DataViz</small>
           </span>
         </button>
         <label className="aw-search">
@@ -1027,6 +1054,15 @@ export default function AiWorkspace() {
             <Icon name="users" />
             <span>Bộ nhớ SV</span>
           </button>
+          <button
+            className="aw-top-memory-btn aw-top-cad-btn"
+            type="button"
+            onClick={() => setEngStudioOpen(true)}
+            title="Mở Xưởng Kỹ thuật CAD / 3D & Biểu đồ"
+          >
+            <Icon name="sparkle" />
+            <span>CAD / 3D & Biểu đồ</span>
+          </button>
           <button className="icon-button aw-top-new" type="button" onClick={newConversation} disabled={streaming} aria-label="Cuộc trò chuyện mới">
             <Icon name="plus" />
           </button>
@@ -1048,13 +1084,21 @@ export default function AiWorkspace() {
                 <Icon name="users" />
                 <span>Đã ghi nhớ {roster.length} hồ sơ SV ({memories.length} đặc điểm)</span>
               </button>
+              <button
+                type="button"
+                className="aw-welcome-memory-badge aw-welcome-cad-badge"
+                onClick={() => setEngStudioOpen(true)}
+              >
+                <Icon name="sparkle" />
+                <span>Vẽ Biểu đồ · Chi tiết máy 2D AutoCAD (.DXF) & 3D (.STL/.OBJ)</span>
+              </button>
             </div>
             <h2>
               <img src="/sao-do-logo.png" alt="Logo Đại học Sao Đỏ" width={38} height={41} className="aw-welcome-logo" /> {greeting(new Date(now))}, Đại học Sao Đỏ
             </h2>
             <p>
               {enabled
-                ? "Model SDU 1.3 (huấn luyện từ Qwen 3.8) tự động ghi nhớ đặc điểm, hồ sơ cá nhân, gia đình, học tập và điểm số của từng sinh viên để trả lời mọi câu hỏi của bạn."
+                ? "Model SDU 1.3 (huấn luyện từ Qwen 3.8) tự động ghi nhớ hồ sơ từng sinh viên, vẽ biểu đồ trực quan, thiết kế bản vẽ chi tiết máy 2D TCVN và xuất file AutoCAD (.DXF) & 3D (.STL/.OBJ)."
                 : usage
                   ? aiErrorMessage("ai_disabled")
                   : "Đang kiểm tra trạng thái trợ lý…"}
@@ -1064,6 +1108,54 @@ export default function AiWorkspace() {
               {modes.map((item) => (
                 <button key={item.key} type="button" aria-pressed={item.key === mode} onClick={() => setMode(item.key)}>
                   <Icon name={item.icon} /> {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="aw-student-quick-bar" aria-label="Công cụ Vẽ Kỹ thuật CAD / 3D & Biểu đồ">
+              <span className="aw-student-quick-label">CAD / 3D & Biểu đồ:</span>
+              {[
+                {
+                  title: "Bánh răng trụ Z24-M2.5",
+                  sub: "AutoCAD .DXF · 3D .STL",
+                  prompt:
+                    "Vẽ chi tiết máy Bánh răng trụ răng thẳng (mô-đun m=2.5, số răng z=24, bề rộng b=22 mm, lỗ trục d=20 mm), tính toán thông số ăn khớp và xuất bản vẽ AutoCAD (.DXF) + file 3D (.STL)",
+                },
+                {
+                  title: "Trục bậc hộp giảm tốc",
+                  sub: "Bản vẽ 2D TCVN · 3D .OBJ",
+                  prompt:
+                    "Thiết kế và vẽ chi tiết máy Trục bậc hộp giảm tốc 3 đoạn kèm rãnh then, xuất bản vẽ AutoCAD (.DXF) và mô hình 3D (.STL / .OBJ)",
+                },
+                {
+                  title: "Khớp nối mặt bích D130",
+                  sub: "6 lỗ bu-lông · .DXF/.STL",
+                  prompt:
+                    "Vẽ chi tiết máy Khớp nối mặt bích tiêu chuẩn D130 (6 lỗ bu-lông trên vòng chia Db=95 mm, lỗ trục d=28 mm), xuất file AutoCAD (.DXF) và file 3D (.STL)",
+                },
+                {
+                  title: "Ổ bi đỡ 6206 & Bu-lông M16",
+                  sub: "TCVN · Mô hình 3D",
+                  prompt:
+                    "Vẽ chi tiết máy Ổ bi đỡ một dãy 6206 (d=30, D=62, B=16 mm) kèm bản vẽ kỹ thuật AutoCAD (.DXF) và mô hình 3D (.STL)",
+                },
+                {
+                  title: "Biểu đồ GPA & Điểm rèn luyện",
+                  sub: "Biểu đồ Cột / Radar / CSV",
+                  prompt:
+                    "Vẽ biểu đồ so sánh GPA, điểm rèn luyện và tỷ lệ chuyên cần của toàn bộ 6 sinh viên lớp DK13-CNTT1",
+                },
+              ].map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  className="aw-student-quick-chip aw-cad-quick-chip"
+                  onClick={() => {
+                    setDraft(item.prompt);
+                    composer.current?.focus();
+                  }}
+                >
+                  <strong>{item.title}</strong>
+                  <small>{item.sub}</small>
                 </button>
               ))}
             </div>
@@ -1450,6 +1542,14 @@ export default function AiWorkspace() {
           </div>
         </div>
       )}
+      <SduEngineeringStudioModal
+        open={engStudioOpen}
+        onClose={() => setEngStudioOpen(false)}
+        onAskAi={(prompt) => {
+          setDraft(prompt);
+          void send(prompt);
+        }}
+      />
     </>,
     `${sideCollapsed ? "is-collapsed" : ""} ${sideOpen ? "is-open" : ""}`,
   );

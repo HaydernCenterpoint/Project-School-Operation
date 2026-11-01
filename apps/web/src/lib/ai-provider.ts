@@ -85,6 +85,17 @@ export function systemPrompt(
       "4. Tự động ghi nhớ thông tin mới: Khi người dùng chia sẻ thêm đặc điểm mới, sở thích, mục tiêu học tập, điểm mạnh/yếu, hoặc thông tin cá nhân mới về bản thân hay một sinh viên nào đó, ngoài việc trả lời tự nhiên, hãy xuất thêm thẻ ghi nhớ ở cuối câu trả lời theo đúng cú pháp: `<ghi_nho_sinh_vien code=\"MÃ_SV\" category=\"hoc_tap|diem_manh|diem_yeu|muc_tieu|so_thich|ca_nhan|ghi_chu\">Nội dung đặc điểm cần ghi nhớ ngắn gọn</ghi_nho_sinh_vien>` để hệ thống lưu vĩnh viễn vào Bộ nhớ AI của sinh viên đó.",
     ].join("\n"),
     [
+      "Cơ chế Vẽ Biểu đồ Trực quan & Thiết kế Chi tiết Máy CAD / 3D (SDU Engineering & DataViz Engine):",
+      "1. KHI NGƯỜI DÙNG YÊU CẦU VẼ BIỂU ĐỒ (thống kê điểm số, GPA, học phí, chuyên cần, kỹ thuật...): Hãy phân tích ngắn gọn rồi xuất một khối mã chuẩn ```sdu-chart chứa JSON hợp lệ theo cấu trúc:",
+      '```sdu-chart\n{\n  "type": "bar",\n  "title": "Tiêu đề biểu đồ",\n  "subtitle": "Mô tả phụ",\n  "unit": "điểm",\n  "labels": ["Nhãn 1", "Nhãn 2"],\n  "series": [\n    { "name": "Tên chuỗi 1", "color": "#e11d48", "values": [8.5, 9.0] }\n  ],\n  "note": "Ghi chú nhận xét"\n}\n```',
+      "(Các giá trị `type` hỗ trợ: `\"bar\"`, `\"line\"`, `\"area\"`, `\"radar\"`, `\"pie\"`. Giao diện sẽ tự động biến khối `sdu-chart` thành biểu đồ tương tác cho phép đổi dạng biểu đồ và tải file `.SVG`, `.CSV`, `.JSON`).",
+      "2. KHI NGƯỜI DÙNG YÊU CẦU VẼ CHI TIẾT MÁY, BẢN VẼ KỸ THUẬT, AUTOCAD HOẶC MÔ HÌNH 3D (ví dụ: bánh răng trụ răng thẳng, trục bậc cơ khí, khớp nối mặt bích, ổ bi cầu, bu-lông lục giác, giá đỡ chữ L, bánh đai thang/puli, xuất file AutoCAD .DXF/.SCR, xuất file 3D .STL/.OBJ/.SCAD):",
+      "- Bạn hoàn toàn CÓ THỂ vẽ trực tiếp bản vẽ kỹ thuật 2D chuẩn TCVN, dựng mô hình 3D xoay 360 độ ngay trong khung chat và xuất file AutoCAD (`.dxf`, `.scr`) cùng file 3D (`.stl`, `.obj`, `.scad`).",
+      "- Hãy trình bày bảng thông số tính toán cơ khí (mô-đun, số răng, đường kính vòng chia, vòng đỉnh, vật liệu, dung sai TCVN...) rồi xuất khối mã ```sdu-cad chứa JSON hợp lệ theo một trong các loại `part`: `\"spur_gear\"` (bánh răng trụ), `\"stepped_shaft\"` (trục bậc), `\"flange_coupling\"` (khớp nối mặt bích), `\"ball_bearing\"` (ổ bi), `\"hex_bolt\"` (bu-lông lục giác), `\"l_bracket\"` (giá đỡ chữ L), `\"pulley\"` (bánh đai/puli). Ví dụ:",
+      '```sdu-cad\n{\n  "part": "spur_gear",\n  "name": "Bánh răng trụ răng thẳng Z24-M2.5",\n  "material": "Thép 40Cr tôi cải thiện (HRC 45-50)",\n  "standard": "TCVN 1065:1971 / ISO 53",\n  "scale": "1:1",\n  "unit": "mm",\n  "module": 2.5,\n  "teeth": 24,\n  "faceWidth": 22,\n  "pressureAngle": 20,\n  "boreDiameter": 20,\n  "keywayWidth": 6,\n  "keywayDepth": 2.8,\n  "hubDiameter": 34,\n  "hubLength": 10\n}\n```',
+      "(Giao diện SDU sẽ tự động dựng khối `sdu-cad` thành Bản vẽ kỹ thuật 2D chuẩn AutoCAD/TCVN + Mô hình 3D tương tác xoay 360° + các nút Tải trực tiếp file **AutoCAD `.DXF`**, **File 3D `.STL`**, **File 3D `.OBJ`**, **AutoCAD Script `.SCR`** và **OpenSCAD `.SCAD`**).",
+    ].join("\n"),
+    [
       "Quy trình suy luận và làm việc:",
       "1. Phân tích yêu cầu, xác định học phần, thông tin sinh viên, khái niệm cốt lõi và các ràng buộc kỹ thuật.",
       "2. Kiểm chứng số liệu hồ sơ sinh viên, công thức toán học, độ phức tạp thuật toán và tính đúng đắn của mã nguồn trước khi xuất câu trả lời.",
