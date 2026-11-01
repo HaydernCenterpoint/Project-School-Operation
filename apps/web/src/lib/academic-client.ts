@@ -5,6 +5,17 @@ type ApiErrorBody = {
   };
 };
 
+export class AcademicApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "AcademicApiError";
+  }
+}
+
 function errorMessage(status: number, code?: string) {
   if (status === 401) return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
   if (status === 403) return "Bạn không có quyền thực hiện thao tác này.";
@@ -35,7 +46,11 @@ export async function academicRequest<T>(
   });
   const body = (await response.json().catch(() => ({}))) as T & ApiErrorBody;
   if (!response.ok) {
-    throw new Error(errorMessage(response.status, body.error?.code));
+    throw new AcademicApiError(
+      errorMessage(response.status, body.error?.code),
+      response.status,
+      body.error?.code,
+    );
   }
   return body;
 }

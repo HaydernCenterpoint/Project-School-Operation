@@ -16,13 +16,24 @@ Dùng bộ Campus A cho một luồng xuyên suốt. Tất cả tài khoản dù
 | Vai trò | Email | Bề mặt chính |
 |---|---|---|
 | School Admin | `admin.a@saodo.test` | Web |
+| Moderator | `moderator.a@saodo.test` | Web |
 | Teacher | `teacher.a@saodo.test` | Web |
-| Student | `student.a@saodo.test` | Web `/student` hoặc Expo mobile |
-| Student (mã sinh viên) | `2200286`, mật khẩu `1111` | Web `/student`; form tự đổi mã thành `2200286@sv.saodo.edu.vn` |
-| Student (chat Cộng đồng) | `2200301` đến `2200310`, mật khẩu `1111` | Web `/student/community`; mở hai trình duyệt (hoặc một cửa sổ ẩn danh) để chat giữa hai tài khoản |
-| Cán bộ phòng ban | `daotao.a@saodo.test`, mật khẩu `Password123!` | Web `/quan-tri`: thêm, sửa, khoá sinh viên, cấp lại mật khẩu, nhập CSV. Giảng viên mở `/quan-tri` để xem sinh viên lớp mình |
+| Student | `student.a@saodo.test` | Expo mobile |
 
-Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
+Campus B có bộ tài khoản tương ứng tại `admin.b@saodo.test`, `moderator.b@saodo.test`, `teacher.b@saodo.test` và `student.b@saodo.test`; chỉ dùng bộ này khi kiểm tra cách ly tenant.
+
+## AI Tutor Day 7 trong bản ứng viên cục bộ
+
+- Runtime AI Tutor **tắt theo mặc định** qua `AI_TUTOR_ENABLED=false`. Không bật bằng khóa thật trong buổi demo.
+- CI cục bộ chỉ dùng nhà cung cấp giả lập tương thích OpenAI trên loopback và các đoạn văn bản seed tổng hợp hoặc đã khử định danh.
+- Chỉ Student thấy Tutor: web hiển thị `AiTutorPanel` trong portal; Expo mở route `/tutor` từ CTA **Trợ giảng AI có nguồn** tại tab **Hôm nay**. Mỗi lần chỉ xử lý một câu hỏi và hiển thị một câu trả lời hoặc trạng thái từ chối cùng citation. Không có hội thoại nhiều lượt, lịch sử, bộ nhớ, công cụ hoặc lưu prompt/câu trả lời.
+- Trước mỗi yêu cầu, hệ thống kiểm tra phiên bản đồng thuận hiện hành, quyền tham gia lớp và hạn mức ngày trong PostgreSQL.
+- Retrieval là tìm kiếm toàn văn theo từ khóa trong PostgreSQL, không phải tìm kiếm ngữ nghĩa/vector và không dùng `pgvector`.
+- Chỉ chấp nhận citation trỏ đến đoạn văn đã retrieval cho đúng tenant/lớp. Khi không đủ bằng chứng hoặc citation không hợp lệ, hệ thống từ chối trả lời.
+- Khóa `AI_PROVIDER_API_KEY` chỉ được đặt ở server. Không đưa khóa vào `NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`, ứng dụng mobile, seed hoặc Git.
+- Không có giao diện upload, đọc PDF lúc runtime, OCR, provider fallback hoặc model registry. Tên tệp `.pdf` trong fixture chỉ là metadata của văn bản đã được chia đoạn sẵn.
+
+Chỉ xem đây là lát cắt kiểm thử cục bộ. Muốn bật với nhà cung cấp bên ngoài phải có nhà cung cấp/khóa được phê duyệt, phê duyệt privacy/safeguarding, staging HTTPS, kiểm thử lỗi/timeout, kiểm thử thiết bị vật lý/TalkBack và UAT có tên.
 
 ## Luồng cốt lõi
 
@@ -51,59 +62,49 @@ Kết quả mong đợi: bài có trạng thái **Đã công bố**; bài nộp 
 
 Kết quả mong đợi: ứng dụng hiển thị **Đã nộp**, sau đó **Đã nhận phản hồi** cùng nội dung phản hồi. Nếu gửi lỗi, nội dung vẫn được giữ để thử lại. Mỗi Student chỉ có một bài nộp cho một bài tập.
 
-### 4. Student dùng web
+Student có thể đăng nhập web để đọc lớp, bài tập và trạng thái của mình, nhưng phải dùng mobile để nộp bài. Bài nộp chỉ hỗ trợ văn bản; file, URL và rich text không được hỗ trợ.
 
-1. Mở `/login`, đăng nhập bằng Student; hệ thống chuyển tới `/student` (Tổng quan).
-2. Mở **Bài tập** → chọn bài → nhập bài làm → **Nộp bài** → **Xác nhận nộp bài**.
-3. Sau khi Teacher phản hồi, **Tổng quan** hiển thị mục **Phản hồi gần đây** và trang bài tập hiển thị **Phản hồi của giảng viên**.
+### 4. Student dùng Trợ giảng AI một lượt
 
-Bản nháp được lưu trên trình duyệt đến khi nộp thành công. Mỗi lần nộp dùng một khóa idempotency cho đúng nội dung đó nên thử lại sau lỗi mạng không tạo bài nộp thứ hai. Bài nộp chỉ hỗ trợ văn bản và không sửa được sau khi nộp. Student mở `/portal` sẽ được chuyển về `/student`.
+Ở cấu hình mặc định `AI_TUTOR_ENABLED=false`, web và mobile hiển thị trạng thái Trợ giảng AI đang tạm dừng. Đây là kết quả mong đợi; không thêm khóa nhà cung cấp thật để thay đổi trạng thái trong buổi demo.
 
-### Chế độ khách
+Khi chạy cấu hình kiểm thử cục bộ đã được phê duyệt với provider giả lập loopback:
 
-`/guest` hiển thị bảng điều khiển và một đoạn hội thoại AI ghi sẵn, gắn nhãn **Chế độ khách** và **Nội dung minh họa**. Khách không có phiên nên mọi API học thuật và AI trả 401; khách không bao giờ gọi AI trả phí.
+1. Trên web, đăng nhập bằng Student và chọn **Trợ giảng AI**; hoặc trên mobile, mở **Hôm nay → Trợ giảng AI có nguồn → Mở**.
+2. Xem phiên bản chính sách, chọn ô đồng ý rồi chọn **Đồng ý và tiếp tục**.
+3. Chọn lớp được phân quyền, nhập một câu hỏi cụ thể và chọn **Hỏi Trợ giảng AI**.
+4. Kiểm tra câu trả lời và mục **Nguồn đã sử dụng**. Có thể chọn **Rút lại đồng ý** sau khi hoàn tất.
+
+Kết quả mong đợi: câu trả lời có citation gồm tiêu đề, tên nguồn và số trang nếu có. Nếu tài liệu lớp không đủ bằng chứng, giao diện hiển thị trạng thái từ chối thay vì tạo câu trả lời. Giao diện không tạo transcript hoặc lịch sử câu hỏi.
+
+### 5. Student sử dụng cộng đồng an toàn
+
+1. Trên mobile, mở tab **Cộng đồng**.
+2. Mở kênh lớp hoặc câu lạc bộ, gửi tin nhắn văn bản, trả lời và chọn **Thích**.
+3. Với tin nhắn của người khác, thử **Báo cáo** hoặc **Chặn**. Có thể tắt trạng thái chú ý bằng **Tắt thông báo** mà vẫn đọc được tin nhắn.
+4. Kênh toàn trường là chỉ đọc đối với Student. Câu lạc bộ cho phép **Rời câu lạc bộ**; kênh trường và lớp không cho rời thủ công.
+
+Kết quả mong đợi: chỉ các kênh đúng tenant và membership xuất hiện; tin nhắn mới cập nhật trực tiếp khi kết nối realtime hoạt động. Nếu nội dung có dấu hiệu chứa số điện thoại, địa chỉ, giấy tờ, tài khoản, OTP hoặc link, ứng dụng yêu cầu kiểm tra và xác nhận trước khi gửi lại. `@AI` bị chặn cục bộ vì AI đang tắt.
+
+### 6. Moderator xử lý báo cáo
+
+1. Mở phiên trình duyệt riêng, đăng nhập bằng Moderator.
+2. Tại **Hàng đợi kiểm duyệt**, dùng **Nhịp đăng bài** để đặt khoảng nghỉ 0–300 giây cho từng kênh nếu cần giảm spam.
+3. Mở báo cáo và xem bằng chứng.
+4. Nhập ghi chú nếu cần rồi chọn **Bỏ qua báo cáo**, **Ẩn nội dung**, **Chuyển cấp xử lý** hoặc **Đánh dấu đã xử lý**.
+
+Kết quả mong đợi: Moderator chỉ thấy kênh và báo cáo thuộc đúng tenant, không thấy lớp, bài tập hoặc bài nộp học thuật. Nhịp đăng mới được PostgreSQL áp dụng cho các lần gửi tiếp theo. Khi chọn **Ẩn nội dung**, tin nhắn biến mất khỏi lượt đọc thông thường nhưng vẫn được giữ làm bằng chứng kiểm duyệt. Audit chỉ chứa định danh và mã hành động, không chứa nội dung tin nhắn, chi tiết báo cáo hoặc ghi chú.
 
 ## Phiên đăng nhập
 
-- Web lưu phiên Supabase trong hồ sơ trình duyệt và tự chuyển về `/login?next=…` khi không còn phiên. Đăng xuất: Student dùng **Tài khoản → Đăng xuất**; Admin/Teacher dùng nút **Đăng xuất** trên thanh trên của portal. Không đổi vai trò bằng tab khác trong cùng hồ sơ trình duyệt. Liên kết cũ `/#dang-nhap` vẫn dẫn tới khối đăng nhập trên trang chủ.
+- Web lưu phiên Supabase trong hồ sơ trình duyệt và tự chuyển về `/#dang-nhap` khi không còn phiên. Portal hiện chưa có nút đăng xuất; dùng cửa sổ riêng tư hoặc hồ sơ trình duyệt tách biệt cho từng vai trò, rồi đóng cửa sổ riêng tư hoặc xóa dữ liệu site để kết thúc phiên. Không đổi vai trò bằng tab khác trong cùng hồ sơ.
 - Mobile lưu và tự làm mới phiên trên thiết bị. Chọn **Tài khoản → Đăng xuất** để xóa phiên và trở về màn hình đăng nhập.
 - Khi phiên hết hạn, thao tác học thuật phải dừng và yêu cầu đăng nhập lại; không tiếp tục demo trên dữ liệu đang hiển thị cũ.
 
 ## Ranh giới và cổng phát hành
 
-- **AI mặc định TẮT.** Chỉ bật sau khi hoàn tất mục “Trợ lý AI” bên dưới. Tên lớp seed `AI Foundations A/B` chỉ là dữ liệu tổng hợp.
+- **AI OFF theo mặc định:** mã gateway và corpus retrieval tổng hợp của Day 7 có trong bản ứng viên cục bộ, nhưng không có nhà cung cấp hoặc khóa bên ngoài đã được phê duyệt. Tên lớp seed `AI Foundations A/B` không tự bật tính năng AI.
 - Chỉ mô tả bản hiện tại là **Academic Alpha / local hardening**. Chưa có deployment staging/production, UAT, giám sát vận hành hoặc phê duyệt privacy/safeguarding.
 - Không tuyên bố staging cho đến khi có Git SHA bất biến với CI thành công, Supabase staging có tên, web/BFF HTTPS đã deploy, kiểm thử API/E2E mới và đủ chữ ký trong `docs/release-candidate.md`.
 - EAS Preview phải có đủ ba biến mobile trỏ đến URL HTTPS có thể truy cập. Build EAS từ chối cấu hình thiếu và không chấp nhận `localhost`, `127.0.0.1` hoặc `10.0.2.2`.
 - Không tuyên bố đạt cổng thiết bị cho đến khi APK Preview được cài mới trên thiết bị Android vật lý và hoàn tất critical flow, TalkBack, focus, trạng thái lỗi và kiểm tra text scaling 200%.
-
-## Trợ lý AI
-
-**Bật:** đặt trên máy chủ web (không bao giờ dùng tiền tố `NEXT_PUBLIC_`/`EXPO_PUBLIC_`): `AI_ENABLED=true`, `AI_PROVIDER=anthropic`, `AI_MODEL` (một trong `claude-sonnet-5`, `claude-haiku-4-5-20251001`, `claude-opus-5-5`), `AI_API_KEY`. Tùy chọn: `AI_MAX_OUTPUT_TOKENS` (256–4096, mặc định 1024) và `AI_API_BASE_URL` (gateway do vận hành chỉ định). Thiếu hoặc sai bất kỳ giá trị nào thì AI tự tắt, `/api/ai/chat` trả 503 `ai_disabled` và lớp học/bài tập vẫn hoạt động. Trang chủ đọc cấu hình lúc build, nên build lại sau khi bật/tắt.
-
-**Trước khi bật cho sinh viên:** xác minh với nhà cung cấp về giá hiện hành, chính sách lưu giữ dữ liệu phía nhà cung cấp và điều khoản giáo dục; kiểm tra streaming và timeout (90 giây) trên hạ tầng triển khai thật; chạy `pnpm test:ai`.
-
-**Giới hạn (thực thi trong Postgres, không phụ thuộc client):** mỗi sinh viên 30 lượt/ngày, mỗi cơ sở 1.000 lượt/ngày (theo ngày giờ Việt Nam), tối đa một câu trả lời đang tạo mỗi sinh viên, tin nhắn 1–8.000 ký tự. Đổi giới hạn cho một cơ sở:
-
-```sql
-insert into private.ai_limits (tenant_id, student_daily_requests, tenant_daily_requests)
-values ('<tenant uuid>', 50, 2000)
-on conflict (tenant_id) do update
-  set student_daily_requests = excluded.student_daily_requests,
-      tenant_daily_requests = excluded.tenant_daily_requests;
-```
-
-Lượt bị hủy hoặc lỗi vẫn được tính (thận trọng về chi phí). Một yêu cầu bị bỏ dở quá 2 phút tự chuyển sang `interrupted`.
-
-**Quyền riêng tư:** cuộc trò chuyện chỉ chủ sở hữu đọc/xóa được (RLS). Sinh viên chỉ đính kèm được bài tập mà RLS cho phép đọc. Dữ liệu tự hết hạn sau 30 ngày không dùng; mỗi lần sinh viên gửi câu hỏi sẽ dọn dữ liệu hết hạn của chính họ. Để dọn cho toàn hệ thống, lên lịch hằng ngày (ví dụ pg_cron): `select private.purge_expired_ai_conversations();`. Máy chủ không ghi nội dung tin nhắn hay token vào log.
-
-**Rollback:** đặt `AI_ENABLED=false` và triển khai lại web. Không cần xóa bảng; dữ liệu học thuật không bị ảnh hưởng.
-
-## Tin tức
-
-Sinh viên đọc tại `/student/news`; phòng ban và quản trị viên quản lý tại `/quan-tri/tin-tuc`.
-
-- **Nguồn:** RSS NukeViet của website trường (`https://saodo.edu.vn/vi/news/rss/<mục>/`) và 8 trang khoa (`http://<khoa>.saodo.edu.vn/vi/news/rss/`), cộng fanpage `TruongDHSaoDo`. Danh sách gốc ở `supabase/seed-news.sql`; cán bộ thêm, tạm dừng hoặc xoá nguồn trên trang quản lý.
-- **Cách chạy:** mỗi lần lấy, mỗi nguồn nhận tối đa 8 bài mới. Hệ thống mở từng bài gốc để lấy ảnh và nội dung, rồi AI tóm tắt 2-3 câu nếu đã bật Trợ lý AI; nếu chưa bật thì dùng đoạn mở đầu của bài. Bài đăng ngay, trùng đường dẫn thì bỏ qua. Cán bộ ẩn bài sai trên trang quản lý.
-- **Tự động mỗi giờ:** workflow `.github/workflows/news-sync.yml`. Cần đặt biến môi trường máy chủ `NEWS_CRON_SECRET` (≥ 24 ký tự ngẫu nhiên) và `SUPABASE_SERVICE_ROLE_KEY`, cùng hai secret của repository: `NEWS_SYNC_URL` (`https://<tên miền>/api/news/sync`) và `NEWS_CRON_SECRET`. Thiếu secret thì workflow bỏ qua. Nút **Cập nhật ngay** luôn dùng được và chạy bằng phiên của cán bộ.
-- **Facebook:** quản trị viên fanpage tạo Page Access Token (quyền `pages_read_engagement`) trong Meta for Developers và đặt vào `FACEBOOK_PAGE_ACCESS_TOKEN`. Chưa có token thì nguồn Facebook báo lỗi "Chưa cấu hình", các nguồn website vẫn chạy. Không dùng công cụ cào Facebook: vi phạm điều khoản và thường bị chặn.

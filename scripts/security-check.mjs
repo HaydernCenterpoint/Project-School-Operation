@@ -55,6 +55,12 @@ const secretPatterns = [
   ["Google API key", /\bAIza[0-9A-Za-z_-]{30,}\b/],
   ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
 ];
+const exposurePatterns = [
+  [
+    "public AI credential",
+    /\b(?:NEXT_PUBLIC|EXPO_PUBLIC)_[A-Z0-9_]*(?:AI|LLM|MODEL|PROVIDER)[A-Z0-9_]*(?:KEY|SECRET|TOKEN)\b/,
+  ],
+];
 const sourcePatterns = [
   ["service-role identifier", /\b(?:SUPABASE_)?SERVICE[_-]?ROLE(?:_KEY)?\b/i],
   [
@@ -162,6 +168,7 @@ for (const { absolute, generated } of candidates.values()) {
     /^(?:apps|packages|supabase|\.github)(?:[\\/]|$)/.test(path);
   const patterns = [
     ...secretPatterns,
+    ...exposurePatterns,
     ...(policySource ? sourcePatterns : []),
     ...(!generated && /^apps[\\/]mobile(?:[\\/]|$)/.test(path)
       ? mobilePatterns

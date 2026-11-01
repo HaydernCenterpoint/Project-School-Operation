@@ -2,12 +2,38 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export const hasAcademicApi = Boolean(apiUrl);
 
+export function createIdempotencyKey() {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+      const random = (Math.random() * 16) | 0;
+      return (character === "x" ? random : (random & 0x3) | 0x8).toString(16);
+    })
+  );
+}
+
 type ApiErrorBody = {
   error?: {
     code?: string;
     message?: string;
   };
 };
+
+export class AcademicApiError extends Error {
+  readonly code?: string;
+  readonly status: number;
+
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+  ) {
+    super(message);
+    this.name = "AcademicApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 function errorMessage(status: number, code?: string) {
   if (status === 401 || code === "unauthorized") {
@@ -28,6 +54,9 @@ function errorMessage(status: number, code?: string) {
   if (status === 413 || code === "payload_too_large") {
     return "Dữ liệu gửi lên vượt quá giới hạn cho phép.";
   }
+  if (code === "privacy_confirmation_required") {
+    return "Tin nhắn có thể chứa thông tin riêng tư. Hãy kiểm tra nội dung, xác nhận rồi gửi lại.";
+  }
   if (status === 422 || code === "unprocessable") {
     return "Không thể xử lý dữ liệu đã gửi.";
   }
@@ -47,19 +76,31 @@ export async function academicRequest<T>(
 ): Promise<T> {
   if (!apiUrl) throw new Error("Ứng dụng chưa được cấu hình địa chỉ API.");
 
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (typeof init?.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${apiUrl}${path}`, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-    throw new Error(errorMessage(response.status, body?.error?.code));
+    throw new AcademicApiError(
+      errorMessage(response.status, body?.error?.code),
+      response.status,
+      body?.error?.code,
+    );
   }
 
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }

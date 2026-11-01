@@ -3,6 +3,7 @@ import {
   apiError,
   databaseError,
   getAcademicContext,
+  getCommunityContext,
   hasExactKeys,
   isUuid,
   json,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/academic-api";
 
 export async function GET(request: Request) {
-  const auth = await getAcademicContext(request);
+  const auth = await getCommunityContext(request);
   if (auth.response) return auth.response;
 
   const { supabase, membership, user } = auth.context;

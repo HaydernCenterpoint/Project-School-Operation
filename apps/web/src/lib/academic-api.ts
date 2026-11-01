@@ -4,6 +4,10 @@ import {
   isRole,
   type ApiClass,
   type Assignment,
+  type CommunityAuthor,
+  type CommunityMessage,
+  type CommunityReport,
+  type CommunitySpace,
   type Role,
   type Submission,
 } from "@sao-do/contracts";
@@ -170,7 +174,7 @@ function serverEnvironment() {
   return { url, anonKey };
 }
 
-export async function getAcademicContext(
+async function getAuthenticatedContext(
   request: Request,
 ): Promise<ContextResult> {
   // Per IP before any work, so a flood of bad tokens never reaches Supabase Auth.
@@ -249,6 +253,27 @@ export async function getAcademicContext(
   };
 }
 
+export async function getCommunityContext(request: Request) {
+  return getAuthenticatedContext(request);
+}
+
+export async function getAcademicContext(
+  request: Request,
+): Promise<ContextResult> {
+  const result = await getAuthenticatedContext(request);
+  if (result.response) return result;
+  if (result.context.membership.role === "moderator") {
+    return {
+      response: apiError(
+        403,
+        "forbidden",
+        "Academic access is not available to moderators.",
+      ),
+    };
+  }
+  return result;
+}
+
 export function databaseError(message = "Unable to complete the request.") {
   return apiError(500, "database_error", message);
 }
@@ -299,6 +324,194 @@ export function mapSubmission(
 export function singleRpcRow(data: unknown): Record<string, unknown> | null {
   const value = Array.isArray(data) ? data[0] : data;
   return isRecord(value) ? value : null;
+}
+
+function nullableString(value: unknown) {
+  return value === null || value === undefined ? null : String(value);
+}
+
+function nonNegativeInteger(value: unknown) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : 0;
+}
+
+function mapCommunityAuthor(
+  row: Record<string, unknown>,
+  prefix = "author_",
+): CommunityAuthor {
+  return {
+    id: String(row[`${prefix}id`]),
+    displayName: String(row[`${prefix}display_name`]),
+    role: row[`${prefix}role`] as Role,
+    blockedByMe: Boolean(
+      row[prefix === "author_" ? "blocked_by_me" : `${prefix}blocked_by_me`],
+    ),
+  };
+}
+
+export function mapCommunitySpace(
+  row: Record<string, unknown>,
+): CommunitySpace {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    kind: row.kind as CommunitySpace["kind"],
+    name: String(row.name),
+    classId: nullableString(row.class_id),
+    slowModeSeconds: nonNegativeInteger(row.slow_mode_seconds),
+    muted: Boolean(row.muted),
+    canLeave: Boolean(row.can_leave),
+    canPost: Boolean(row.can_post),
+  };
+}
+
+export function mapCommunityMessage(
+  row: Record<string, unknown>,
+): CommunityMessage {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    spaceId: String(row.space_id),
+    author: mapCommunityAuthor(row),
+    text: String(row.text),
+    replyTo:
+      row.reply_to_id === null || row.reply_to_id === undefined
+        ? null
+        : {
+            id: String(row.reply_to_id),
+            authorDisplayName: String(row.reply_author_display_name),
+            text: String(row.reply_text),
+          },
+    reaction: {
+      kind: "like",
+      count: nonNegativeInteger(row.reaction_count),
+      reactedByMe: Boolean(row.reacted_by_me),
+    },
+    report: {
+      count: nonNegativeInteger(row.report_count),
+      reportedByMe: Boolean(row.reported_by_me),
+    },
+    hidden: Boolean(row.hidden),
+    createdAt: String(row.created_at),
+  };
+}
+
+export function mapCommunityReport(
+  row: Record<string, unknown>,
+): CommunityReport {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    message: {
+      id: String(row.message_id),
+      spaceId: String(row.space_id),
+      author: {
+        id: String(row.author_id),
+        displayName: String(row.author_display_name),
+        role: row.author_role as Role,
+      },
+      text: String(row.message_text),
+      hidden: Boolean(row.hidden),
+      createdAt: String(row.message_created_at),
+    },
+    reporter: {
+      id: String(row.reporter_id),
+      displayName: String(row.reporter_display_name),
+      role: row.reporter_role as Role,
+    },
+    reason: row.reason as CommunityReport["reason"],
+    detail: nullableString(row.detail),
+    status: row.status as CommunityReport["status"],
+    createdAt: String(row.created_at),
+    resolvedAt: nullableString(row.resolved_at),
+    resolvedBy: nullableString(row.resolved_by),
+  };
+}
+
+export function rpcRows(data: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(data)) return isRecord(data) ? [data] : [];
+  return data.filter(isRecord);
+}
+
+const sensitiveCommunityPatterns = [
+  /\b(?:https?:\/\/|www\.)\S+/i,
+  /\b\d{9,15}\b/,
+  /\+\d(?:[\s().-]?\d){8,14}\b/,
+  /\b0\d{1,3}(?:[ .-]\d{2,4}){2,4}\b/,
+  /\b(?:otp|one[- ]time (?:password|code)|verification code)\b/i,
+  /\b(?:bank|banking|account number|iban|swift)\b/i,
+  /\b(?:passport|identity card|national id|driver'?s licen[cs]e)\b/i,
+  /\b(?:address|street|road|avenue|postcode|zip code)\b/i,
+  /(?:^|[^\p{L}\p{N}_])(?:mã xác thực|mã otp|ngân hàng|số tài khoản|căn cước|cccd|cmnd|hộ chiếu|địa chỉ|đường|phường|quận)(?=$|[^\p{L}\p{N}_])/iu,
+] as const;
+
+export function requiresCommunityPrivacyConfirmation(text: string) {
+  return sensitiveCommunityPatterns.some((pattern) => pattern.test(text));
+}
+
+export function communityMentionCount(text: string) {
+  return text.match(/@[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}/g)?.length ?? 0;
+}
+
+export function mapCommunityRpcError(error: {
+  code?: string;
+  details?: string;
+  hint?: string;
+  message?: string;
+}) {
+  const detail =
+    `${error.code ?? ""} ${error.message ?? ""} ${error.details ?? ""} ${error.hint ?? ""}`.toLowerCase();
+  if (
+    detail.includes("rate_limited") ||
+    detail.includes("community_slow_mode")
+  ) {
+    const retryAfter =
+      error.hint?.match(/retry after (\d+) seconds/i)?.[1] ?? "60";
+    return apiError(
+      429,
+      "rate_limited",
+      "Too many requests. Try again shortly.",
+      { "Retry-After": retryAfter },
+    );
+  }
+  if (detail.includes("privacy_confirmation_required")) {
+    return apiError(
+      422,
+      "privacy_confirmation_required",
+      "Confirm the privacy warning before posting sensitive information.",
+    );
+  }
+  if (
+    error.code === "42501" ||
+    detail.includes("not_found") ||
+    detail.includes("not found") ||
+    detail.includes("p0002")
+  ) {
+    return apiError(404, "not_found", "Resource not found.");
+  }
+  if (
+    detail.includes("moderator_required") ||
+    detail.includes("moderation_required")
+  ) {
+    return apiError(403, "forbidden", "Moderator access is required.");
+  }
+  if (
+    error.code === "23505" ||
+    detail.includes("conflict") ||
+    detail.includes("already reported")
+  ) {
+    return apiError(409, "conflict", "The request conflicts with existing data.");
+  }
+  if (
+    error.code === "22023" ||
+    error.code === "23503" ||
+    error.code === "23514" ||
+    detail.includes("invalid") ||
+    detail.includes("unprocessable")
+  ) {
+    return apiError(422, "unprocessable", "The request cannot be processed.");
+  }
+  return databaseError();
 }
 
 export function mapAcademicRpcError(error: {

@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Redirect, router } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandHeader } from "@/components/BrandHeader";
@@ -10,6 +10,9 @@ import { colors } from "@/lib/theme";
 
 export default function HomeScreen() {
   const { classes, membership, session } = useAppData();
+  if (membership?.role === "moderator") {
+    return <Redirect href="/(tabs)/community" />;
+  }
   const userName =
     typeof session?.user.user_metadata.name === "string"
       ? session.user.user_metadata.name
@@ -37,6 +40,33 @@ export default function HomeScreen() {
         <Text maxFontSizeMultiplier={2} style={styles.emptyToday}>
           Chưa có lịch học được công bố hôm nay.
         </Text>
+        {membership?.role === "student" && (
+          <Pressable
+            accessibilityHint="Mở màn hình đặt câu hỏi có nguồn"
+            accessibilityRole="button"
+            onPress={() => router.push("/tutor")}
+            style={({ pressed }) => [
+              styles.tutorCard,
+              pressed && styles.tutorCardPressed,
+            ]}
+          >
+            <View style={styles.tutorCardCopy}>
+              <Text maxFontSizeMultiplier={2} style={styles.tutorCardTitle}>
+                Trợ giảng AI có nguồn
+              </Text>
+              <Text maxFontSizeMultiplier={2} style={styles.tutorCardText}>
+                Hỏi từ tài liệu lớp học sau khi bạn xem và đồng ý chính sách.
+              </Text>
+            </View>
+            <Text
+              accessible={false}
+              maxFontSizeMultiplier={2}
+              style={styles.tutorCardAction}
+            >
+              Mở
+            </Text>
+          </Pressable>
+        )}
         <Text maxFontSizeMultiplier={2} style={styles.listTitle}>
           Lớp học của tôi
         </Text>
@@ -111,5 +141,42 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     paddingHorizontal: 24,
     paddingBottom: 12,
+  },
+  tutorCard: {
+    alignItems: "center",
+    backgroundColor: colors.ink,
+    borderLeftColor: colors.yellow,
+    borderLeftWidth: 4,
+    flexDirection: "row",
+    gap: 16,
+    marginHorizontal: 24,
+    marginTop: 14,
+    minHeight: 112,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  tutorCardPressed: {
+    opacity: 0.84,
+  },
+  tutorCardCopy: {
+    flex: 1,
+    gap: 5,
+  },
+  tutorCardTitle: {
+    color: colors.paper,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 26,
+  },
+  tutorCardText: {
+    color: "#D7E3F1",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  tutorCardAction: {
+    color: colors.yellow,
+    fontSize: 14,
+    fontWeight: "900",
+    lineHeight: 20,
   },
 });

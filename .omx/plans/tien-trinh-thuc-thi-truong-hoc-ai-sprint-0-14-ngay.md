@@ -5,14 +5,16 @@
 > Cách tiếp cận: `ponytail full` — giữ lát cắt nhỏ nhất chứng minh được giá trị, không cắt tenant isolation, security, privacy hoặc accessibility trên critical flow.
 > Trạng thái workspace: repository local đã được khởi tạo; các đường dẫn bên dưới hiện là cấu trúc triển khai thực tế.
 
-## Trạng thái thực thi cập nhật — 28/07/2026
+## Trạng thái thực thi cập nhật — 29/07/2026
 
 - **Ngày 1–3:** hoàn tất local foundation gồm monorepo, Auth/session, hai tenant synthetic, ba role, RLS, CI, web shell và Expo shell.
 - **Ngày 4–7:** hoàn tất local Academic Alpha gồm Admin tạo lớp/gán identity seed, Teacher công bố bài/xem bài nộp/phản hồi, Student Expo xem bài/nộp text/xem trạng thái-phản hồi.
-- **Ngày 8–12:** hoàn tất local hardening gồm quota tại DB mutation boundary (có membership mutation), kiểm tra config/accessibility/security, migration `002 → current` smoke, backup/restore smoke và runbook release. Nhánh AI không được mở; **AI OFF**.
-- **Bằng chứng local hiện tại:** migration reset sạch; 88 pgTAP (`71 + 17`); schema lint; lint/typecheck; Next production build; Android Expo export; migration-upgrade smoke và local backup/restore smoke đạt; production API integration 1/1 đạt 2 lượt liên tiếp trên cùng database; Chrome E2E 14/14 đạt. Config đạt 2/2; một runtime binary Hermes `.hbc` được scan không có secret/service-role; anon validator chỉ nhận publishable key hoặc JWT role `anon`. Accessibility automation có Chrome AX-tree, keyboard/focus Admin/Teacher, layout 320 px và phép đo CSS page-scale 200%: glyph rộng 2,00×, cao 2,04×, critical controls/action text vừa; Teacher document delta +18 px. CDP OS text scale không làm đổi desktop metric nên CSS zoom chỉ được dùng khi cho phép đo hữu ích; không tuyên bố zero horizontal overflow, full WCAG hoặc Android device/TalkBack audit.
-- **Gate chưa đạt bên ngoài workspace:** staging/production deploy, EAS Preview cài được, Android physical-device/TalkBack smoke, UAT và sign-off.
-- Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha / local hardening**, chưa phải school pilot hoặc release candidate bên ngoài.
+- **Ngày 6:** hoàn tất Community Safety text-only có Moderator riêng, membership controls, report/hide/escalate/resolve và tenant-safe realtime.
+- **Ngày 7 — AI Tutor có điều kiện:** hoàn tất gateway server-only, consent/version, quota DB, usage metadata không chứa prompt/answer, PostgreSQL lexical FTS, citation allowlist/abstain, timeout/provider failure, web Student panel và Expo Student stack route. Runtime vẫn **OFF theo mặc định**.
+- **Ngày 8–12:** local hardening tiếp tục gồm quota tại DB mutation boundary, config/accessibility/security checks, migration `002 → current`, backup/restore và runbook release.
+- **Bằng chứng local hiện tại:** migration reset sạch; 4 file/286 pgTAP, gồm ingest concurrency thực tế bằng hai phiên DB; schema lint; workspace lint/typecheck; Next production build có 16 BFF route; Android Expo export; mobile client regression đạt 3/3; migration-upgrade và local backup/restore smoke đạt; ba production API integration suite Academic/Community/AI Tutor đều đạt 1/1; Chrome E2E đạt 16/16, gồm consent → đổi lớp/reset dữ liệu cũ → câu trả lời/citation và trạng thái Tutor tạm dừng được công bố. Config đạt 2/2; contrast đạt 2/2; security canary đạt 1/1; repository, Next client static và Android Hermes bundle không chứa provider credential. Accessibility automation có Chrome AX-tree, keyboard/focus, layout 320 px và phép đo CSS page-scale 200%; không tuyên bố full WCAG hoặc Android device/TalkBack audit.
+- **Gate chưa đạt bên ngoài workspace:** nhà cung cấp/key AI được phê duyệt, privacy/safeguarding approval và formal 24-case AI eval; staging/production deploy; EAS Preview cài được; Android physical-device/TalkBack smoke; UAT và sign-off.
+- Vì các gate ngoài workspace chưa đạt, nhãn hiện tại là **Academic Alpha + bounded AI Tutor / local candidate**, chưa phải school pilot hoặc release candidate bên ngoài.
 - Runbook, known issues và slot sign-off: `docs/release-candidate.md`.
 
 ## 1. Kết luận điều hành
@@ -283,9 +285,9 @@ Quy tắc:
 
 ### Secrets và audit
 
-- [ ] Không có service-role/model key trong repository, web bundle, mobile bundle hoặc log.
-- [ ] Thay đổi membership, assignment, submission và feedback có audit record gồm actor, tenant, action và timestamp.
-- [ ] Log AI chỉ chứa tenant/user/capability/model/latency/usage/status; không chứa secret hoặc prompt mặc định.
+- [x] Không có service-role/model key trong repository, web bundle, mobile bundle hoặc log.
+- [x] Thay đổi membership, assignment, submission và feedback có audit record gồm actor, tenant, action và timestamp.
+- [x] Log AI chỉ chứa tenant/user/capability/model/latency/usage/status; không chứa secret, prompt, answer hoặc source content.
 
 ### AI Tutor — chỉ khi feature bật
 
@@ -297,11 +299,13 @@ Quy tắc:
 - [ ] 4/4 timeout/provider-error case trả Retry/Cancel và không làm treo app.
 - [ ] Tắt AI feature flag không ảnh hưởng auth, class, assignment, submission hoặc feedback.
 
+Automated local coverage hiện đã có consent grant/revoke, answer/citation, no-evidence abstain, cross-tenant/ID tampering, citation ngoài allowlist, provider `500`, timeout, oversized metrics/body/citation list và UI one-shot. Các ô eval phía trên vẫn để mở vì chưa đủ đúng bộ 24 case cố định, chưa có prompt-injection set đầy đủ và chưa có human semantic-grounding review.
+
 ### Release
 
-- [ ] Migration + seed chạy lại từ môi trường sạch.
-- [ ] Backup/restore smoke thành công.
-- [ ] Web production candidate chạy core flow.
+- [x] Migration + seed chạy lại từ môi trường sạch.
+- [x] Backup/restore smoke thành công.
+- [x] Web production candidate chạy core flow.
 - [ ] Android EAS Preview cài và chạy core flow trên ít nhất một thiết bị thật.
 - [ ] Tất cả critical web screens đạt checklist WCAG 2.2 AA: keyboard-only, logical focus order, không focus trap, visible focus, accessible name/error, contrast 4.5:1 cho text thường và text scaling 200% không mất critical action.
 - [ ] Tất cả critical Android screens có TalkBack name/role/state, logical swipe order và text scaling 200% không che critical action.

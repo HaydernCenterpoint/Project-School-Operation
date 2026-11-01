@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,6 +9,9 @@ import { colors } from "@/lib/theme";
 
 export default function ClassesScreen() {
   const { classes, membership } = useAppData();
+  if (membership?.role === "moderator") {
+    return <Redirect href="/(tabs)/community" />;
+  }
 
   return (
     <SafeAreaView style={styles.safe}>

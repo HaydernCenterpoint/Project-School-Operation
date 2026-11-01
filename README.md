@@ -1,14 +1,14 @@
-# Sao Do University Academic Alpha
+# Sao Do University Academic Alpha + Community Safety
 
-Days 1–7 vertical slice plus Days 8–12 local release hardening for a tenant-safe school platform:
+Days 1–3 foundation, the delivered text-only academic slice, the Day 6 Community Safety extension, the bounded Day 7 AI Tutor gateway and Days 8–12 local release hardening for a tenant-safe school platform:
 
-- Next.js web in the “Campus Study Studio” design: welcome `/`, `/login`, labelled guest demo `/guest`, student workspace `/student` (dashboard, classes, assignments with text submission, AI assistant, account) and the Admin/Teacher portal `/portal`. All copy is Vietnamese.
-- Logo splash on hard loads and a logo progress indicator on route changes.
-- Expo student app for classes, assignments, text submission and feedback.
+- Next.js portal for School Admin, Teacher, read-only Student status and a tenant-scoped Moderator queue.
+- Expo app for classes, assignments, text submission, feedback and text-only community spaces.
 - Supabase Auth/Postgres with tenant-scoped RLS and two synthetic tenants.
 - Bearer-JWT BFF backed by atomic PostgreSQL RPCs; no service-role request path.
-- AI study assistant (streamed, private per student, DB-enforced daily allowance, idempotent requests). **Off by default** — see “Trợ lý AI” in `docs/operator-guide.md`. The label remains **Academic Alpha / local hardening**, not staging or production.
-- The official campus drawing is still pending: drop it at `apps/web/public/campus-drawing.webp` (or `.jpg`/`.png`) and rebuild; a temporary sketch is shown until then.
+- The seed contains eight synthetic accounts: six Admin/Teacher/Student academic accounts and two dedicated Moderator accounts.
+- The Day 7 AI Tutor runtime is **OFF by default**. Students have a one-shot web panel and an Expo `/tutor` screen reached from Today; both use the server-only gateway and PostgreSQL lexical retrieval, with no transcript or history.
+- The current label is **Academic Alpha / local candidate**, not staging or production.
 
 ## Requirements
 
@@ -46,8 +46,6 @@ pnpm test:security
 pnpm security:check
 ```
 
-With the production web bundle running (see `.github/workflows/ci.yml`): `pnpm test:integration`, `pnpm test:e2e:web` (needs `ACADEMIC_UI_URL`) and `pnpm test:ai` (needs a second server with AI pointed at the in-test fake provider via `AI_API_BASE_URL` and `AI_FAKE_PROVIDER_PORT`).
-
 The guarded local migration and restore smokes are destructive to the disposable local Supabase database:
 
 ```powershell
@@ -60,20 +58,24 @@ pnpm db:restore-smoke
 Remove-Item Env:ALLOW_LOCAL_DB_RESTORE_SMOKE
 ```
 
-Redesign evidence (26 September 2026, local Windows, production build, freshly seeded database): **100 pgTAP checks (71 + 12 AI + 17)** pass, including after upgrading a database at `202607280004` to the AI migration; `db lint` clean; API integration **1/1**; AI integration **1/1** (fake provider); Chrome E2E **19/19**; accessibility, config and security tests pass. The guarded `db:upgrade-smoke` script fails on Windows before touching the database (it spawns `pnpm.exe` through `node`); the upgrade was verified manually instead. Screenshots: `docs/design/redesign-*.png`.
+Historical Day 6 evidence was **202/202 pgTAP checks**, two local production-BFF API integration suites and **15/15 local production-build Chrome E2E checks**. Accessibility automation covered Chrome AX-tree, Admin/Teacher and Moderator keyboard/focus flow, 320 px critical layouts and measured CSS page-scale 200%: glyph width 2.00×, height 2.04×, critical controls/action text fit, and Teacher document delta +18 px.
 
-Earlier evidence: **88 pgTAP checks (71 + 17)**, production API integration **1/1 pass twice consecutively against the same database**, and Chrome E2E **14/14 pass**. Accessibility automation covers Chrome AX-tree, Admin/Teacher keyboard and focus flow, 320 px layout and measured CSS page-scale 200%: glyph width 2.00×, height 2.04×, critical controls/action text fit, and Teacher document delta +18 px.
+Fresh Day 7 local evidence passes `pnpm verify:static`, a clean database reset, **286/286 pgTAP checks across four files**, schema lint, the populated `002 → current` upgrade, backup/restore including AI tables, all three seeded API integration suites at **1/1 each**, and **16/16 Chrome E2E checks**. The optimized Next.js build contains **16 BFF route files: four academic, ten community and two AI**. The Tutor E2E covers consent, class switching with stale-result reset, a cited answer, an announced unavailable state, accessibility-tree exposure and overflow; the mobile client request regression passes **3/3**.
+
+Local CI configures a loopback fake OpenAI-compatible provider and uses only synthetic or de-identified seeded text chunks. The security evidence includes configuration **2/2**, contrast **2/2**, security canary **1/1**, repository/runtime scanning, an explicit scan of the new AI/UI files, and no configured provider environment name or value in generated client bundles. None of this validates an external provider.
 
 CDP operating-system text scale had no measurable desktop metric effect, so CSS zoom was used only where it yielded a useful measurement. This does not claim zero horizontal overflow, a complete WCAG audit or Android TalkBack/device coverage.
 
 Security evidence includes mobile configuration **2/2 pass**, one Hermes `.hbc` runtime binary scanned with no secret/service-role finding, and an anon validator that accepts only publishable keys or JWTs with role `anon`. Database quotas now cover membership mutations, but gateway limits for GET, invalid JWT and pre-database rejected attempts still require staging configuration and testing.
 
-The CI database job builds and starts the production Next.js bundle, then runs the same seeded API integration and dependency-free Chrome E2E. Hosted CI provenance must still be recorded before external promotion.
+The CI database job builds and starts the production Next.js bundle, then runs the academic, community and AI Tutor integration suites plus the dependency-free Chrome E2E. Hosted CI provenance must still be recorded before external promotion.
 
 Scope, evidence and current limitations are documented in:
 
 - `docs/day-1-3-foundation.md`
 - `docs/day-4-7-academic-alpha.md`
+- `docs/day-7-ai-gateway-rag.md`
+- `docs/day-6-community-safety.md`
 - `docs/fixture-manifest.md`
 - `docs/operator-guide.md`
 - `docs/release-candidate.md`
