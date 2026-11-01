@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { countdown, DemoBanner, PageTitle } from "@/components/portal/Parts";
-import { clock, longDay, notices, useDemoState } from "@/lib/portal-demo";
+import { clock, longDay, notices, useDemoState, useHydratedNow } from "@/lib/portal-demo";
 
 const categories = ["Tất cả", "Đào tạo", "Công tác sinh viên", "Tài chính", "Hoạt động"] as const;
 
 export default function NoticesPage() {
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [read, setRead] = useDemoState<string[]>("notices-read", () => []);
   const [category, setCategory] = useState<(typeof categories)[number]>("Tất cả");
   const list = notices(now);

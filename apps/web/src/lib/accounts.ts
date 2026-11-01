@@ -201,7 +201,7 @@ export const PORTAL_ACCOUNTS: PortalAccount[] = [
     roleTitle: "Trưởng CLB · Sinh viên lớp DK13-CNTT1",
     roleBadge: "CLB",
     code: "2200286",
-    displayName: "Nguyễn Văn Minh",
+    displayName: "Nguyễn Văn Đạt",
     email: "2200286@sv.saodo.edu.vn",
     department: "Khoa Công nghệ thông tin",
     cohortClass: "DK13-CNTT1",
@@ -209,9 +209,9 @@ export const PORTAL_ACCOUNTS: PortalAccount[] = [
     advisorName: "ThS. Trần Minh Đức",
     managedClubId: "club-it",
     managedClubName: "CLB Tin học Sao Đỏ",
-    positionLabel: "Chủ nhiệm CLB Tin học Sao Đỏ · Sinh viên lớp DK13-CNTT1",
-    bio: "Sinh viên lớp DK13-CNTT1 do ThS. Trần Minh Đức cố vấn; đồng thời giữ vai trò Chủ nhiệm CLB Tin học Sao Đỏ.",
-    phone: "0987654286",
+    positionLabel: "Chủ nhiệm CLB Tin học Sao Đỏ · Sinh viên lớp DK13-CNTT1 (Chuyên ngành CNPM)",
+    bio: "Sinh viên lớp DK13-CNTT1 (Chuyên ngành Công nghệ phần mềm · Khóa 2022–2026) do ThS. Trần Minh Đức cố vấn; Chủ nhiệm CLB Tin học Sao Đỏ · Tích lũy 143/163 TC (GPA 3.08/4.0 · Khá, Đợt 2 2025–2026 đạt 3.74/4.0 · Xuất sắc).",
+    phone: "0936651618",
     permissions: {
       canManageClassRoster: false,
       canCreateAssignment: false,
@@ -369,15 +369,15 @@ const INITIAL_ROSTER: ClassStudentRosterItem[] = [
   {
     accountId: "acc-leader-minh",
     studentCode: "2200286",
-    fullName: "Nguyễn Văn Minh",
+    fullName: "Nguyễn Văn Đạt",
     email: "2200286@sv.saodo.edu.vn",
-    phone: "0987654286",
+    phone: "0936651618",
     cohortClass: "DK13-CNTT1",
     roleInClass: "Trưởng CLB Tin học",
-    attendancePct: 98,
-    gpa: 3.48,
+    attendancePct: 100,
+    gpa: 3.08,
     status: "active",
-    teacherNote: "Chủ nhiệm CLB Tin học Sao Đỏ, nắm vững kiến trúc OOP và hỗ trợ các nhóm thực hành tại phòng B1-Lab 3.",
+    teacherNote: "Chủ nhiệm CLB Tin học Sao Đỏ; Đợt 2 (2025-2026) đạt GPA 3.74/4.0 (Xuất sắc), Thực tập doanh nghiệp 10.0/10 (A+), tích lũy 143/163 tín chỉ.",
   },
   {
     accountId: "acc-student-linh",
@@ -504,7 +504,7 @@ const INITIAL_SUBMISSIONS: SharedSubmissionRecord[] = [
     assignmentId: "22222222-2222-4222-8222-222222222201",
     studentAccountId: "acc-leader-minh",
     studentCode: "2200286",
-    studentName: "Nguyễn Văn Minh",
+    studentName: "Nguyễn Văn Đạt",
     content:
       "Đã xây dựng lớp trừu tượng TaiLieu (maTaiLieu, tenNhaXuatBan, soBanPhatHanh) và phương thức thuần ảo tinhPhiQuaHan(int soNgay). Ba lớp kế thừa SachGiaoTrinh, LuanVan, TapChi áp dụng đa hình qua con trỏ thông minh std::unique_ptr<TaiLieu> và kiểm thử 12 ca biên.",
     submittedAt: daysFromNow(-1, 20, 15),
@@ -551,7 +551,7 @@ const INITIAL_SUBMISSIONS: SharedSubmissionRecord[] = [
     assignmentId: "22222222-2222-4222-8222-222222222202",
     studentAccountId: "acc-leader-minh",
     studentCode: "2200286",
-    studentName: "Nguyễn Văn Minh",
+    studentName: "Nguyễn Văn Đạt",
     content:
       "Lược đồ 3NF gồm 5 bảng: SINH_VIEN, LOP_NIEN_CHE, HOAT_DONG, DANG_KY_HOAT_DONG, DIEM_REN_LUYEN_KY. Đã viết đầy đủ khóa ngoại ON DELETE CASCADE và 5 truy vấn tổng hợp theo khoa/lớp.",
     submittedAt: daysFromNow(-2, 21, 30),
@@ -588,7 +588,7 @@ const INITIAL_CLUB_MEMBERS: ClubMemberRecord[] = [
     id: "cm-1",
     clubId: "club-it",
     studentCode: "2200286",
-    fullName: "Nguyễn Văn Minh",
+    fullName: "Nguyễn Văn Đạt",
     cohortClass: "DK13-CNTT1",
     memberRole: "Chủ nhiệm CLB",
     status: "active",
@@ -649,7 +649,7 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
     time: "Thứ 5 · 18:00 – 20:00",
     place: "Phòng B1-Lab 2",
     summary: "Hướng dẫn quy trình làm việc nhóm với Pull Request, kiểm thử tự động và tích hợp AI Agent.",
-    createdBy: "Nguyễn Văn Minh (Trưởng CLB)",
+    createdBy: "Nguyễn Văn Đạt (Trưởng CLB)",
     createdAt: daysFromNow(-1, 14, 0),
   },
   {
@@ -659,7 +659,7 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
     time: "Chủ nhật · 08:30 – 11:00",
     place: "Phòng B1-Lab 3",
     summary: "Ôn tập quy hoạch động, đồ thị và tối ưu độ phức tạp thuật toán cho đội tuyển sinh viên.",
-    createdBy: "Nguyễn Văn Minh (Trưởng CLB)",
+    createdBy: "Nguyễn Văn Đạt (Trưởng CLB)",
     createdAt: daysFromNow(-4, 19, 0),
   },
 ];
@@ -773,8 +773,35 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
   },
 ];
 
-const STORAGE_KEY = "sao-do:multi-account-state:v1";
+const STORAGE_KEY = "sao-do:multi-account-state:v2";
 const SYNC_EVENT = "sao-do:accounts-sync";
+
+function normalizeStudent2200286State(state: SharedPortalState): SharedPortalState {
+  return {
+    ...state,
+    roster: state.roster.map((r) =>
+      r.studentCode === "2200286"
+        ? {
+            ...r,
+            fullName: "Nguyễn Văn Đạt",
+            phone: "0936651618",
+            gpa: 3.08,
+            attendancePct: 100,
+          }
+        : r,
+    ),
+    submissions: state.submissions.map((s) =>
+      s.studentCode === "2200286" ? { ...s, studentName: "Nguyễn Văn Đạt" } : s,
+    ),
+    clubMembers: state.clubMembers.map((cm) =>
+      cm.studentCode === "2200286" ? { ...cm, fullName: "Nguyễn Văn Đạt" } : cm,
+    ),
+    clubEvents: state.clubEvents.map((ce) => ({
+      ...ce,
+      createdBy: ce.createdBy.replace(/Nguyễn Văn Minh/g, "Nguyễn Văn Đạt"),
+    })),
+  };
+}
 
 function buildDefaultState(): SharedPortalState {
   return {
@@ -971,6 +998,7 @@ export function buildSessionForAccount(
 
 export function usePortalAccounts() {
   const [state, setState] = useState<SharedPortalState>(buildDefaultState);
+  const [hydrated, setHydrated] = useState(false);
   const [supabaseConnected, setSupabaseConnected] = useState(false);
 
   const pullFromSupabase = useCallback(async () => {
@@ -1126,7 +1154,7 @@ export function usePortalAccounts() {
               }))
             : prev.clubEvents;
 
-        return {
+        return normalizeStudent2200286State({
           ...prev,
           roster: nextRoster,
           subjectClasses: nextSubjects,
@@ -1136,7 +1164,7 @@ export function usePortalAccounts() {
           classAnnouncements: nextAnnouncements,
           clubMembers: nextClubMembers,
           clubEvents: nextClubEvents,
-        };
+        });
       });
     } catch {
       // Keep local state if offline
@@ -1144,7 +1172,10 @@ export function usePortalAccounts() {
   }, []);
 
   useEffect(() => {
-    const sync = () => setState(readSharedPortalState());
+    const sync = () => {
+      setState(readSharedPortalState());
+      setHydrated(true);
+    };
     queueMicrotask(() => {
       sync();
       void pullFromSupabase();
@@ -1763,6 +1794,7 @@ export function usePortalAccounts() {
 
   return {
     state,
+    hydrated,
     supabaseConnected,
     accounts: PORTAL_ACCOUNTS,
     activeAccount,

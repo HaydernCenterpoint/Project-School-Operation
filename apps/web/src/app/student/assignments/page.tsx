@@ -6,6 +6,7 @@ import { AssignmentRows } from "@/components/AssignmentRows";
 import { Icon } from "@/components/Icon";
 import { PageTitle, Section } from "@/components/portal/Parts";
 import { classCode, dueState } from "@/lib/format";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 const filters = [
@@ -18,7 +19,7 @@ export default function AssignmentsPage() {
   const { data } = useStudent();
   const [filter, setFilter] = useState<(typeof filters)[number]["key"]>("open");
   const [classFilter, setClassFilter] = useState("");
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [query, setQuery] = useState("");
   const pathname = usePathname();
 

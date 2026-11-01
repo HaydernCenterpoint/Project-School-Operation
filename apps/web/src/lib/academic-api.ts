@@ -87,6 +87,7 @@ export function isJsonContentType(request: Request) {
 
 export async function readJsonObject(
   request: Request,
+  maxBytes = maxJsonBodyBytes,
 ): Promise<
   | { value: Record<string, unknown>; response?: never }
   | { value?: never; response: Response }
@@ -106,13 +107,13 @@ export async function readJsonObject(
     if (
       declaredLength &&
       (!/^\d+$/.test(declaredLength) ||
-        Number(declaredLength) > maxJsonBodyBytes)
+        Number(declaredLength) > maxBytes)
     ) {
       return {
         response: apiError(
           413,
           "payload_too_large",
-          "JSON body must not exceed 64 KiB.",
+          `JSON body must not exceed ${Math.round(maxBytes / 1024)} KiB.`,
         ),
       };
     }
@@ -129,13 +130,13 @@ export async function readJsonObject(
       const { done, value: chunk } = await reader.read();
       if (done) break;
       totalBytes += chunk.byteLength;
-      if (totalBytes > maxJsonBodyBytes) {
+      if (totalBytes > maxBytes) {
         await reader.cancel();
         return {
           response: apiError(
             413,
             "payload_too_large",
-            "JSON body must not exceed 64 KiB.",
+            `JSON body must not exceed ${Math.round(maxBytes / 1024)} KiB.`,
           ),
         };
       }

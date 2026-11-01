@@ -1,7 +1,8 @@
 "use client";
 
 import type { Route } from "next";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { AppShell, type NavGroup, type Notification, type SearchSuggestion } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
@@ -61,11 +62,25 @@ export default function TeacherClassesLayout({
     data,
     avatarUrl,
     account,
+    hydrated,
     subjectClasses,
     attendanceSessions,
     allSubmissions,
     signOut,
   } = useStudent();
+  const router = useRouter();
+  const isTeacher = account.role === "teacher";
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!isTeacher) {
+      router.replace("/student" as Route);
+    }
+  }, [hydrated, isTeacher, router]);
+
+  if (!hydrated || !isTeacher) {
+    return null;
+  }
 
   const user = data
     ? {
@@ -164,24 +179,11 @@ export default function TeacherClassesLayout({
         searchLabel="Tìm lớp bộ môn, sinh viên, buổi điểm danh, bài tập"
         searchItems={searchItems}
         notifications={notifications}
-        profileHref={"/student/account" as Route}
+        profileHref={"/student/teacher-classes" as Route}
         noticesHref={"/student/teacher-classes/homeroom" as Route}
-        headerActions={
-          <Link
-            href={"/student" as Route}
-            className="top-teacher-btn is-return"
-            title="Quay về Cổng thông tin chung"
-          >
-            <Icon name="home" />
-            <span>Về Cổng chính</span>
-          </Link>
-        }
         sideCard={
           <div className="side-foot">
             <div className="side-links">
-              <Link href={"/student" as Route}>
-                <Icon name="home" /> <span>Về Cổng học tập</span>
-              </Link>
               <button
                 type="button"
                 onClick={(event) => void signOut(centerOf(event.currentTarget))}

@@ -1,6 +1,5 @@
 "use client";
 
-import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -95,9 +94,6 @@ export default function StudentSettingsPage() {
       >
         <Link className="button button-quiet button-sm" href="/student/account">
           <Icon name="user" /> Hồ sơ sinh viên
-        </Link>
-        <Link className="button button-primary button-sm" href={"/quan-tri/tai-khoan" as Route}>
-          <Icon name="shield" /> Phân quyền & tài khoản
         </Link>
       </PageTitle>
 
@@ -444,26 +440,6 @@ export default function StudentSettingsPage() {
         action={<span className="reg-table-meta">{account.code} · {account.cohortClass}</span>}
       >
         <div className="stg-ledger">
-          <article className="stg-row">
-            <span className="stg-row-icon" aria-hidden="true">
-              <Icon name="shield" />
-            </span>
-            <div className="stg-row-main">
-              <div className="stg-row-head">
-                <strong>Bảng phân quyền & chuyển đổi tài khoản (RBAC)</strong>
-                <code>3 vai trò</code>
-              </div>
-              <p>
-                Chuyển nhanh giữa tài khoản Giảng viên, Trưởng CLB và Sinh viên thuộc lớp {account.cohortClass} để kiểm tra ma trận quyền hạn
-              </p>
-            </div>
-            <div className="stg-row-control">
-              <Link className="button button-outline button-sm" href={"/quan-tri/tai-khoan" as Route}>
-                Mở bảng phân quyền <Icon name="arrow" />
-              </Link>
-            </div>
-          </article>
-
           <article className="stg-row">
             <span className="stg-row-icon" aria-hidden="true">
               <Icon name="user" />

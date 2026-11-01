@@ -1,14 +1,14 @@
 "use client";
 
 import type { Route } from "next";
-import { useState } from "react";
 import { Dashboard } from "@/components/Dashboard";
 import { TodayPanel } from "@/components/portal/TodayPanel";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 export default function StudentHome() {
   const { data } = useStudent();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   if (!data) return null;
 
   return (

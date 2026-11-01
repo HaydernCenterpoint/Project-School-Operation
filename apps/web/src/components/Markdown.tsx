@@ -7,11 +7,12 @@ import { Tex } from "./Tex";
 // without referrer. Inline math is $...$ or \(...\); a "$" only opens math when text follows it
 // directly and only closes it when it is not followed by a digit, so "5$ và 10$" stays text.
 const inlinePattern =
-  /(`[^`]+`|\$\$(?:[^$]|\$(?!\$))+?\$\$|\$(?![\s$])(?:[^$\n\\]|\\.)+?(?<!\s)\$(?!\d)|\\\([^\n]+?\\\)|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\[[^\]]+\]\(https?:\/\/[^)\s]+\)|\*[^*\s][^*]*\*|(?<![\w])_[^_\s][^_]*_(?![\w]))/g;
+  /(`[^`]+`|<br\s*\/?>|&lt;br\s*\/?&gt;|\$\$(?:[^$]|\$(?!\$))+?\$\$|\$(?![\s$])(?:[^$\n\\]|\\.)+?(?<!\s)\$(?!\d)|\\\([^\n]+?\\\)|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\[[^\]]+\]\(https?:\/\/[^)\s]+\)|\*[^*\s][^*]*\*|(?<![\w])_[^_\s][^_]*_(?![\w]))/gi;
 
 function inline(text: string): ReactNode[] {
   return text.split(inlinePattern).map((part, index) => {
     if (!part) return null;
+    if (/^(?:<br\s*\/?>|&lt;br\s*\/?&gt;)$/i.test(part)) return <br key={index} />;
     if (part.length > 4 && part.startsWith("$$") && part.endsWith("$$")) return <Tex key={index} source={part.slice(2, -2)} display />;
     if (part.length > 2 && part.startsWith("$") && part.endsWith("$")) return <Tex key={index} source={part.slice(1, -1)} />;
     if (part.length > 4 && part.startsWith("\\(") && part.endsWith("\\)")) return <Tex key={index} source={part.slice(2, -2)} />;

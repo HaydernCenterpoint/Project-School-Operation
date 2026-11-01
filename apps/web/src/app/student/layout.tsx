@@ -1,8 +1,8 @@
 "use client";
 
 import type { Route } from "next";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { AppShell, studentNav, type Notification, type SearchSuggestion } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { initials } from "@/lib/format";
@@ -10,14 +10,25 @@ import { centerOf, SceneArrival } from "@/components/landing/SceneTransition";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 
 function Frame({ children }: { children: React.ReactNode }) {
-  const { data, error, avatarUrl, account, switchAccount, refresh, signOut } = useStudent();
+  const { data, error, avatarUrl, account, hydrated, refresh, signOut } = useStudent();
   const pathname = usePathname();
+  const router = useRouter();
+  const isTeacher = account.role === "teacher";
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!pathname.startsWith("/student/ai") && !pathname.startsWith("/student/teacher-classes") && isTeacher) {
+      router.replace("/student/teacher-classes" as Route);
+    }
+  }, [hydrated, isTeacher, pathname, router]);
+
   // The AI workspace and Teacher Classroom Management web app are full-page standalone apps; they only need the session.
   if (pathname.startsWith("/student/ai") || pathname.startsWith("/student/teacher-classes")) {
     return children;
   }
-  const isTeacher = account.role === "teacher" || account.permissions.canManageClassRoster;
-  const isOnTeacherClasses = pathname.startsWith("/student/teacher-classes");
+  if (!hydrated || isTeacher) {
+    return null;
+  }
   const user = data
     ? {
         name: account.displayName,
@@ -74,36 +85,9 @@ function Frame({ children }: { children: React.ReactNode }) {
         notifications={notifications}
         profileHref="/student/account"
         noticesHref="/student/notices"
-        headerActions={
-          isTeacher ? (
-            <Link
-              href={"/student/teacher-classes" as Route}
-              className={`top-teacher-btn${isOnTeacherClasses ? " is-active" : ""}`}
-              aria-current={isOnTeacherClasses ? "page" : undefined}
-              title="Quản lý lớp chủ nhiệm, các lớp bộ môn, điểm danh và bài tập giảng viên"
-            >
-              <Icon name="class" />
-              <span>Quản lý lớp học</span>
-            </Link>
-          ) : null
-        }
         sideCard={
           <div className="side-foot">
             <div className="side-links">
-              <button
-                type="button"
-                onClick={() =>
-                  switchAccount(isTeacher ? "acc-leader-minh" : "acc-teacher-duc")
-                }
-                title={
-                  isTeacher
-                    ? "Chuyển sang tài khoản Sinh viên (Nguyễn Văn Minh)"
-                    : "Chuyển sang tài khoản Giảng viên (ThS. Trần Minh Đức)"
-                }
-              >
-                <Icon name="shield" />{" "}
-                <span>{isTeacher ? "Đang xem: Giáo viên" : "Đổi sang TK Giáo viên"}</span>
-              </button>
               <button type="button" onClick={(event) => void signOut(centerOf(event.currentTarget))}>
                 <Icon name="logout" /> <span>Đăng xuất</span>
               </button>

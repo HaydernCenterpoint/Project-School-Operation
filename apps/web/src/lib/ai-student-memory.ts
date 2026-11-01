@@ -19,7 +19,6 @@ import {
   clubs,
   conduct,
   courseByCode,
-  courses,
   curriculumSemesters,
   exams,
   gpa,
@@ -117,48 +116,48 @@ export type DetailedStudentStaticProfile = {
 export const STUDENT_DETAILED_PROFILES: Record<string, DetailedStudentStaticProfile> = {
   "2200286": {
     studentCode: "2200286",
-    fullName: "Nguyễn Văn Minh",
-    dateOfBirth: "15/06/2004",
+    fullName: "Nguyễn Văn Đạt",
+    dateOfBirth: "03/07/2004",
     gender: "Nam",
-    hometown: "TP. Chí Linh, Hải Dương",
-    permanentAddress: "Số 24 Nguyễn Trãi, phường Sao Đỏ, TP. Chí Linh, tỉnh Hải Dương",
-    currentResidence: "Ký túc xá khu B, Trường Đại học Sao Đỏ, phường Sao Đỏ, TP. Chí Linh",
-    cccd: "030204008642",
-    cccdIssuedDate: "18/04/2021",
+    hometown: "Huyện Phú Xuyên, Thành phố Hà Nội (Nơi sinh: Quảng Ninh)",
+    permanentAddress: "Số nhà 471, Tổ 4, Khu Quang Trung, Phường Mạo Khê, Tỉnh Quảng Ninh",
+    currentResidence: "471, Tổ 4, Khu Quang Trung, Mạo Khê, Đông Triều, Quảng Ninh",
+    cccd: "022204004356",
+    cccdIssuedDate: "26/09/2021",
     youthUnionDate: "26/03/2019",
     ethnicity: "Kinh",
     religion: "Không",
-    admissionArea: "Khu vực 2NT",
+    admissionArea: "Khu vực 1",
     faculty: "Khoa Công nghệ thông tin",
     major: "Công nghệ thông tin",
     specialization: "Công nghệ phần mềm",
     cohort: "2022 – 2026 (Khóa 13)",
     cohortClass: "DK13-CNTT1",
     advisorName: "ThS. Trần Minh Đức",
-    englishLevel: "Đạt chuẩn B1 · Tiếng Anh 1 (8.0), Tiếng Anh 2 (8.9), đang học EN2130",
-    scholarshipStatus: "Ứng viên Học bổng Khuyến khích học tập loại Giỏi HK2 2025-2026",
-    conductScore: 82,
+    englishLevel: "Đạt chuẩn đầu ra Tiếng Anh (0101103871 · 99.9 điểm) · Tiếng Anh ngành CNTT đạt 9.0 (A+)",
+    scholarshipStatus: "Sinh viên Xuất sắc HK8 Đợt 2 (2025-2026) với GPA học kỳ 3.74/4.0 (9.03/10) · GPA tích lũy 3.08/4.0 (143/163 TC)",
+    conductScore: 89,
     conductRank: "Tốt",
-    bankAccount: "46110002869999 · BIDV Chi nhánh Chí Linh",
-    bhytCode: "SV4303020400864 · Trung tâm Y tế TP. Chí Linh",
+    bankAccount: "BIDV Chi nhánh Chí Linh · Đã thanh toán học phí qua BIDV & Agribank",
+    bhytCode: "Đã đóng BHYT năm 2026 (Phường Mạo Khê, Quảng Ninh / ĐH Sao Đỏ)",
     familySummary:
-      "Cha: Nguyễn Văn Hùng (1972, Kỹ sư cơ khí tại Công ty CP Cơ khí Chí Linh, SĐT 0912408319); Mẹ: Trần Thị Lan (1976, Giáo viên THCS tại Trường THCS Sao Đỏ, SĐT 0978315604).",
+      "Cha: Nguyễn Văn Thành (sinh năm 1966, cư trú tại Khu Quang Trung, Phường Mạo Khê, Đông Triều, Quảng Ninh, SĐT 0904388848); Mẹ: Đặng Thị Tự (sinh năm 1972, cư trú tại Khu Quang Trung, Phường Mạo Khê, Đông Triều, Quảng Ninh, SĐT 0936792369).",
     learningStyle:
-      "Học tốt nhất qua thực hành mã nguồn thực tế (C++, Java, TypeScript), thích phân tích kiến trúc hệ thống và giải thuật phức tạp.",
-    careerGoal: "Kỹ sư Phần mềm Full-stack / AI Engineer, hướng tới thực tập tại doanh nghiệp công nghệ lớn.",
+      "Năng lực thực hành phần mềm và dự án thực tế xuất sắc: đạt 10.0 Thực tập doanh nghiệp, 9.5 Tin sinh học, 9.3 SEO Master, 9.2 Đồ án CNPM, 9.0 Đồ án kiến thức ngành, 8.9 Phát triển ứng dụng di động, 8.7 Trí tuệ nhân tạo.",
+    careerGoal: "Kỹ sư Phần mềm Full-stack / AI & Computer Vision Engineer.",
     strengths: [
-      "Lập trình hướng đối tượng (C++/Java) và Cấu trúc dữ liệu & Giải thuật đạt điểm A",
-      "Chủ nhiệm CLB Tin học Sao Đỏ, dẫn dắt đội tuyển Olympic Tin học",
-      "Thiết kế lược đồ cơ sở dữ liệu chuẩn 3NF và xây dựng hệ thống phân quyền RBAC",
+      "Thực tập doanh nghiệp đạt 10.0/10 (A+), Đồ án Công nghệ phần mềm đạt 9.2/10 (A+), Đồ án kiến thức ngành đạt 9.0/10 (A+)",
+      "GPA học kỳ Đợt 2 (2025-2026) đạt 3.74/4.0 (9.03/10 · Xuất sắc), tích lũy 143/163 tín chỉ, chuyên cần 100% (0 tiết vắng)",
+      "Chủ nhiệm CLB Tin học Sao Đỏ, đang thực hiện Thực tập tốt nghiệp (8 TC) & Đồ án tốt nghiệp (12 TC) học kỳ Đợt 1 (2026-2027)",
     ],
     weaknesses: [
-      "Các học phần Toán đại cương (Giải tích 1 đạt 6.2 điểm C, Xác suất thống kê 7.2 điểm B) thấp hơn nhóm môn lập trình",
-      "Vắng 2 tiết không phép môn Thực hành Mạng máy tính (IT3080) ngày 02/10/2026",
+      "Một số học phần đại cương năm nhất/năm hai (Phương pháp tính 5.1, Lập trình Python 5.7, Giải tích 5.8) làm GPA tích lũy toàn khóa ở mức 3.08/4.0 dù năm cuối đạt 3.58–3.74",
+      "Còn 2 khoản lệ phí xét tốt nghiệp (200.000 đ) và cấp giấy chứng nhận CĐR ngoại ngữ, tin học (30.000 đ) = 230.000 đ chưa gạch nợ",
     ],
     hobbies: [
-      "Lập trình thi đấu Olympic Tin học",
-      "Tổ chức workshop Git/GitHub & AI Agent tại phòng B1-Lab 2",
-      "Tham gia hiến máu tình nguyện Giọt hồng Sao Đỏ",
+      "Xây dựng ứng dụng Web Full-stack, AI Agent và Xử lý ảnh / Thị giác máy tính",
+      "Điều hành CLB Tin học Sao Đỏ tại phòng B1-Lab 2",
+      "Nghiên cứu kiến trúc phần mềm và phát triển ứng dụng di động",
     ],
   },
   "2200287": {
@@ -382,7 +381,7 @@ export const STUDENT_DETAILED_PROFILES: Record<string, DetailedStudentStaticProf
   },
 };
 
-const MEMORY_STORAGE_KEY = "sao-do:ai-student-memory:v1";
+const MEMORY_STORAGE_KEY = "sao-do:ai-student-memory:v2";
 const MEMORY_SYNC_EVENT = "sao-do:ai-memory-sync";
 
 function buildDefaultMemories(): StudentMemoryFact[] {
@@ -712,7 +711,8 @@ export function buildComprehensiveStudentMemoryContext(params: {
 
     const subLines = stuSubmissions.map((sub) => {
       const asg = assignments.find((a) => a.id === sub.assignmentId);
-      return `  + Bài nộp "${asg?.title ?? sub.assignmentId}": Trạng thái ${sub.status === "reviewed" ? `Đã chấm (${sub.score ?? "?"}/10 - Nhận xét: ${sub.feedback ?? ""})` : "Đã nộp, chờ chấm"} · Nội dung: ${sub.content}`;
+      const snippet = sub.content.length > 400 ? `${sub.content.slice(0, 400)}…` : sub.content;
+      return `  + Bài nộp "${asg?.title ?? sub.assignmentId}": Trạng thái ${sub.status === "reviewed" ? `Đã chấm (${sub.score ?? "?"}/10 - Nhận xét: ${sub.feedback ?? ""})` : "Đã nộp, chờ chấm"} · Nội dung: ${snippet}`;
     });
 
     return [
@@ -837,6 +837,6 @@ export function buildComprehensiveStudentMemoryContext(params: {
     `Thông báo nhà trường:\n${notices(now).map((n) => `- [${n.category}] ${n.title} (${n.from}): ${n.body}`).join("\n")}`,
     `Dịch vụ Một cửa (Hành chính sinh viên):\n${serviceTypes.map((sv) => `- ${sv.name}: ${sv.about} (Thời gian xử lý ${sv.days} ngày, lệ phí ${money(sv.fee)})`).join("\n")}`,
     `Đề xuất cập nhật hồ sơ gần đây:\n${initialProfileUpdates.map((p) => `- [${p.category}] ${p.fieldLabel}: "${p.oldValue}" → "${p.newValue}" (${p.status})`).join("\n")}`,
-    `Hồ sơ cá nhân gốc trên cổng (Nguyễn Văn Minh - 2200286): ${[...profile.education, ...profile.personal].map((f) => `${f.label}: ${f.value}`).join(" | ")}`,
+    `Hồ sơ cá nhân gốc trên cổng (Nguyễn Văn Đạt - 2200286): ${[...profile.education, ...profile.personal].map((f) => `${f.label}: ${f.value}`).join(" | ")}`,
   ].join("\n\n");
 }

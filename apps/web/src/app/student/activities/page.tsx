@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { countdown, DemoBanner, PageTitle, Section, StatTile } from "@/components/portal/Parts";
-import { activities, clock, conduct, initialActivities, longDay, useDemoState } from "@/lib/portal-demo";
+import { activities, clock, conduct, initialActivities, longDay, useDemoState, useHydratedNow } from "@/lib/portal-demo";
 
 export default function ActivitiesPage() {
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [registered, setRegistered] = useDemoState("activities", () => initialActivities);
   const [category, setCategory] = useState("Tất cả");
   const [status, setStatus] = useState("");

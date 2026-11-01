@@ -10,6 +10,7 @@ import { Icon } from "@/components/Icon";
 import { Section } from "@/components/portal/Parts";
 import { academicRequest } from "@/lib/academic-client";
 import { dueState, formatDate, formatDeadline } from "@/lib/format";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 const maxLength = 20_000;
@@ -37,15 +38,13 @@ export default function AssignmentDetailPage() {
   const {
     data,
     account,
-    accounts,
-    switchAccount,
     roster,
     allSubmissions,
     submitStudentWork,
     gradeSubmission,
     refresh,
   } = useStudent();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [content, setContent] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
@@ -228,7 +227,6 @@ export default function AssignmentDetailPage() {
           <div className="teacher-grade-list">
             {roster.map((student) => {
               const stuSub = classSubmissions.find((item) => item.studentCode === student.studentCode);
-              const switchableAcc = accounts.find((a) => a.code === student.studentCode);
               const isGradingThis = gradingId === stuSub?.id;
 
               return (
@@ -248,15 +246,6 @@ export default function AssignmentDetailPage() {
                         </span>
                       ) : (
                         <span className="chip warning">Chưa nộp bài</span>
-                      )}
-                      {switchableAcc && (
-                        <button
-                          type="button"
-                          className="button button-quiet button-xs"
-                          onClick={() => switchAccount(switchableAcc.id)}
-                        >
-                          Chuyển sang TK {student.fullName}
-                        </button>
                       )}
                     </div>
                   </div>
@@ -366,16 +355,7 @@ export default function AssignmentDetailPage() {
                   <div>
                     <strong>Đang chờ giảng viên nhận xét ({account.advisorName})</strong>
                     <p>
-                      Bài đã được ghi nhận. Bạn có thể chuyển sang tài khoản{" "}
-                      <button
-                        type="button"
-                        className="button button-outline button-xs"
-                        style={{ marginLeft: 4 }}
-                        onClick={() => switchAccount("acc-teacher-duc")}
-                      >
-                        Giảng viên ThS. Trần Minh Đức
-                      </button>{" "}
-                      để chấm điểm và phản hồi ngay cho bài này.
+                      Bài làm đã được ghi nhận trên hệ thống và gửi tới giảng viên phụ trách để chấm điểm, phản hồi.
                     </p>
                   </div>
                 </div>

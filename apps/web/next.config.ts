@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const dev = process.env.NODE_ENV !== "production";
 const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const supabaseWs = supabase ? supabase.replace(/^http/i, "ws") : "";
 
 /**
  * Content Security Policy. No third-party scripts, frames or plugins; data only from this site
@@ -17,7 +18,7 @@ const csp = [
   // Chat videos stream from Supabase Storage; blob: is the local preview before upload.
   `media-src 'self' blob: ${supabase}`.trim(),
   "font-src 'self' data:",
-  `connect-src 'self' ${supabase}${dev ? " ws: wss:" : ""}`.trim(),
+  `connect-src 'self' ${supabase} ${supabaseWs} ws: wss:`.replace(/\s+/g, " ").trim(),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

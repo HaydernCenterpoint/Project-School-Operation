@@ -1,7 +1,6 @@
 "use client";
 
 import type { Route } from "next";
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ClassCard } from "@/components/Dashboard";
 import { Icon } from "@/components/Icon";
@@ -14,8 +13,6 @@ export default function ClassesPage() {
   const {
     data,
     account,
-    accounts,
-    switchAccount,
     roster,
     allSubmissions,
     classAnnouncements,
@@ -129,41 +126,31 @@ export default function ClassesPage() {
             : `Bạn thuộc lớp niên chế ${account.cohortClass} do ${account.advisorName} làm cố vấn học tập và giảng dạy trực tiếp`
         }
       >
-        <div className="role-action-bar">
-          {isTeacher ? (
-            <>
-              <button
-                type="button"
-                className="button button-primary button-small"
-                onClick={() => setShowNewAssignment((v) => !v)}
-              >
-                <Icon name="plus" /> Giao bài tập mới
-              </button>
-              <button
-                type="button"
-                className="button button-outline button-small"
-                onClick={() => setShowNewNotice((v) => !v)}
-              >
-                <Icon name="bell" /> Đăng thông báo lớp
-              </button>
-              <button
-                type="button"
-                className="button button-outline button-small"
-                onClick={() => setShowAddStudent((v) => !v)}
-              >
-                <Icon name="users" /> Thêm SV vào lớp
-              </button>
-            </>
-          ) : (
+        {isTeacher && (
+          <div className="role-action-bar">
+            <button
+              type="button"
+              className="button button-primary button-small"
+              onClick={() => setShowNewAssignment((v) => !v)}
+            >
+              <Icon name="plus" /> Giao bài tập mới
+            </button>
             <button
               type="button"
               className="button button-outline button-small"
-              onClick={() => switchAccount("acc-teacher-duc")}
+              onClick={() => setShowNewNotice((v) => !v)}
             >
-              <Icon name="shield" /> Chuyển sang góc nhìn Giảng viên ({account.advisorName})
+              <Icon name="bell" /> Đăng thông báo lớp
             </button>
-          )}
-        </div>
+            <button
+              type="button"
+              className="button button-outline button-small"
+              onClick={() => setShowAddStudent((v) => !v)}
+            >
+              <Icon name="users" /> Thêm SV vào lớp
+            </button>
+          </div>
+        )}
       </PageTitle>
 
       {statusMessage && (
@@ -371,13 +358,12 @@ export default function ClassesPage() {
                 <th scope="col">GPA</th>
                 <th scope="col">Bài đã nộp</th>
                 <th scope="col">Nhận xét của giảng viên</th>
-                <th scope="col">Thao tác / Chuyển TK</th>
+                {isTeacher && <th scope="col">Thao tác</th>}
               </tr>
             </thead>
             <tbody>
               {roster.map((student) => {
                 const subCount = allSubmissions.filter((s) => s.studentCode === student.studentCode).length;
-                const switchableAcc = accounts.find((a) => a.code === student.studentCode);
                 const isMe = account.code === student.studentCode;
                 const isEditing = editingStudentCode === student.studentCode;
 
@@ -434,10 +420,10 @@ export default function ClassesPage() {
                         <span style={{ fontSize: "0.84rem", color: "var(--muted)" }}>{student.teacherNote}</span>
                       )}
                     </td>
-                    <td className="ad-actions">
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        {isTeacher && (
-                          isEditing ? (
+                    {isTeacher && (
+                      <td className="ad-actions">
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                          {isEditing ? (
                             <>
                               <button
                                 type="button"
@@ -462,20 +448,10 @@ export default function ClassesPage() {
                             >
                               <Icon name="pen" /> Sửa ghi chú
                             </button>
-                          )
-                        )}
-                        {switchableAcc && !isMe && (
-                          <button
-                            type="button"
-                            className="button button-quiet button-xs"
-                            onClick={() => switchAccount(switchableAcc.id)}
-                            title={`Chuyển sang tài khoản ${student.fullName}`}
-                          >
-                            Dùng TK này
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

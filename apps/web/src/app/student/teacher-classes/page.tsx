@@ -16,12 +16,10 @@ export default function TeacherOverviewPage() {
     attendanceSessions,
     allSubmissions,
     classAnnouncements,
-    switchAccount,
   } = useStudent();
 
   if (!data) return null;
 
-  const isTeacher = account.role === "teacher" || account.permissions.canManageClassRoster;
   const avgAttendance = roster.length
     ? Math.round(roster.reduce((sum, item) => sum + item.attendancePct, 0) / roster.length)
     : 100;
@@ -38,15 +36,6 @@ export default function TeacherOverviewPage() {
         lead={`Cổng quản lý độc lập dành cho giảng viên · ${account.displayName} (${account.code}) · ${account.department}`}
       >
         <div className="role-action-bar">
-          {!isTeacher && (
-            <button
-              type="button"
-              className="button button-primary button-small"
-              onClick={() => switchAccount("acc-teacher-duc")}
-            >
-              <Icon name="shield" /> Chuyển sang TK Giảng viên (ThS. Trần Minh Đức)
-            </button>
-          )}
           <Link
             href={"/student/teacher-classes/attendance" as Route}
             className="button button-primary button-small"

@@ -1176,7 +1176,7 @@ const DEFAULT_STUDIO_CHART: SduChartSpec = {
   subtitle: "Trích xuất trực tiếp từ Hệ thống Bộ nhớ Học sinh AI — Trường Đại học Sao Đỏ",
   unit: "điểm",
   labels: [
-    "Nguyễn Văn Minh",
+    "Nguyễn Văn Đạt",
     "Phạm Khánh Linh",
     "Lê Việt Hoàng",
     "Đỗ Thu Trang",
@@ -1184,9 +1184,9 @@ const DEFAULT_STUDIO_CHART: SduChartSpec = {
     "Hoàng Minh Tuấn",
   ],
   series: [
-    { name: "GPA hệ 4.0 (quy đổi ×25)", color: "#e11d48", values: [87, 93, 78.8, 88.5, 69.5, 83] },
-    { name: "Điểm rèn luyện (/100)", color: "#2563eb", values: [88, 94, 79, 91, 72, 85] },
-    { name: "Chuyên cần (%)", color: "#10b981", values: [98, 100, 92, 97, 84, 95] },
+    { name: "GPA hệ 4.0 (quy đổi ×25)", color: "#e11d48", values: [77, 93, 78.8, 88.5, 69.5, 83] },
+    { name: "Điểm rèn luyện (/100)", color: "#2563eb", values: [89, 94, 79, 91, 72, 85] },
+    { name: "Chuyên cần (%)", color: "#10b981", values: [100, 100, 92, 97, 84, 95] },
   ],
   note: "Có thể chuyển đổi trực tiếp giữa biểu đồ Cột, Đường, Miền, Radar, Tròn hoặc xuất file .SVG / .CSV.",
 };

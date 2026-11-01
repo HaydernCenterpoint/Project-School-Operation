@@ -582,3 +582,625 @@ export function PhuongTree({ className, id = "phuong" }: { className?: string; i
     </svg>
   );
 }
+
+/**
+ * Illustrated campus scenery & weeping floral willow vines (các dây hoa liễu
+ * rủ dọc rìa khung) for the left `.auth-art` panel on `/login`.
+ * Slender pendulous garlands of willow-lancet leaves, cascading 5-petal blooms,
+ * and coral-gold buds drape from the top and side borders around `<CampusArt />`.
+ */
+export function PhuongAuthBackdrop({ className = "auth-art-backdrop" }: { className?: string }) {
+  const id = "phuong-auth";
+
+  // Helper to evaluate a cubic Bezier point & tangent angle at parameter t in [0, 1]
+  const cubicPoint = (
+    p0: [number, number],
+    p1: [number, number],
+    p2: [number, number],
+    p3: [number, number],
+    t: number,
+  ) => {
+    const u = 1 - t;
+    const x =
+      u * u * u * p0[0] +
+      3 * u * u * t * p1[0] +
+      3 * u * t * t * p2[0] +
+      t * t * t * p3[0];
+    const y =
+      u * u * u * p0[1] +
+      3 * u * u * t * p1[1] +
+      3 * u * t * t * p2[1] +
+      t * t * t * p3[1];
+    const dx =
+      3 * u * u * (p1[0] - p0[0]) +
+      6 * u * t * (p2[0] - p1[0]) +
+      3 * t * t * (p3[0] - p2[0]);
+    const dy =
+      3 * u * u * (p1[1] - p0[1]) +
+      6 * u * t * (p2[1] - p1[1]) +
+      3 * t * t * (p3[1] - p2[1]);
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    return { x: r(x), y: r(y), angle: r(angle) };
+  };
+
+  // Weeping floral willow strands (dây hoa liễu rủ mềm quanh rìa khung)
+  const willowStrands: Array<{
+    p0: [number, number];
+    p1: [number, number];
+    p2: [number, number];
+    p3: [number, number];
+    nodes: number;
+    bloomEvery: number;
+    bloomOffset: number;
+    scale: number;
+    dur: number;
+    delay: number;
+  }> = [
+    // Left-edge draping strands (starting well below brand-lockup at y>=165, hugging left margin x=8..62)
+    {
+      p0: [-6, 168],
+      p1: [34, 228],
+      p2: [12, 338],
+      p3: [28, 462],
+      nodes: 12,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 0.92,
+      dur: 6.2,
+      delay: -0.8,
+    },
+    {
+      p0: [18, 156],
+      p1: [58, 212],
+      p2: [38, 304],
+      p3: [52, 396],
+      nodes: 10,
+      bloomEvery: 2,
+      bloomOffset: 0,
+      scale: 0.84,
+      dur: 5.5,
+      delay: -2.1,
+    },
+    {
+      p0: [-4, 272],
+      p1: [24, 348],
+      p2: [10, 442],
+      p3: [22, 542],
+      nodes: 10,
+      bloomEvery: 3,
+      bloomOffset: 2,
+      scale: 0.82,
+      dur: 6.8,
+      delay: -3.4,
+    },
+
+    // Top-right & right-margin cascading curtain of weeping floral vines (graceful catenary S-curves)
+    {
+      p0: [358, -6],
+      p1: [342, 42],
+      p2: [368, 92],
+      p3: [352, 146],
+      nodes: 7,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 0.8,
+      dur: 5.4,
+      delay: -1.2,
+    },
+    {
+      p0: [414, -6],
+      p1: [392, 56],
+      p2: [426, 122],
+      p3: [406, 186],
+      nodes: 8,
+      bloomEvery: 2,
+      bloomOffset: 0,
+      scale: 0.86,
+      dur: 6.0,
+      delay: -2.6,
+    },
+    {
+      p0: [472, 2],
+      p1: [448, 72],
+      p2: [484, 148],
+      p3: [462, 224],
+      nodes: 9,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 0.9,
+      dur: 5.7,
+      delay: -0.5,
+    },
+    {
+      p0: [528, 8],
+      p1: [502, 92],
+      p2: [544, 184],
+      p3: [520, 278],
+      nodes: 11,
+      bloomEvery: 2,
+      bloomOffset: 0,
+      scale: 0.94,
+      dur: 6.4,
+      delay: -1.9,
+    },
+    {
+      p0: [582, 16],
+      p1: [554, 118],
+      p2: [602, 238],
+      p3: [576, 366],
+      nodes: 13,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 0.98,
+      dur: 6.9,
+      delay: -3.1,
+    },
+    {
+      p0: [628, 24],
+      p1: [598, 156],
+      p2: [646, 318],
+      p3: [614, 496],
+      nodes: 16,
+      bloomEvery: 2,
+      bloomOffset: 0,
+      scale: 1.02,
+      dur: 7.3,
+      delay: -1.4,
+    },
+    {
+      p0: [664, 34],
+      p1: [634, 198],
+      p2: [674, 412],
+      p3: [644, 636],
+      nodes: 19,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 1.05,
+      dur: 7.8,
+      delay: -2.8,
+    },
+
+    // Lower-right trailing floral vines (draping past the bottom-right of CampusArt)
+    {
+      p0: [684, 430],
+      p1: [630, 518],
+      p2: [614, 642],
+      p3: [596, 772],
+      nodes: 12,
+      bloomEvery: 2,
+      bloomOffset: 0,
+      scale: 0.92,
+      dur: 6.5,
+      delay: -0.9,
+    },
+    {
+      p0: [686, 536],
+      p1: [644, 622],
+      p2: [632, 732],
+      p3: [618, 848],
+      nodes: 11,
+      bloomEvery: 2,
+      bloomOffset: 1,
+      scale: 0.88,
+      dur: 6.1,
+      delay: -2.3,
+    },
+  ];
+
+  // Soft crown bouquets anchoring the top-right and mid-left vine origins
+  const anchorBouquets = [
+    { x: 488, y: 4, rot: -8, scale: 0.84, palette: "crimson" as const, shape: "b" as const },
+    { x: 578, y: 12, rot: 12, scale: 0.94, palette: "scarlet" as const, shape: "a" as const },
+    { x: 654, y: 34, rot: 22, scale: 1.02, palette: "crimson" as const, shape: "c" as const },
+    { x: 534, y: 8, rot: 6, scale: 0.78, palette: "sunlit" as const, shape: "a" as const },
+    { x: 628, y: 20, rot: -14, scale: 0.86, palette: "amber" as const, shape: "b" as const },
+    { x: -12, y: 174, rot: -18, scale: 0.76, palette: "crimson" as const, shape: "a" as const },
+    { x: 6, y: 188, rot: 14, scale: 0.68, palette: "sunlit" as const, shape: "c" as const },
+    { x: 662, y: 788, rot: -16, scale: 0.82, palette: "crimson" as const, shape: "b" as const },
+    { x: 644, y: 818, rot: 12, scale: 0.72, palette: "sunlit" as const, shape: "a" as const },
+  ];
+
+  // Fallen petals on the lower-right courtyard walkway
+  const rand = seeded(20261101);
+  const between = (min: number, max: number) => r(min + rand() * (max - min));
+  const courtyardPetals = Array.from({ length: 28 }, () => ({
+    x: between(410, 666),
+    y: between(838, 906),
+    turn: between(0, 360),
+    scale: between(0.38, 0.62),
+    fill: ["#E62E2D", "#FF4722", "#FF6B35", "#FFA62B", "#FFD166"][Math.floor(rand() * 5)],
+  }));
+
+  // Floating pollen motes dancing around the weeping floral vines
+  const motes = Array.from({ length: 18 }, () => ({
+    x: between(340, 665),
+    y: between(24, 680),
+    r: between(1.4, 2.8),
+    delay: `${-between(0, 5)}s`,
+    dur: `${between(3.2, 5.4)}s`,
+  }));
+
+  const place = (c: { x: number; y: number; rot: number; scale: number }) =>
+    `translate(${c.x} ${c.y}) rotate(${c.rot}) scale(${c.scale})`;
+
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 680 920"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={`${id}-sky`} x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stopColor="#FFFDF9" />
+          <stop offset="45%" stopColor="#FFF4E6" />
+          <stop offset="100%" stopColor="#FFE4CC" />
+        </linearGradient>
+        <radialGradient id={`${id}-sun`} cx="82%" cy="10%" r="58%">
+          <stop offset="0%" stopColor="#FFD875" stopOpacity="0.46" />
+          <stop offset="42%" stopColor="#FF8E47" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#FF6B35" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`${id}-beam`} x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FFE28A" stopOpacity="0.32" />
+          <stop offset="65%" stopColor="#FFB56B" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#FFB56B" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`${id}-bark`} x1="0" y1="0" x2="1" y2="0.2">
+          <stop offset="0%" stopColor="#9A785F" />
+          <stop offset="42%" stopColor="#72523D" />
+          <stop offset="100%" stopColor="#3B261B" />
+        </linearGradient>
+        <linearGradient id={`${id}-hill-far`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F7D6BE" stopOpacity="0.68" />
+          <stop offset="100%" stopColor="#F5DEC9" stopOpacity="0.15" />
+        </linearGradient>
+        <linearGradient id={`${id}-hill-near`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#EFC3A4" stopOpacity="0.62" />
+          <stop offset="100%" stopColor="#FBE8D6" stopOpacity="0.2" />
+        </linearGradient>
+        <radialGradient id={`${id}-text-veil-top`} cx="18%" cy="6%" r="36%">
+          <stop offset="0%" stopColor="#FFFAF4" stopOpacity="0.94" />
+          <stop offset="70%" stopColor="#FFFAF4" stopOpacity="0.58" />
+          <stop offset="100%" stopColor="#FFFAF4" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${id}-text-veil-bottom`} cx="28%" cy="88%" r="48%">
+          <stop offset="0%" stopColor="#FFF5EA" stopOpacity="0.95" />
+          <stop offset="68%" stopColor="#FFF2E2" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#FFEEDE" stopOpacity="0" />
+        </radialGradient>
+
+        {(Object.keys(bouquetPalettes) as PaletteKey[]).flatMap((palette) =>
+          bouquetTemplates.map(({ shape, puffs, accents }) => (
+            <g key={`${palette}-${shape}`} id={`${id}-bq-${palette}-${shape}`}>
+              {puffs.map((p, idx) => (
+                <ellipse
+                  key={idx}
+                  cx={p.x}
+                  cy={p.y}
+                  rx={p.rx}
+                  ry={p.ry}
+                  transform={`rotate(${p.rot} ${p.x} ${p.y})`}
+                  fill={bouquetPalettes[palette][p.shade]}
+                />
+              ))}
+              {palette !== "emerald" &&
+                accents.map((a, idx) => (
+                  <path
+                    key={`ac-${idx}`}
+                    d={clawedPetalPath}
+                    transform={`translate(${a.x} ${a.y}) rotate(${a.rot}) scale(${a.scale})`}
+                    fill={bouquetPalettes[palette][2]}
+                  />
+                ))}
+            </g>
+          )),
+        )}
+
+        {/* Slender willow-lancet leaf pair (cặp lá liễu thon dài rủ dọc dây) */}
+        <g id={`${id}-willow-node-a`}>
+          <path
+            d="M0 0 C-7 -4 -17 -3 -26 2 C-16 5 -7 4 0 0 Z"
+            fill="#2E8547"
+            stroke="#1B592D"
+            strokeWidth="0.35"
+          />
+          <path
+            d="M0 2 C7 -2 17 -1 25 4 C16 7 7 6 0 2 Z"
+            fill="#47A45B"
+            stroke="#236837"
+            strokeWidth="0.35"
+          />
+        </g>
+        <g id={`${id}-willow-node-b`}>
+          <path
+            d="M0 0 C-6 -5 -15 -5 -23 -1 C-14 3 -6 3 0 0 Z"
+            fill="#5BB366"
+            stroke="#28723B"
+            strokeWidth="0.35"
+          />
+          <path
+            d="M0 2 C6 -3 15 -2 22 2 C14 5 6 5 0 2 Z"
+            fill="#27733D"
+            stroke="#184D27"
+            strokeWidth="0.35"
+          />
+        </g>
+
+        {/* Detailed 5-petal hero blossom on the weeping vine */}
+        <g id={`${id}-hero-bloom`}>
+          {[0, 72, 144, 216, 288].map((angle, idx) => (
+            <g key={angle} transform={`rotate(${angle})`}>
+              <path
+                d={clawedPetalPath}
+                fill={idx === 0 ? "#FFF4CE" : idx % 2 ? "#DF2228" : "#FF5C2B"}
+                stroke={idx === 0 ? "#D9232E" : "#99121A"}
+                strokeWidth="0.45"
+              />
+              {idx === 0 && (
+                <>
+                  <circle cx="-1.4" cy="-11.5" r="0.95" fill="#D9232E" />
+                  <circle cx="1.3" cy="-12.8" r="0.9" fill="#D9232E" />
+                  <circle cx="0" cy="-9.5" r="0.8" fill="#E84A27" />
+                </>
+              )}
+            </g>
+          ))}
+          <path
+            d="M0 0 Q-5 -9 -8.5 -14 M0 0 Q5 -9 8.5 -14 M0 0 Q-8 -2 -12.5 -5 M0 0 Q8 -2 12.5 -5"
+            stroke="#FFD15C"
+            strokeWidth="0.75"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <circle cx="-8.5" cy="-14" r="1" fill="#FFE082" />
+          <circle cx="8.5" cy="-14" r="1" fill="#FFE082" />
+          <circle r="2.3" fill="#FFD15C" />
+        </g>
+
+        {/* Delicate 5-petal garland blossom + side buds */}
+        <g id={`${id}-garland-bloom`}>
+          {[0, 72, 144, 216, 288].map((angle, idx) => (
+            <path
+              key={angle}
+              d={petalPath}
+              transform={`rotate(${angle})`}
+              fill={idx === 0 ? "#FFE299" : idx % 2 ? "#E62E2D" : "#FF6433"}
+            />
+          ))}
+          <circle r="2.2" fill="#FFF0B8" />
+          <circle cx="-11" cy="5" r="2.6" fill="#FF7844" />
+          <circle cx="11" cy="-4" r="2.2" fill="#FFD166" />
+        </g>
+
+        {/* Pendant tassel bud at the tip of each weeping willow-flower vine */}
+        <g id={`${id}-vine-tassel`}>
+          <path d="M0 0 C-4 7 -5 15 0 22 C5 15 4 7 0 0 Z" fill="#E62E2D" />
+          <path d="M0 3 C-2.5 8 -3 14 0 19 C3 14 2.5 8 0 3 Z" fill="#FF7A45" />
+          <circle cx="-5" cy="6" r="2.4" fill="#FFB74D" />
+          <circle cx="5" cy="8" r="2.1" fill="#FFE082" />
+          <circle cx="0" cy="23.5" r="1.6" fill="#FFD166" />
+        </g>
+      </defs>
+
+      {/* 1. Warm summer sky & sunlit radial glow */}
+      <rect width="680" height="920" fill={`url(#${id}-sky)`} />
+      <rect width="680" height="920" fill={`url(#${id}-sun)`} />
+
+      {/* Diagonal golden summer sunbeams streaming from top-right */}
+      <g className="sd-sunbeam-pulse">
+        <polygon points="680,0 510,0 120,520 265,520" fill={`url(#${id}-beam)`} />
+        <polygon points="680,40 680,190 250,680 140,680" fill={`url(#${id}-beam)`} />
+        <polygon points="465,0 365,0 30,410 110,410" fill={`url(#${id}-beam)`} opacity="0.65" />
+      </g>
+
+      {/* 2. Soft summer sun disc, clouds & distant swallows in the sky around the frame */}
+      <g>
+        <circle cx="268" cy="62" r="34" fill="#FFE699" opacity="0.45" />
+        <circle cx="268" cy="62" r="19" fill="#FFF3C4" opacity="0.68" />
+      </g>
+      <g fill="#FFFDF9" opacity="0.78">
+        <path d="M182 86 C190 70 216 66 232 76 C246 62 276 64 288 80 C306 80 318 92 314 104 L170 104 C166 92 172 86 182 86 Z" />
+        <path d="M46 134 C54 122 74 120 88 128 C100 118 122 120 130 132 C142 132 150 140 148 148 L38 148 C34 140 40 134 46 134 Z" opacity="0.68" />
+      </g>
+      {/* Distant summer swallows (chim én mùa hạ) */}
+      <g stroke="#B85D43" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.62">
+        <path d="M232 52 Q239 44 246 50 Q253 44 260 52" />
+        <path d="M268 40 Q273 34 278 39 Q283 34 288 40" />
+        <path d="M204 70 Q209 64 214 69 Q219 64 224 70" opacity="0.75" />
+      </g>
+
+      {/* 3. Distant Chí Linh hills & Sao Đỏ campus architectural silhouettes peeking around the frame */}
+      <g>
+        {/* Far rolling hills across the mid-lower horizon */}
+        <path
+          d="M-20 518 Q95 472 230 504 T510 478 Q605 462 700 494 L700 760 L-20 760 Z"
+          fill={`url(#${id}-hill-far)`}
+        />
+        {/* Nearer courtyard hill & warm terracotta ground wash */}
+        <path
+          d="M-20 584 Q105 542 240 572 T500 548 Q600 534 700 568 L700 840 L-20 840 Z"
+          fill={`url(#${id}-hill-near)`}
+        />
+
+        {/* Left peeking campus wing (visible in the left margin at x=0..82, y=455..595) */}
+        <g opacity="0.76">
+          <circle cx="22" cy="468" r="26" fill="#5D965B" opacity="0.48" />
+          <circle cx="52" cy="476" r="22" fill="#487D47" opacity="0.44" />
+          <rect x="-10" y="488" width="78" height="88" rx="3" fill="#F6DEC9" stroke="#D49B7E" strokeWidth="1.2" />
+          <polygon points="-18,490 30,456 76,490" fill="#D96B4E" />
+          <line x1="-14" y1="490" x2="74" y2="490" stroke="#A8422B" strokeWidth="2.2" />
+          {[4, 24, 44].map((wx) => (
+            <g key={wx}>
+              <path
+                d={`M${wx} 522 L${wx} 503 A6 6 0 0 1 ${wx + 12} 503 L${wx + 12} 522 Z`}
+                fill="#CE8A67"
+              />
+              <path
+                d={`M${wx} 556 L${wx} 536 A6 6 0 0 1 ${wx + 12} 536 L${wx + 12} 556 Z`}
+                fill="#CE8A67"
+              />
+            </g>
+          ))}
+          <line x1="72" y1="518" x2="72" y2="578" stroke="#9E5E44" strokeWidth="2" />
+          <circle cx="72" cy="514" r="5" fill="#FFE899" stroke="#9E5E44" strokeWidth="1.2" />
+          <path d="M-12 578 L82 578" stroke="#D49B7E" strokeWidth="2" />
+        </g>
+
+        {/* Right peeking campus wing & clock gable (visible in the right margin at x=580..680, y=375..510) */}
+        <g opacity="0.76">
+          <circle cx="604" cy="396" r="24" fill="#5D965B" opacity="0.45" />
+          <circle cx="658" cy="392" r="28" fill="#487D47" opacity="0.42" />
+          <rect x="588" y="412" width="102" height="92" rx="3" fill="#F6DEC9" stroke="#D49B7E" strokeWidth="1.2" />
+          <polygon points="578,414 638,376 698,414" fill="#D96B4E" />
+          <line x1="580" y1="414" x2="696" y2="414" stroke="#A8422B" strokeWidth="2.2" />
+          <circle cx="638" cy="398" r="7.5" fill="#FFF9F0" stroke="#A8422B" strokeWidth="1.4" />
+          <line x1="638" y1="398" x2="638" y2="393" stroke="#A8422B" strokeWidth="1.2" />
+          <line x1="638" y1="398" x2="642" y2="398" stroke="#A8422B" strokeWidth="1.2" />
+          {[598, 620, 642, 664].map((wx) => (
+            <g key={wx}>
+              <path
+                d={`M${wx} 448 L${wx} 428 A6 6 0 0 1 ${wx + 12} 428 L${wx + 12} 448 Z`}
+                fill="#CE8A67"
+              />
+              <path
+                d={`M${wx} 482 L${wx} 462 A6 6 0 0 1 ${wx + 12} 462 L${wx + 12} 482 Z`}
+                fill="#CE8A67"
+              />
+            </g>
+          ))}
+        </g>
+
+        {/* Bottom-right courtyard walkway & petal shadow */}
+        <path
+          d="M320 882 Q495 848 680 874"
+          fill="none"
+          stroke="#DFA98C"
+          strokeWidth="1.6"
+          strokeDasharray="7 6"
+          opacity="0.68"
+        />
+        <ellipse cx="595" cy="878" rx="145" ry="20" fill="#B52B22" opacity="0.1" />
+      </g>
+
+      {/* 4. Soft readability veils behind top-left brand lockup & bottom-left greeting */}
+      <rect width="680" height="920" fill={`url(#${id}-text-veil-top)`} />
+      <rect width="680" height="920" fill={`url(#${id}-text-veil-bottom)`} />
+
+      {/* 5. WEEPING FLORAL WILLOW VINES (CÁC DÂY HOA LIỄU RỦ MỀM Ở RÌA KHUNG) */}
+      <g className="sd-tree-gust">
+        {/* Soft upper-edge bough & anchor blossom clusters */}
+        <g fill={`url(#${id}-bark)`} opacity="0.88">
+          <path d="M696 52 C618 22 518 6 352 -6 L358 -16 C524 -4 624 10 702 38 Z" />
+          <path d="M-18 192 C4 170 24 156 44 146 L38 138 C16 148 -4 162 -26 184 Z" />
+        </g>
+
+        <g className="sd-canopy-mid">
+          {anchorBouquets.map((b, i) => (
+            <use key={`anc-${i}`} href={`#${id}-bq-${b.palette}-${b.shape}`} transform={place(b)} />
+          ))}
+        </g>
+
+        {/* Pendulous swaying willow-flower garlands */}
+        {willowStrands.map((strand, sIdx) => {
+          const d = `M${strand.p0[0]} ${strand.p0[1]} C${strand.p1[0]} ${strand.p1[1]} ${strand.p2[0]} ${strand.p2[1]} ${strand.p3[0]} ${strand.p3[1]}`;
+          const tip = cubicPoint(strand.p0, strand.p1, strand.p2, strand.p3, 1);
+          return (
+            <g
+              key={`ws-${sIdx}`}
+              className="sd-willow-strand"
+              style={
+                {
+                  transformOrigin: `${strand.p0[0]}px ${strand.p0[1]}px`,
+                  "--willow-dur": `${strand.dur}s`,
+                  "--willow-delay": `${strand.delay}s`,
+                } as CSSProperties
+              }
+            >
+              {/* Main slender weeping stem */}
+              <path
+                d={d}
+                fill="none"
+                stroke="#3E6B38"
+                strokeWidth={r(1.7 * strand.scale)}
+                strokeLinecap="round"
+                opacity="0.88"
+              />
+              <path
+                d={d}
+                fill="none"
+                stroke="#7AB864"
+                strokeWidth={r(0.75 * strand.scale)}
+                strokeLinecap="round"
+                opacity="0.55"
+              />
+
+              {/* Willow-lancet leaf pairs & floral nodes strung along the curve */}
+              {Array.from({ length: strand.nodes }, (_, nIdx) => {
+                const t = (nIdx + 1) / (strand.nodes + 1);
+                const pt = cubicPoint(strand.p0, strand.p1, strand.p2, strand.p3, t);
+                const taper = (0.72 + 0.42 * Math.sin(t * Math.PI)) * strand.scale;
+                const isBloom = (nIdx + strand.bloomOffset) % strand.bloomEvery === 0;
+                const isHero = isBloom && (nIdx + sIdx) % 4 === 0;
+                return (
+                  <g key={`nd-${nIdx}`} transform={`translate(${pt.x} ${pt.y})`}>
+                    {/* Willow leaf pair aligned with the downward tangent */}
+                    <use
+                      href={`#${id}-willow-node-${nIdx % 2 === 0 ? "a" : "b"}`}
+                      transform={`rotate(${r(pt.angle - 90)}) scale(${r(taper)})`}
+                    />
+                    {/* Blossom or coral-gold bud cluster */}
+                    {isBloom ? (
+                      <use
+                        href={`#${id}-${isHero ? "hero-bloom" : "garland-bloom"}`}
+                        transform={`rotate(${r((nIdx * 47 + sIdx * 31) % 360)}) scale(${r(taper * (isHero ? 0.68 : 0.62))})`}
+                      />
+                    ) : (
+                      <circle
+                        cx={nIdx % 2 === 0 ? -4.5 : 4.5}
+                        cy="1.5"
+                        r={r(2.1 * taper)}
+                        fill={nIdx % 3 === 0 ? "#FF6B35" : "#FFD166"}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* Pendant floral tassel at the tip of the strand */}
+              <use
+                href={`#${id}-vine-tassel`}
+                transform={`translate(${tip.x} ${tip.y}) rotate(${r(tip.angle - 90)}) scale(${r(strand.scale * 0.88)})`}
+              />
+            </g>
+          );
+        })}
+
+        {/* Shimmering golden pollen & sunlight motes */}
+        {motes.map((m, i) => (
+          <circle
+            key={`mt-${i}`}
+            className="sd-pollen-mote"
+            cx={m.x}
+            cy={m.y}
+            r={m.r}
+            fill="#FFE899"
+            style={{ "--mote-delay": m.delay, "--mote-dur": m.dur } as CSSProperties}
+          />
+        ))}
+      </g>
+
+      {/* Fallen red-and-gold petals on the lower-right courtyard ground */}
+      {courtyardPetals.map((petal, index) => (
+        <path
+          key={`cp-${index}`}
+          d={clawedPetalPath}
+          transform={`translate(${petal.x} ${petal.y}) rotate(${petal.turn}) scale(${petal.scale} ${r(petal.scale * 0.62)})`}
+          fill={petal.fill}
+          opacity="0.86"
+        />
+      ))}
+    </svg>
+  );
+}
+

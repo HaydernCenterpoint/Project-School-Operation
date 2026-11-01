@@ -2,15 +2,19 @@
 
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Avatar, ChatRoom, fold, topicSlug, when } from "@/components/community/ChatRoom";
+import { FormEvent, Suspense, type ChangeEvent, type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { Avatar, ChatRoom, fold, RoomAvatar, topicSlug, when } from "@/components/community/ChatRoom";
 import { Icon, type IconName } from "@/components/Icon";
-import { cropAvatarFile, persistAvatar } from "@/lib/avatar";
+import { cropAvatarFile, getDefaultUserAvatar, persistAvatar } from "@/lib/avatar";
 import {
   community,
+  ROOM_ACCENTS,
+  ROOM_PHOTO_PRESETS,
   roomIcons,
   topics,
+  useChatPreferences,
   type Profile,
+  type RoomAccent,
   type RoomIcon,
   type RoomSummary,
   type Topic,
@@ -24,18 +28,23 @@ function cohortTag(profile: Pick<Profile, "student_code" | "class_name" | "facul
   return parts.length ? parts.join(" · ") : null;
 }
 
+const DIRECTORY_VIEW = "__directory__";
+
 function Community() {
   const router = useRouter();
   const { account } = useStudent();
   const searchParams = useSearchParams();
   const paramRoomId = searchParams.get("room");
   const [overrideRoom, setOverrideRoom] = useState<{ base: string | null; id: string | null } | null>(null);
-  const activeId = overrideRoom && overrideRoom.base === paramRoomId ? overrideRoom.id : paramRoomId;
+  const selectedId = overrideRoom && overrideRoom.base === paramRoomId ? overrideRoom.id : paramRoomId;
   const [me, setMe] = useState<Profile | null>(null);
   const [people, setPeople] = useState<Map<string, Profile>>(new Map());
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState("");
   const [profileOf, setProfileOf] = useState<string | null>(null);
+  const [navTab, setNavTab] = useState<"messages" | "contacts">("messages");
+  const [customizeTrigger, setCustomizeTrigger] = useState(0);
+  const { prefs: chatPrefs } = useChatPreferences();
   const dialog = useRef<HTMLDialogElement>(null);
 
   const refreshPeople = useCallback(async () => {
@@ -73,7 +82,11 @@ function Community() {
   const open = useCallback(
     (id: string | null) => {
       setOverrideRoom({ base: paramRoomId, id });
-      const nextUrl = (id ? `/student/community?room=${id}` : "/student/community") as Route;
+      if (id && id !== DIRECTORY_VIEW) {
+        setNavTab("messages");
+      }
+      const queryId = id && id !== DIRECTORY_VIEW ? id : null;
+      const nextUrl = (queryId ? `/student/community?room=${queryId}` : "/student/community") as Route;
       router.push(nextUrl, { scroll: false });
     },
     [paramRoomId, router],
@@ -109,6 +122,7 @@ function Community() {
     return (
       <div className="cm-shell" aria-busy="true">
         <span className="sr-only">Đang tải Cộng đồng</span>
+        <div className="cm-znav" />
         <div className="cm-rail cm-rail-skeleton">
           {Array.from({ length: 7 }, (_, index) => (
             <div key={index} className="skeleton" />
@@ -121,36 +135,137 @@ function Community() {
     );
   }
 
-  const room = activeId ? rooms.find((item) => item.id === activeId) : undefined;
+  const defaultRoom =
+    [...rooms]
+      .filter((item) => item.joined || item.kind === "dm")
+      .sort(byActivity)[0] ?? rooms[0];
+  const explicitDirectory = selectedId === DIRECTORY_VIEW || navTab === "contacts";
+  const room = explicitDirectory
+    ? undefined
+    : selectedId
+      ? rooms.find((item) => item.id === selectedId)
+      : defaultRoom;
+  const mobileHasRoom = Boolean(selectedId && selectedId !== DIRECTORY_VIEW && room && navTab === "messages");
+  const totalUnread = rooms.reduce((acc, r) => acc + (r.unread || 0), 0);
+  const prefAccent = chatPrefs.accent === "auto" ? undefined : chatPrefs.accent;
+  const shellAccent: RoomAccent = prefAccent ?? room?.accent ?? "crimson";
+
   return (
-    <div className={`cm-shell${room ? " has-room" : ""}`}>
+    <div className={`cm-shell${mobileHasRoom ? " has-room" : ""}`} data-accent={shellAccent}>
+      {/* COLUMN 1: ZALO BLUE LEFT NAVIGATION DOCK */}
+      <nav className="cm-znav" aria-label="Thanh công cụ Zalo SDU">
+        <div className="cm-znav-top">
+          <button
+            type="button"
+            className="cm-znav-avatar"
+            onClick={() => setProfileOf(me.user_id)}
+            aria-label={`Hồ sơ của tôi: ${me.display_name}`}
+            title={`${me.display_name} · Bấm để đổi ảnh đại diện`}
+          >
+            <Avatar profile={me} size="md" online />
+          </button>
+
+          <button
+            type="button"
+            className={`cm-znav-btn${navTab === "messages" && !explicitDirectory ? " is-active" : ""}`}
+            onClick={() => {
+              setNavTab("messages");
+              if (selectedId === DIRECTORY_VIEW && defaultRoom) {
+                open(defaultRoom.id);
+              }
+            }}
+            aria-label="Tin nhắn"
+            title="Tin nhắn"
+          >
+            <Icon name="message" />
+            {totalUnread > 0 && (
+              <span className="cm-znav-badge">{totalUnread > 99 ? "99+" : totalUnread}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`cm-znav-btn${explicitDirectory ? " is-active" : ""}`}
+            onClick={() => {
+              setNavTab("contacts");
+              open(DIRECTORY_VIEW);
+            }}
+            aria-label="Danh bạ & Nhóm cộng đồng"
+            title="Danh bạ & Nhóm cộng đồng"
+          >
+            <Icon name="users" />
+          </button>
+        </div>
+
+        <div className="cm-znav-bottom">
+          <button
+            type="button"
+            className="cm-znav-btn"
+            onClick={() => {
+              if (explicitDirectory && defaultRoom) {
+                setNavTab("messages");
+                open(defaultRoom.id);
+              }
+              setCustomizeTrigger((c) => c + 1);
+            }}
+            aria-label="Tuỳ biến giao diện"
+            title="Tuỳ biến giao diện & chủ đề"
+          >
+            <Icon name="sparkle" />
+          </button>
+
+          <button
+            type="button"
+            className="cm-znav-btn"
+            onClick={() => dialog.current?.showModal()}
+            aria-label="Tạo nhóm mới"
+            title="Tạo nhóm mới"
+          >
+            <Icon name="plus" />
+          </button>
+        </div>
+      </nav>
+
+      {/* COLUMN 2: ZALO CONVERSATION LIST SIDEBAR */}
       <Rail
         rooms={rooms}
         me={me}
         people={people}
         active={room?.id}
+        navTab={navTab}
+        onSelectNavTab={(nextTab) => {
+          setNavTab(nextTab);
+          if (nextTab === "contacts") open(DIRECTORY_VIEW);
+          else if (defaultRoom) open(defaultRoom.id);
+        }}
         onOpen={open}
         onProfile={setProfileOf}
+        onMessage={message}
         onCreate={() => dialog.current?.showModal()}
       />
-      <section className="cm-pane" aria-label={room ? undefined : "Không gian thảo luận học tập"}>
+
+      {/* COLUMNS 3 & 4: ZALO CHAT CANVAS + RIGHT CONVERSATION INFO SIDEBAR */}
+      <section className="cm-pane" aria-label={room ? undefined : "Danh bạ và nhóm cộng đồng"}>
         {room ? (
           <ChatRoom
             key={room.id}
             room={room}
             me={me}
             people={people}
-            onBack={() => open(null)}
+            onBack={() => {
+              setNavTab("contacts");
+              open(DIRECTORY_VIEW);
+            }}
             onProfile={setProfileOf}
             onChanged={refreshRooms}
             onUnknownAuthor={refreshPeople}
+            externalOpenCustomizeCounter={customizeTrigger}
           />
         ) : (
-          <Welcome
+          <DirectoryView
             rooms={rooms}
             me={me}
             people={people}
-            missing={Boolean(activeId)}
             onOpen={open}
             onProfile={setProfileOf}
             onMessage={message}
@@ -158,6 +273,7 @@ function Community() {
           />
         )}
       </section>
+
       <CreateGroup
         dialog={dialog}
         onCreated={async (id) => {
@@ -165,6 +281,7 @@ function Community() {
           open(id);
         }}
       />
+
       <ProfileDialog
         key={profileOf ?? "closed"}
         profile={profileOf ? people.get(profileOf) : undefined}
@@ -198,61 +315,62 @@ function Rail({
   me,
   people,
   active,
+  navTab,
+  onSelectNavTab,
   onOpen,
   onProfile,
+  onMessage,
   onCreate,
 }: {
   rooms: RoomSummary[];
   me: Profile;
   people: Map<string, Profile>;
   active: string | undefined;
+  navTab: "messages" | "contacts";
+  onSelectNavTab: (tab: "messages" | "contacts") => void;
   onOpen: (id: string) => void;
   onProfile: (id: string) => void;
+  onMessage: (id: string) => Promise<void>;
   onCreate: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "unread">("all");
   const [topic, setTopic] = useState<Topic | "Tất cả">("Tất cả");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const filterBox = useRef<HTMLDivElement>(null);
-  const filterButton = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!filterOpen) return;
-    const away = (event: PointerEvent) => {
-      if (!filterBox.current?.contains(event.target as Node)) setFilterOpen(false);
-    };
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [filterOpen]);
-
-  function closeFilter() {
-    setFilterOpen(false);
-    filterButton.current?.focus();
-  }
 
   const q = fold(query.trim());
   const nameOf = (room: RoomSummary) =>
     room.kind === "dm" ? (people.get(room.dm_user ?? "")?.display_name ?? "Thành viên") : (room.name ?? "");
   const matching = rooms.filter((room) => !q || fold(`${nameOf(room)} ${room.about}`).includes(q));
-  const shown = matching
+  const byCategory = matching
     .filter((room) => (room.kind === "dm" ? topic === "Tất cả" : topic === "Tất cả" || room.topic === topic))
+    .filter((room) => (filterMode === "unread" ? room.unread > 0 : true))
     .sort(byActivity);
-  const countOf = (tag: Topic | "Tất cả") =>
-    tag === "Tất cả" ? matching.length : matching.filter((room) => room.kind === "group" && room.topic === tag).length;
-  const inbox = shown.filter((room) => room.kind === "dm" || room.joined);
-  const explore = shown.filter((room) => room.kind === "group" && !room.joined);
-  const pings = rooms.reduce((sum, room) => sum + Number(room.pings), 0);
+  const inbox = byCategory.filter((room) => room.kind === "dm" || room.joined);
+  const explore = byCategory.filter((room) => room.kind === "group" && !room.joined);
 
-  const row = (room: RoomSummary) => {
+  const contacts = [...people.values()]
+    .filter(
+      (person) =>
+        person.user_id !== me.user_id &&
+        (!q ||
+          fold(
+            `${person.display_name} ${person.student_code ?? ""} ${person.class_name ?? ""} ${person.faculty ?? ""}`,
+          ).includes(q)),
+    )
+    .sort((a, b) => a.display_name.localeCompare(b.display_name, "vi"));
+
+  const allProfiles = [...people.values()];
+
+  const row = (room: RoomSummary, index: number) => {
     const other = room.kind === "dm" ? people.get(room.dm_user ?? "") : undefined;
     const slug = room.kind === "group" ? (topicSlug[room.topic] ?? "study") : "dm";
     const preview = room.last_body
       ? `${room.kind === "group" && room.last_author ? `${room.last_author}: ` : ""}${room.last_body}`
       : room.kind === "dm"
-        ? "Bắt đầu trao đổi trực tiếp"
-        : room.about || `${room.member_count} thành viên`;
+        ? (other?.class_name ?? other?.faculty ?? "Tin nhắn riêng")
+        : `${room.member_count} thành viên · ${room.topic}`;
     return (
-      <li key={room.id}>
+      <li key={room.id} style={{ "--stagger-i": Math.min(index, 12) } as CSSProperties}>
         <button
           type="button"
           className={`cm-row${room.unread > 0 ? " is-unread" : ""}`}
@@ -261,15 +379,25 @@ function Rail({
           aria-current={room.id === active ? "true" : undefined}
         >
           {room.kind === "dm" ? (
-            <Avatar profile={other} online />
+            <Avatar profile={other} size="md" online />
           ) : (
-            <span className="cm-glyph" data-topic={slug} aria-hidden="true">
-              <Icon name={room.icon} />
-            </span>
+            <RoomAvatar room={room} size="md" memberProfiles={allProfiles} />
           )}
           <span className="cm-row-main">
             <span className="cm-row-top">
-              <strong>{nameOf(room)}</strong>
+              <strong>
+                {room.kind === "group" && (
+                  <span className="cm-group-mini-badge" title="Nhóm cộng đồng">
+                    Nhóm
+                  </span>
+                )}
+                {nameOf(room)}
+                {room.kind === "group" && room.is_owner && (
+                  <i className="cm-owner-star" title="Bạn là Trưởng nhóm">
+                    <Icon name="shield" />
+                  </i>
+                )}
+              </strong>
               {room.last_at && <time dateTime={room.last_at}>{when(room.last_at)}</time>}
             </span>
             <span className="cm-row-bottom">
@@ -277,19 +405,10 @@ function Rail({
               {room.pings > 0 && (
                 <span className="cm-ping" title={`${room.pings} lượt nhắc tên`}>
                   @{room.pings}
-                  <span className="sr-only"> lượt nhắc đến bạn</span>
                 </span>
               )}
               {room.unread > 0 && (
-                <span className="cm-badge">
-                  {room.unread > 99 ? "99+" : room.unread}
-                  <span className="sr-only"> tin chưa đọc</span>
-                </span>
-              )}
-              {room.kind === "group" && (
-                <span className="cm-row-topic" data-topic={slug}>
-                  {room.topic}
-                </span>
+                <span className="cm-badge">{room.unread > 99 ? "99+" : room.unread}</span>
               )}
             </span>
           </span>
@@ -299,158 +418,163 @@ function Rail({
   };
 
   return (
-    <aside className="cm-rail" aria-label="Danh sách kênh thảo luận">
-      <header className="cm-rail-head">
-        <div className="cm-rail-title">
-          <h2>Cộng đồng</h2>
-          {me.student_code && <code className="cm-cohort">{me.student_code}</code>}
-        </div>
-        <button
-          className="cm-btn-icon cm-me"
-          type="button"
-          onClick={() => onProfile(me.user_id)}
-          aria-label="Hồ sơ của tôi"
-          title="Hồ sơ của tôi"
-        >
-          <Avatar profile={me} size="sm" />
-        </button>
-        <button
-          className="cm-btn-icon cm-new"
-          type="button"
-          onClick={onCreate}
-          aria-label="Tạo nhóm mới"
-          title="Tạo nhóm mới"
-        >
-          <Icon name="plus" />
-        </button>
-      </header>
-
-      <div className="cm-find">
+    <aside className="cm-rail" aria-label="Danh sách hội thoại Zalo SDU">
+      {/* ZALO TOP SEARCH + ACTION BUTTONS */}
+      <div className="cm-zalo-search-head">
         <label className="cm-search">
           <Icon name="search" />
-          <span className="sr-only">Tìm kênh hoặc thành viên</span>
+          <span className="sr-only">Tìm kiếm</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm kênh hoặc thành viên"
+            placeholder="Tìm kiếm"
           />
         </label>
-        <div
-          className="cm-filter"
-          ref={filterBox}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && filterOpen) {
-              event.stopPropagation();
-              closeFilter();
-            }
-          }}
+        <button
+          className={`cm-btn-icon${navTab === "contacts" ? " is-active" : ""}`}
+          type="button"
+          onClick={() => onSelectNavTab(navTab === "contacts" ? "messages" : "contacts")}
+          aria-label="Danh bạ sinh viên & giảng viên"
+          title="Danh bạ sinh viên & giảng viên"
         >
+          <Icon name="user" />
+        </button>
+        <button
+          className="cm-btn-icon"
+          type="button"
+          onClick={onCreate}
+          aria-label="Tạo nhóm chat mới"
+          title="Tạo nhóm chat mới"
+        >
+          <Icon name="plus" />
+        </button>
+      </div>
+
+      {/* ZALO FILTER TABS: TẤT CẢ | CHƯA ĐỌC | PHÂN LOẠI */}
+      <div className="cm-zalo-filter-bar">
+        <div className="cm-zalo-tabs" role="tablist" aria-label="Bộ lọc hội thoại">
           <button
-            ref={filterButton}
             type="button"
-            className={`cm-filter-button${topic !== "Tất cả" ? " is-active" : ""}`}
-            onClick={() => setFilterOpen((value) => !value)}
-            aria-expanded={filterOpen}
-            aria-controls="cm-filter-menu"
-            aria-label={topic === "Tất cả" ? "Lọc theo chủ đề" : `Lọc theo chủ đề: ${topic}`}
-            title={topic === "Tất cả" ? "Lọc theo chủ đề" : `Đang lọc: ${topic}`}
+            role="tab"
+            aria-selected={navTab === "messages" && filterMode === "all"}
+            className={navTab === "messages" && filterMode === "all" ? "is-active" : ""}
+            onClick={() => {
+              onSelectNavTab("messages");
+              setFilterMode("all");
+            }}
           >
-            <Icon name={topic === "Tất cả" ? "filter" : topicIcons[topic]} />
-            {topic !== "Tất cả" && <span className="cm-filter-dot" aria-hidden="true" />}
+            Tất cả
           </button>
-          {filterOpen && (
-            <div id="cm-filter-menu" className="cm-filter-menu" role="group" aria-label="Chủ đề">
-              {(["Tất cả", ...topics] as const).map((item) => {
-                const count = countOf(item);
-                const on = topic === item;
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    className="cm-filter-item"
-                    aria-pressed={on}
-                    disabled={!on && count === 0}
-                    autoFocus={on}
-                    onClick={() => {
-                      setTopic(item);
-                      closeFilter();
-                    }}
-                  >
-                    <Icon name={topicIcons[item]} />
-                    <span>{item}</span>
-                    <span className="cm-count">
-                      {count}
-                      <span className="sr-only"> kênh</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={navTab === "messages" && filterMode === "unread"}
+            className={navTab === "messages" && filterMode === "unread" ? "is-active" : ""}
+            onClick={() => {
+              onSelectNavTab("messages");
+              setFilterMode("unread");
+            }}
+          >
+            Chưa đọc
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={navTab === "contacts"}
+            className={navTab === "contacts" ? "is-active" : ""}
+            onClick={() => onSelectNavTab("contacts")}
+          >
+            Danh bạ
+          </button>
         </div>
+
+        {navTab === "messages" && (
+          <select
+            className="cm-zalo-category-select"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value as Topic | "Tất cả")}
+            aria-label="Phân loại nhóm"
+          >
+            <option value="Tất cả">Phân loại</option>
+            {topics.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      <div className="cm-rail-topics" role="group" aria-label="Chủ đề nhanh">
-        {(["Tất cả", ...topics] as const).map((item) => {
-          const on = topic === item;
-          const slug = item === "Tất cả" ? "all" : (topicSlug[item] ?? "study");
-          return (
-            <button
-              key={item}
-              type="button"
-              className={`cm-topic-pill${on ? " is-active" : ""}`}
-              data-topic={slug}
-              aria-pressed={on}
-              onClick={() => setTopic(item)}
-            >
-              <Icon name={topicIcons[item]} />
-              <span>{item}</span>
-            </button>
-          );
-        })}
-      </div>
-
+      {/* CONVERSATION OR CONTACT LIST */}
       <div className="cm-rail-scroll">
-        {topic !== "Tất cả" && (
-          <p className="cm-filtering">
-            <Icon name={topicIcons[topic]} />
-            <span>
-              Chủ đề: <b>{topic}</b>
-            </span>
-            <button type="button" onClick={() => setTopic("Tất cả")}>
-              Bỏ lọc
-            </button>
-          </p>
-        )}
-        {pings > 0 && (
-          <p className="cm-ping-note">
-            <Icon name="at" />
-            <span>{pings} lượt nhắc tên chưa đọc</span>
-          </p>
-        )}
-        <section aria-labelledby="cm-inbox">
-          <div className="cm-sec-head">
-            <h3 id="cm-inbox">Kênh đang tham gia</h3>
-            <span>{inbox.length}</span>
-          </div>
-          {inbox.length ? (
-            <ul className="cm-list">{inbox.map(row)}</ul>
-          ) : (
-            <p className="cm-rail-empty">
-              {q || topic !== "Tất cả"
-                ? "Không có kênh nào khớp bộ lọc"
-                : "Bạn chưa tham gia kênh nào, chọn một nhóm bên dưới để bắt đầu"}
-            </p>
-          )}
-        </section>
-        {explore.length > 0 && (
-          <section aria-labelledby="cm-explore" className="cm-explore">
+        {navTab === "messages" ? (
+          <>
+            {inbox.length ? (
+              <ul className="cm-list">{inbox.map(row)}</ul>
+            ) : (
+              <p className="cm-rail-empty">
+                {filterMode === "unread"
+                  ? "Không có tin nhắn chưa đọc"
+                  : "Không có hội thoại phù hợp"}
+              </p>
+            )}
+            {explore.length > 0 && (
+              <section aria-labelledby="cm-explore" className="cm-explore">
+                <div className="cm-sec-head">
+                  <h3 id="cm-explore">Cộng đồng gợi ý</h3>
+                  <span>{explore.length}</span>
+                </div>
+                <ul className="cm-list">{explore.map(row)}</ul>
+              </section>
+            )}
+          </>
+        ) : (
+          <section aria-labelledby="cm-contacts">
             <div className="cm-sec-head">
-              <h3 id="cm-explore">Khám phá kênh trường</h3>
-              <span>{explore.length}</span>
+              <h3 id="cm-contacts">Bạn bè & Giảng viên ({contacts.length})</h3>
             </div>
-            <ul className="cm-list">{explore.map(row)}</ul>
+            {contacts.length ? (
+              <ul className="cm-list">
+                {contacts.map((person, index) => (
+                  <li
+                    key={person.user_id}
+                    className="cm-contact-item"
+                    style={{ "--stagger-i": Math.min(index, 12) } as CSSProperties}
+                  >
+                    <button
+                      type="button"
+                      className="cm-row"
+                      onClick={() => void onMessage(person.user_id)}
+                    >
+                      <Avatar profile={person} size="md" online={index < 5} />
+                      <span className="cm-row-main">
+                        <span className="cm-row-top">
+                          <strong>{person.display_name}</strong>
+                          {person.class_name && <code className="cm-cohort">{person.class_name}</code>}
+                        </span>
+                        <span className="cm-row-bottom">
+                          <span className="cm-row-preview">
+                            {person.faculty ?? person.student_code ?? "Thành viên"}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="cm-contact-info"
+                      onClick={() => onProfile(person.user_id)}
+                      aria-label={`Hồ sơ ${person.display_name}`}
+                      title="Xem hồ sơ"
+                    >
+                      <Icon name="user" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="cm-rail-empty">Không tìm thấy thành viên</p>
+            )}
           </section>
         )}
       </div>
@@ -458,11 +582,10 @@ function Rail({
   );
 }
 
-function Welcome({
+function DirectoryView({
   rooms,
   me,
   people,
-  missing,
   onOpen,
   onProfile,
   onMessage,
@@ -471,83 +594,33 @@ function Welcome({
   rooms: RoomSummary[];
   me: Profile;
   people: Map<string, Profile>;
-  missing: boolean;
   onOpen: (id: string) => void;
   onProfile: (id: string) => void;
   onMessage: (id: string) => Promise<void>;
   onCreate: () => void;
 }) {
   const [hubTopic, setHubTopic] = useState<Topic | "Tất cả">("Tất cả");
-  const joinedGroups = rooms
-    .filter((room) => room.kind === "group" && room.joined && (hubTopic === "Tất cả" || room.topic === hubTopic))
-    .sort(byActivity);
-  const picks = rooms
-    .filter((room) => room.kind === "group" && !room.joined && (hubTopic === "Tất cả" || room.topic === hubTopic))
-    .sort((a, b) => b.member_count - a.member_count);
-  const allJoinedCount = rooms.filter((room) => room.kind === "group" && room.joined).length;
-  const unreadTotal = rooms.reduce((sum, room) => sum + room.unread, 0);
-  const pingTotal = rooms.reduce((sum, room) => sum + room.pings, 0);
-  const directoryPeople = [...people.values()]
-    .filter((person) => person.user_id !== me.user_id)
-    .slice(0, 6);
-  const firstRoom = joinedGroups[0] ?? rooms[0];
+  const groups = rooms
+    .filter((room) => room.kind === "group" && (hubTopic === "Tất cả" || room.topic === hubTopic))
+    .sort((a, b) => Number(b.joined) - Number(a.joined) || byActivity(a, b));
+  const directoryPeople = [...people.values()].filter((person) => person.user_id !== me.user_id);
 
   return (
     <div className="cm-welcome">
       <div className="cm-welcome-inner">
-        {missing && (
-          <p className="notice" role="status">
-            <Icon name="info" /> Kênh này không còn tồn tại hoặc bạn chưa có quyền truy cập
-          </p>
-        )}
-
-        <header className="cm-dir-hero">
-          <div className="cm-dir-copy">
-            <div className="cm-dir-kicker">
-              <span className="cm-live-dot" aria-hidden="true" />
-              <span>Không gian học thuật Đại học Sao Đỏ</span>
-              {cohortTag(me) && <code className="cm-cohort">{cohortTag(me)}</code>}
+        <header className="cm-dir-bar">
+          <div className="cm-dir-bar-top">
+            <div>
+              <h2>Danh bạ & Nhóm cộng đồng SDU</h2>
+              <p className="cm-dir-sub">Kết nối trực tiếp với giảng viên, cố vấn học tập và các nhóm học phần</p>
             </div>
-            <h2>Kênh thảo luận học phần, câu lạc bộ và lớp niên chế</h2>
-            <p>
-              Trao đổi bài thực hành, chia sẻ đề cương ôn tập và kết nối trực tiếp với giảng viên cố vấn hoặc thành
-              viên các khoa. Gõ <kbd>@</kbd> trong ô soạn thảo để nhắc tên thành viên trong phòng.
-            </p>
-            <div className="cm-dir-actions">
-              {firstRoom && (
-                <button className="button button-primary button-small" type="button" onClick={() => onOpen(firstRoom.id)}>
-                  <Icon name="message" /> Mở {firstRoom.name ?? "cuộc trò chuyện"}
-                </button>
-              )}
-              <button className="button button-outline button-small" type="button" onClick={onCreate}>
-                <Icon name="plus" /> Tạo nhóm học tập mới
-              </button>
-            </div>
+            <button className="button button-primary button-small" type="button" onClick={onCreate}>
+              <Icon name="plus" /> Tạo nhóm mới
+            </button>
           </div>
-
-          <dl className="cm-dir-stats" aria-label="Thống kê kênh cộng đồng">
-            <div className="cm-stat-card" data-tone="study">
-              <div className="cm-stat-head">
-                <span className="cm-stat-icon"><Icon name="users" /></span>
-                <dt>Kênh đang tham gia</dt>
-              </div>
-              <dd>{allJoinedCount}</dd>
-              <span>Trên tổng số {rooms.filter((r) => r.kind === "group").length} kênh toàn trường</span>
-            </div>
-            <div className="cm-stat-card" data-tone="social">
-              <div className="cm-stat-head">
-                <span className="cm-stat-icon"><Icon name="bell" /></span>
-                <dt>Tin nhắn chưa đọc</dt>
-              </div>
-              <dd>{unreadTotal}</dd>
-              <span>{pingTotal > 0 ? `${pingTotal} lượt nhắc tên trực tiếp` : "Đã cập nhật toàn bộ lượt nhắc"}</span>
-            </div>
-          </dl>
-
           <div className="cm-hub-topics" role="group" aria-label="Lọc nhóm theo chủ đề">
             {(["Tất cả", ...topics] as const).map((item) => {
               const on = hubTopic === item;
-              const slug = item === "Tất cả" ? "all" : (topicSlug[item] ?? "study");
               const totalInTopic =
                 item === "Tất cả"
                   ? rooms.filter((r) => r.kind === "group").length
@@ -557,7 +630,6 @@ function Welcome({
                   key={item}
                   type="button"
                   className={`cm-topic-pill${on ? " is-active" : ""}`}
-                  data-topic={slug}
                   aria-pressed={on}
                   onClick={() => setHubTopic(item)}
                 >
@@ -571,56 +643,41 @@ function Welcome({
         </header>
 
         <div className="cm-dir-grid">
-          <section className="cm-dir-card" aria-labelledby="cm-dir-joined">
+          <section className="cm-dir-card" aria-labelledby="cm-dir-channels">
             <header className="cm-dir-card-head">
-              <div>
-                <h3 id="cm-dir-joined">Kênh học tập & câu lạc bộ của bạn</h3>
-                <p>Các phòng thảo luận bạn đang là thành viên chính thức</p>
-              </div>
-              <span className="cm-mono-meta">{joinedGroups.length} kênh</span>
+              <h3 id="cm-dir-channels">Nhóm & Cộng đồng ({groups.length})</h3>
             </header>
 
-            {joinedGroups.length > 0 ? (
+            {groups.length > 0 ? (
               <ul className="cm-dir-list">
-                {joinedGroups.map((room) => {
+                {groups.map((room, index) => {
                   const slug = topicSlug[room.topic] ?? "study";
                   return (
-                    <li key={room.id}>
+                    <li key={room.id} style={{ "--stagger-i": Math.min(index, 12) } as CSSProperties}>
                       <button
                         type="button"
-                        className={`cm-dir-row${room.unread > 0 ? " is-unread" : ""}`}
+                        className="cm-dir-row"
                         data-topic={slug}
                         onClick={() => onOpen(room.id)}
                       >
-                        <span className="cm-glyph cm-glyph-md" data-topic={slug} aria-hidden="true">
-                          <Icon name={room.icon} />
-                        </span>
+                        <RoomAvatar room={room} size="md" memberProfiles={directoryPeople} />
                         <span className="cm-dir-row-main">
                           <span className="cm-dir-row-top">
                             <strong>{room.name}</strong>
-                            <span className="cm-row-topic" data-topic={slug}>
-                              {room.topic}
-                            </span>
-                            <span className="cm-member-pill">
-                              <Icon name="users" /> {room.member_count} TV
-                            </span>
+                            {room.is_owner && <span className="cm-role-tag">Trưởng nhóm</span>}
+                            <span className="cm-row-topic">{room.topic}</span>
+                            <span className="cm-member-pill">{room.member_count} TV</span>
                           </span>
-                          <span className="cm-dir-row-about">{room.about}</span>
-                          {room.last_body && (
-                            <span className="cm-dir-row-activity">
-                              <i className="cm-activity-dot" aria-hidden="true" />
-                              {room.last_author && <b>{room.last_author}: </b>}
-                              <span>{room.last_body}</span>
-                              {room.last_at && <time dateTime={room.last_at}>{when(room.last_at)}</time>}
-                            </span>
-                          )}
+                          <span className="cm-dir-row-sub">
+                            {room.last_body
+                              ? `${room.last_author ? `${room.last_author}: ` : ""}${room.last_body}`
+                              : room.about}
+                          </span>
                         </span>
                         {room.unread > 0 ? (
                           <span className="cm-badge">{room.unread}</span>
                         ) : (
-                          <span className="cm-dir-go" aria-hidden="true">
-                            <Icon name="chevron" />
-                          </span>
+                          <span className="cm-dir-state">{room.joined ? "Nhắn tin" : "Tham gia"}</span>
                         )}
                       </button>
                     </li>
@@ -628,93 +685,44 @@ function Welcome({
                 })}
               </ul>
             ) : (
-              <p className="cm-rail-empty">Không có kênh nào thuộc chủ đề đã chọn, chọn chủ đề khác hoặc tham gia nhóm bên cạnh</p>
+              <p className="cm-rail-empty">Không có nhóm nào thuộc phân loại này</p>
             )}
           </section>
 
-          <div className="cm-dir-side">
-            {picks.length > 0 && (
-              <section className="cm-dir-card" aria-labelledby="cm-dir-explore">
-                <header className="cm-dir-card-head">
-                  <div>
-                    <h3 id="cm-dir-explore">Khám phá kênh chuyên đề</h3>
-                    <p>Xem trước nội dung hoặc tham gia thảo luận</p>
-                  </div>
-                  <span className="cm-mono-meta">{picks.length} kênh</span>
-                </header>
-                <ul className="cm-dir-list">
-                  {picks.map((room) => {
-                    const slug = topicSlug[room.topic] ?? "study";
-                    return (
-                      <li key={room.id}>
-                        <button type="button" className="cm-dir-row is-explore" data-topic={slug} onClick={() => onOpen(room.id)}>
-                          <span className="cm-glyph" data-topic={slug} aria-hidden="true">
-                            <Icon name={room.icon} />
-                          </span>
-                          <span className="cm-dir-row-main">
-                            <span className="cm-dir-row-top">
-                              <strong>{room.name}</strong>
-                              <span className="cm-row-topic" data-topic={slug}>
-                                {room.topic}
-                              </span>
-                              <span className="cm-member-pill">
-                                <Icon name="users" /> {room.member_count} TV
-                              </span>
-                            </span>
-                            <span className="cm-dir-row-sub">{room.about}</span>
-                          </span>
-                          <span className="cm-dir-go" aria-hidden="true">
-                            <Icon name="chevron" />
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            )}
-
-            {directoryPeople.length > 0 && (
-              <section className="cm-dir-card" aria-labelledby="cm-dir-people">
-                <header className="cm-dir-card-head">
-                  <div>
-                    <h3 id="cm-dir-people">Danh bạ lớp & cố vấn</h3>
-                    <p>Nhấn để xem hồ sơ hoặc nhắn tin riêng</p>
-                  </div>
-                  <span className="cm-mono-meta">{directoryPeople.length} thành viên</span>
-                </header>
-                <ul className="cm-dir-people">
-                  {directoryPeople.map((person, index) => (
-                    <li key={person.user_id}>
-                      <button
-                        type="button"
-                        className="cm-person-main"
-                        onClick={() => onProfile(person.user_id)}
-                      >
-                        <Avatar profile={person} size="sm" online={index < 4} />
-                        <span className="cm-person-info">
-                          <span className="cm-person-top">
-                            <strong>{person.display_name}</strong>
-                            {cohortTag(person) && <code className="cm-cohort">{cohortTag(person)}</code>}
-                          </span>
-                          {person.bio && <small className="cm-person-bio">{person.bio}</small>}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="cm-btn-icon cm-dm-btn"
-                        onClick={() => void onMessage(person.user_id)}
-                        aria-label={`Nhắn tin cho ${person.display_name}`}
-                        title={`Nhắn tin cho ${person.display_name}`}
-                      >
-                        <Icon name="message" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
+          <section className="cm-dir-card" aria-labelledby="cm-dir-people">
+            <header className="cm-dir-card-head">
+              <h3 id="cm-dir-people">Danh bạ ({directoryPeople.length})</h3>
+            </header>
+            <ul className="cm-dir-people">
+              {directoryPeople.map((person, index) => (
+                <li key={person.user_id} style={{ "--stagger-i": Math.min(index, 12) } as CSSProperties}>
+                  <button
+                    type="button"
+                    className="cm-person-main"
+                    onClick={() => onProfile(person.user_id)}
+                  >
+                    <Avatar profile={person} size="md" online={index < 5} />
+                    <span className="cm-person-info">
+                      <span className="cm-person-top">
+                        <strong>{person.display_name}</strong>
+                        {cohortTag(person) && <code className="cm-cohort">{cohortTag(person)}</code>}
+                      </span>
+                      {person.faculty && <small className="cm-person-bio">{person.faculty}</small>}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="cm-btn-icon cm-dm-btn"
+                    onClick={() => void onMessage(person.user_id)}
+                    aria-label={`Nhắn tin cho ${person.display_name}`}
+                    title="Nhắn tin trực tiếp"
+                  >
+                    <Icon name="message" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
       </div>
     </div>
@@ -728,10 +736,31 @@ function CreateGroup({
   dialog: React.RefObject<HTMLDialogElement | null>;
   onCreated: (id: string) => Promise<void>;
 }) {
-  const blank = { name: "", about: "", topic: "Học tập" as Topic, icon: "message" as RoomIcon };
+  const fileInput = useRef<HTMLInputElement>(null);
+  const blank = {
+    name: "",
+    about: "",
+    topic: "Học tập" as Topic,
+    icon: "message" as RoomIcon,
+    avatar_url: ROOM_PHOTO_PRESETS[0]!.url as string | null,
+    accent: "crimson" as RoomAccent,
+  };
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function onUploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await cropAvatarFile(file, 256);
+      setForm((prev) => ({ ...prev, avatar_url: dataUrl }));
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được ảnh nhóm");
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -739,7 +768,10 @@ function CreateGroup({
     if (name.length < 3) return setError("Tên nhóm cần ít nhất 3 ký tự");
     setBusy(true);
     try {
-      const id = await community.createRoom(name, form.about.trim(), form.topic, form.icon);
+      const id = await community.createRoom(name, form.about.trim(), form.topic, form.icon, {
+        avatar_url: form.avatar_url,
+        accent: form.accent,
+      });
       dialog.current?.close();
       setForm(blank);
       await onCreated(id);
@@ -754,7 +786,7 @@ function CreateGroup({
     <dialog ref={dialog} className="cm-dialog" aria-labelledby="cm-new-title" onClose={() => setError("")}>
       <form className="pt-form" onSubmit={submit}>
         <div className="cm-dialog-head">
-          <h3 id="cm-new-title">Tạo nhóm thảo luận mới</h3>
+          <h3 id="cm-new-title">Tạo nhóm cộng đồng mới</h3>
           <button
             className="cm-btn-icon"
             type="button"
@@ -764,58 +796,138 @@ function CreateGroup({
             <Icon name="close" />
           </button>
         </div>
-        <fieldset className="cm-icons">
-          <legend>Biểu tượng kênh</legend>
-          {(Object.keys(roomIcons) as RoomIcon[])
-            .filter((icon) => icon !== "sparkle")
-            .map((icon) => (
-              <label key={icon} title={roomIcons[icon]}>
-                <input
-                  type="radio"
-                  name="icon"
-                  value={icon}
-                  checked={form.icon === icon}
-                  onChange={() => setForm({ ...form, icon })}
-                />
-                <span>
-                  <Icon name={icon} />
-                </span>
-                <span className="sr-only">{roomIcons[icon]}</span>
-              </label>
-            ))}
-        </fieldset>
+
+        <div className="cm-room-editor-hero">
+          <div className="cm-room-editor-avatar">
+            <RoomAvatar
+              room={{
+                name: form.name,
+                icon: form.icon,
+                avatar_url: form.avatar_url,
+                topic: form.topic,
+                accent: form.accent,
+              }}
+              size="lg"
+            />
+            <div className="cm-room-editor-btns">
+              <input
+                ref={fileInput}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={onUploadAvatar}
+              />
+              <button
+                type="button"
+                className="button button-outline button-xs"
+                onClick={() => fileInput.current?.click()}
+              >
+                <Icon name="image" /> Tải ảnh nhóm
+              </button>
+              {form.avatar_url && (
+                <button
+                  type="button"
+                  className="button button-quiet button-xs"
+                  onClick={() => setForm({ ...form, avatar_url: null })}
+                >
+                  Ghép 4 avatar kiểu Zalo
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="cm-preset-strip">
+            <span className="cm-field-label">Chọn ảnh đại diện mẫu:</span>
+            <div className="cm-photo-grid">
+              {ROOM_PHOTO_PRESETS.slice(0, 6).map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`cm-photo-swatch${form.avatar_url === preset.url ? " is-active" : ""}`}
+                  onClick={() => setForm({ ...form, avatar_url: preset.url })}
+                  title={preset.label}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- preset campus photo */}
+                  <img src={preset.url} alt={preset.label} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="cm-form-grid-2">
+          <label className="field">
+            Tên nhóm
+            <input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              required
+              minLength={3}
+              maxLength={60}
+              placeholder="Ví dụ: Nhóm ôn Toán rời rạc MI1140"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "cm-new-error" : undefined}
+              autoFocus
+            />
+          </label>
+          <label className="field">
+            Phân loại
+            <select value={form.topic} onChange={(event) => setForm({ ...form, topic: event.target.value as Topic })}>
+              {topics.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         <label className="field">
-          Tên nhóm
-          <input
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-            required
-            minLength={3}
-            maxLength={60}
-            placeholder="Ví dụ: Nhóm ôn Toán rời rạc MI1140"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "cm-new-error" : undefined}
-            autoFocus
-          />
-        </label>
-        <label className="field">
-          Chủ đề
-          <select value={form.topic} onChange={(event) => setForm({ ...form, topic: event.target.value as Topic })}>
-            {topics.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          Mô tả <small>(không bắt buộc)</small>
+          Mô tả <small>(tuỳ chọn)</small>
           <textarea
             value={form.about}
             onChange={(event) => setForm({ ...form, about: event.target.value })}
             maxLength={200}
-            rows={3}
-            placeholder="Mục đích học tập, học phần hoặc lịch trao đổi của nhóm"
+            rows={2}
+            placeholder="Học phần, mục tiêu hoặc lịch trao đổi"
           />
         </label>
+
+        <div className="cm-form-grid-2">
+          <fieldset className="cm-icons">
+            <legend>Biểu tượng</legend>
+            {(Object.keys(roomIcons) as RoomIcon[])
+              .filter((icon) => icon !== "sparkle")
+              .map((icon) => (
+                <label key={icon} title={roomIcons[icon]}>
+                  <input
+                    type="radio"
+                    name="icon"
+                    value={icon}
+                    checked={form.icon === icon}
+                    onChange={() => setForm({ ...form, icon })}
+                  />
+                  <span>
+                    <Icon name={icon} />
+                  </span>
+                </label>
+              ))}
+          </fieldset>
+          <fieldset className="cm-icons">
+            <legend>Màu chủ đạo</legend>
+            <div className="cm-accent-swatches">
+              {ROOM_ACCENTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`cm-color-dot${form.accent === item.id ? " is-active" : ""}`}
+                  style={{ background: item.color }}
+                  onClick={() => setForm({ ...form, accent: item.id })}
+                  title={item.label}
+                />
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
         {error && (
           <p className="pt-warn" id="cm-new-error" role="alert">
             {error}
@@ -833,6 +945,15 @@ function CreateGroup({
     </dialog>
   );
 }
+
+const PORTRAIT_PRESET_SEEDS = [
+  "student-default",
+  "user-lan-anh",
+  "user-tuan-kiet",
+  "user-hoang-nam",
+  "user-thu-ha",
+  "user-quoc-bao",
+];
 
 function ProfileDialog({
   profile,
@@ -862,10 +983,19 @@ function ProfileDialog({
     try {
       const cropped = await cropAvatarFile(file);
       await persistAvatar(me.user_id, cropped);
-      setStatus("Đã lưu ảnh đại diện mới");
+      await onSaved();
+      setStatus("Đã lưu ảnh đại diện");
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Không đổi được ảnh đại diện");
     }
+  }
+
+  async function pickPresetPortrait(seedId: string) {
+    if (!self) return;
+    const svgUrl = getDefaultUserAvatar(seedId, me.display_name);
+    await persistAvatar(me.user_id, svgUrl);
+    await onSaved();
+    setStatus("Đã đổi avatar");
   }
 
   useEffect(() => {
@@ -880,7 +1010,7 @@ function ProfileDialog({
     try {
       await community.saveBio(me.user_id, bio.trim());
       await onSaved();
-      setStatus("Đã cập nhật giới thiệu");
+      setStatus("Đã lưu");
     } catch (saveError) {
       setStatus(saveError instanceof Error ? saveError.message : "Không lưu được");
     }
@@ -897,13 +1027,29 @@ function ProfileDialog({
       {profile && (
         <>
           <header className="cm-profile-head">
-            <div className="cm-profile-school">
-              <span className="cm-profile-seal" aria-hidden="true">
-                <img src="/sao-do-logo.png" alt="" width={28} height={30} />
-              </span>
-              <div>
-                <strong>Hồ sơ thành viên</strong>
-                <span>Trường Đại học Sao Đỏ</span>
+            <div className="cm-profile-identity">
+              <Avatar profile={profile} size="lg" online />
+              <div className="cm-profile-meta">
+                <h3>{profile.display_name}</h3>
+                {cohortTag(profile) && <code className="cm-cohort">{cohortTag(profile)}</code>}
+                {self && (
+                  <>
+                    <input
+                      ref={avatarInput}
+                      type="file"
+                      hidden
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={onPickAvatar}
+                    />
+                    <button
+                      type="button"
+                      className="cm-avatar-change"
+                      onClick={() => avatarInput.current?.click()}
+                    >
+                      <Icon name="image" /> Tải ảnh từ máy
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             <button
@@ -916,31 +1062,28 @@ function ProfileDialog({
             </button>
           </header>
 
-          <div className="cm-profile-identity">
-            <Avatar profile={profile} size="lg" />
-            <div className="cm-profile-meta">
-              <h3>{profile.display_name}</h3>
-              {cohortTag(profile) && <code className="cm-cohort">{cohortTag(profile)}</code>}
-              {self && (
-                <>
-                  <input
-                    ref={avatarInput}
-                    type="file"
-                    hidden
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={onPickAvatar}
-                  />
-                  <button
-                    type="button"
-                    className="cm-avatar-change"
-                    onClick={() => avatarInput.current?.click()}
-                  >
-                    <Icon name="image" /> Đổi ảnh đại diện
-                  </button>
-                </>
-              )}
+          {self && (
+            <div className="cm-portrait-picker">
+              <span className="cm-field-label">Hoặc chọn nhanh avatar minh hoạ:</span>
+              <div className="cm-portrait-row">
+                {PORTRAIT_PRESET_SEEDS.map((seed) => {
+                  const url = getDefaultUserAvatar(seed, me.display_name);
+                  return (
+                    <button
+                      key={seed}
+                      type="button"
+                      className="cm-portrait-option"
+                      onClick={() => void pickPresetPortrait(seed)}
+                      title="Chọn avatar này"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- SVG portrait preset */}
+                      <img src={url} alt="" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <dl className="cm-profile-facts">
             {profile.student_code && (
@@ -951,20 +1094,20 @@ function ProfileDialog({
             )}
             {profile.class_name && (
               <div>
-                <dt>Lớp niên chế</dt>
+                <dt>Lớp</dt>
                 <dd className="is-mono">{profile.class_name}</dd>
               </div>
             )}
             {profile.faculty && (
               <div>
-                <dt>Đơn vị / Khoa</dt>
+                <dt>Đơn vị</dt>
                 <dd>{profile.faculty}</dd>
               </div>
             )}
             {self && (
               <div>
-                <dt>Kênh tham gia</dt>
-                <dd className="is-mono">{joined} kênh</dd>
+                <dt>Nhóm tham gia</dt>
+                <dd className="is-mono">{joined}</dd>
               </div>
             )}
           </dl>
@@ -972,18 +1115,22 @@ function ProfileDialog({
           {self ? (
             <form className="pt-form" onSubmit={save}>
               <label className="field">
-                Giới thiệu học tập
+                Giới thiệu
                 <textarea
                   value={bio}
                   onChange={(event) => setBio(event.target.value)}
                   maxLength={300}
-                  rows={3}
-                  placeholder="Hướng nghiên cứu, học phần đang theo học hoặc vai trò trong lớp"
+                  rows={2}
+                  placeholder="Hướng nghiên cứu, học phần hoặc vai trò"
                 />
               </label>
               <div className="pt-form-actions">
-                <button className="button button-primary button-small" type="submit" disabled={bio.trim() === profile.bio}>
-                  Lưu thay đổi
+                <button
+                  className="button button-primary button-small"
+                  type="submit"
+                  disabled={bio.trim() === profile.bio}
+                >
+                  Lưu
                 </button>
                 {status && (
                   <span className="cm-status-note" role="status">
@@ -994,14 +1141,13 @@ function ProfileDialog({
             </form>
           ) : (
             <div className="cm-profile-about">
-              <h4>Giới thiệu</h4>
-              <p className="cm-profile-bio">{profile.bio || "Chưa cập nhật giới thiệu"}</p>
+              {profile.bio && <p className="cm-profile-bio">{profile.bio}</p>}
               <button
                 className="button button-primary button-small"
                 type="button"
                 onClick={() => void onMessage(profile.user_id)}
               >
-                <Icon name="message" /> Nhắn tin trực tiếp
+                <Icon name="message" /> Nhắn tin
               </button>
             </div>
           )}
