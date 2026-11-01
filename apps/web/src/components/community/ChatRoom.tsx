@@ -164,7 +164,6 @@ export function ChatRoom({
   const [urls, setUrls] = useState<Map<string, string>>(new Map());
   const [viewing, setViewing] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>({});
   const picker = useRef<HTMLInputElement>(null);
   const viewer = useRef<HTMLDialogElement>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -177,39 +176,6 @@ export function ChatRoom({
   const other = room.kind === "dm" ? people.get(room.dm_user ?? "") : undefined;
   const title = room.kind === "dm" ? (other?.display_name ?? "Tin nhắn riêng") : room.name!;
   const roomTone = room.kind === "group" ? (topicSlug[room.topic] ?? "study") : "dm";
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) {
-        setShowInfo(true);
-      }
-      try {
-        const raw = localStorage.getItem(`sao-do:cm-reactions:${room.id}`);
-        if (raw) setReactions(JSON.parse(raw));
-        else setReactions({});
-      } catch {
-        setReactions({});
-      }
-    });
-  }, [room.id]);
-
-  function toggleReaction(messageId: string, emoji: string) {
-    setReactions((prev) => {
-      const msgMap = { ...(prev[messageId] ?? {}) };
-      const list = new Set(msgMap[emoji] ?? []);
-      if (list.has(me.user_id)) list.delete(me.user_id);
-      else list.add(me.user_id);
-      if (list.size === 0) delete msgMap[emoji];
-      else msgMap[emoji] = [...list];
-      const next = { ...prev, [messageId]: msgMap };
-      try {
-        localStorage.setItem(`sao-do:cm-reactions:${room.id}`, JSON.stringify(next));
-      } catch {
-        // Ignore storage quota errors
-      }
-      return next;
-    });
-  }
 
   const load = useCallback(async () => {
     try {
@@ -236,7 +202,7 @@ export function ChatRoom({
     const problems = pickedFiles.map(mediaProblem).filter(Boolean);
     const ok = pickedFiles.filter((file) => !mediaProblem(file));
     const space = mediaLimits.maxFiles - files.length;
-    if (ok.length > space) problems.push(`Mỗi tin nhắn đính kèm tối đa ${mediaLimits.maxFiles} ảnh hoặc video`);
+    if (ok.length > space) problems.push(`Tối đa ${mediaLimits.maxFiles} ảnh hoặc video`);
     setFiles((current) => [
       ...current,
       ...ok.slice(0, Math.max(0, space)).map((file) => ({ file, url: URL.createObjectURL(file) })),
@@ -436,15 +402,6 @@ export function ChatRoom({
     .filter((item): item is Profile => Boolean(item))
     .sort((a, b) => a.display_name.localeCompare(b.display_name, "vi"));
   const headcount = members.length || room.member_count;
-  const quickEmojis = ["👍", "❤️", "🔥", "💡"] as const;
-  const quickPrompts =
-    room.kind === "dm"
-      ? ["Chào bạn, mình hỏi chút về bài tập tuần này nhé!", "Tối nay bạn có rảnh ôn bài cùng nhóm không?"]
-      : room.topic === "Học tập"
-        ? ["📌 Ai có slide/đề cương chương này cho mình xin với!", "❓ Cho mình hỏi cách xử lý lỗi bài thực hành số 2", "📅 Tối nay 20:00 họp nhóm tại phòng Lab nhé mọi người"]
-        : room.topic === "Câu lạc bộ"
-          ? ["🚀 Đăng ký tham gia workshop tuần này ở đâu vậy ạ?", "🎉 Mình vừa hoàn thành task dự án CLB!"]
-          : ["👋 Chào mọi người trong kênh nhé!", "📢 Có ai tham gia sự kiện tuần này cùng mình không?"];
 
   return (
     <div
@@ -471,7 +428,7 @@ export function ChatRoom({
         </button>
         <div className="cm-room-id">
           {room.kind === "dm" ? (
-            <Avatar profile={other} online />
+            <Avatar profile={other} size="sm" online />
           ) : (
             <span className="cm-glyph" data-topic={roomTone} aria-hidden="true">
               <Icon name={room.icon} />
@@ -499,27 +456,19 @@ export function ChatRoom({
                 </code>
               )}
               {room.kind === "group" && (
-                <span className="cm-row-topic" data-topic={roomTone}>
-                  {room.topic}
-                </span>
+                <span className="cm-row-topic">{room.topic}</span>
               )}
-              <span className="cm-online-pill">
-                <i aria-hidden="true" />
-                {room.kind === "dm" ? "Trực tuyến" : `${Math.max(2, Math.min(headcount, Math.ceil(headcount * 0.65)))} đang online`}
-              </span>
+              {room.kind === "group" && (
+                <span className="cm-mono-meta">{headcount} thành viên</span>
+              )}
             </div>
-            <p>
-              {room.kind === "dm"
-                ? (other?.faculty ?? "Trao đổi trực tiếp giữa hai thành viên")
-                : `${headcount} thành viên${room.about ? ` · ${room.about}` : ""}`}
-            </p>
           </div>
         </div>
         {room.kind === "group" && (
           <div className="cm-room-head-actions">
             {roster.length > 0 && (
-              <div className="cm-avatar-stack" title={`${roster.length} thành viên trong kênh`}>
-                {roster.slice(0, 4).map((person) => (
+              <div className="cm-avatar-stack" title={`${roster.length} thành viên`}>
+                {roster.slice(0, 3).map((person) => (
                   <button
                     key={person.user_id}
                     type="button"
@@ -530,7 +479,7 @@ export function ChatRoom({
                     <Avatar profile={person} size="sm" />
                   </button>
                 ))}
-                {roster.length > 4 && <span className="cm-stack-more">+{roster.length - 4}</span>}
+                {roster.length > 3 && <span className="cm-stack-more">+{roster.length - 3}</span>}
               </div>
             )}
             <button
@@ -539,7 +488,7 @@ export function ChatRoom({
               onClick={() => setShowInfo((value) => !value)}
               aria-pressed={showInfo}
               aria-label="Thông tin kênh và thành viên"
-              title="Thông tin kênh và thành viên"
+              title="Danh sách thành viên"
             >
               <Icon name="users" />
             </button>
@@ -566,48 +515,11 @@ export function ChatRoom({
             </div>
           ) : messages.length === 0 ? (
             <div className="cm-log-empty">
-              {room.kind === "dm" ? (
-                <Avatar profile={other} size="lg" online />
-              ) : (
-                <span className="cm-glyph cm-glyph-lg" data-topic={roomTone} aria-hidden="true">
-                  <Icon name={room.icon} />
-                </span>
-              )}
-              <strong>
-                {room.kind === "dm" ? `Trao đổi trực tiếp với ${title}` : `Chào mừng đến với ${title}`}
-              </strong>
-              <p>
-                {room.kind === "dm"
-                  ? "Nội dung tin nhắn riêng chỉ hiển thị với hai bạn. Hãy gửi lời chào đầu tiên!"
-                  : room.about || "Chưa có tin nhắn nào trong kênh này. Hãy mở đầu cuộc thảo luận!"}
-              </p>
+              <strong>{title}</strong>
+              <p>Chưa có tin nhắn</p>
             </div>
           ) : (
             <>
-              <div className="cm-log-banner" data-topic={roomTone}>
-                {room.kind === "dm" ? (
-                  <Avatar profile={other} size="lg" online />
-                ) : (
-                  <span className="cm-glyph cm-glyph-lg" data-topic={roomTone} aria-hidden="true">
-                    <Icon name={room.icon} />
-                  </span>
-                )}
-                <div className="cm-log-banner-copy">
-                  <div className="cm-log-banner-top">
-                    <strong>{room.kind === "dm" ? `Trò chuyện cùng ${title}` : title}</strong>
-                    {room.kind === "group" && (
-                      <span className="cm-row-topic" data-topic={roomTone}>
-                        {room.topic}
-                      </span>
-                    )}
-                  </div>
-                  <p>
-                    {room.kind === "dm"
-                      ? (other?.bio || "Không gian trao đổi học thuật và nhắn tin trực tiếp giữa các thành viên Đại học Sao Đỏ.")
-                      : (room.about || "Không gian thảo luận chung của kênh. Gõ @ để nhắc tên thành viên hoặc đính kèm hình ảnh, tài liệu.")}
-                  </p>
-                </div>
-              </div>
               {messages.map((message, index) => {
                 const previous = messages[index - 1];
                 const mine = message.author_id === me.user_id;
@@ -617,15 +529,6 @@ export function ChatRoom({
                 const last = !continues(message, messages[index + 1]);
                 const parent = message.reply_to ? byId.get(message.reply_to) : undefined;
                 const pingsMe = message.mentions.includes(me.user_id);
-                const tone = userTone(message.author_id);
-                const msgReactions =
-                  reactions[message.id] ??
-                  (index === 0
-                    ? { "👍": ["seed-1", "seed-2"], "🔥": ["seed-3"] }
-                    : index === messages.length - 1
-                      ? { "❤️": ["seed-1"] }
-                      : {});
-                const reactionEntries = Object.entries(msgReactions).filter(([, list]) => list.length > 0);
                 return (
                   <div key={message.id}>
                     {newDay && (
@@ -636,7 +539,6 @@ export function ChatRoom({
                     <article
                       id={`msg-${message.id}`}
                       className={`cm-msg${mine ? " is-mine" : ""}${first ? " is-first" : ""}${last ? " is-last" : ""}${pingsMe ? " is-ping" : ""}`}
-                      data-tone={tone}
                     >
                       {!mine && (
                         <div className="cm-msg-side">
@@ -647,7 +549,7 @@ export function ChatRoom({
                               onClick={() => onProfile(message.author_id)}
                               aria-label={`Hồ sơ ${author?.display_name ?? ""}`}
                             >
-                              <Avatar profile={author} size="sm" online />
+                              <Avatar profile={author} size="sm" />
                             </button>
                           )}
                         </div>
@@ -660,7 +562,6 @@ export function ChatRoom({
                                 <button
                                   type="button"
                                   className="cm-name"
-                                  data-tone={tone}
                                   onClick={() => onProfile(message.author_id)}
                                 >
                                   {author?.display_name ?? "Thành viên"}
@@ -668,7 +569,7 @@ export function ChatRoom({
                                 {author?.class_name ? (
                                   <code className="cm-msg-cohort">{author.class_name}</code>
                                 ) : author?.faculty ? (
-                                  <code className="cm-msg-cohort is-faculty">{author.faculty}</code>
+                                  <code className="cm-msg-cohort">{author.faculty}</code>
                                 ) : null}
                               </>
                             )}
@@ -741,19 +642,6 @@ export function ChatRoom({
                             )}
                           </div>
                           <div className="cm-tools">
-                            {joined &&
-                              quickEmojis.map((emoji) => (
-                                <button
-                                  key={emoji}
-                                  type="button"
-                                  className={`cm-react-btn${msgReactions[emoji]?.includes(me.user_id) ? " is-active" : ""}`}
-                                  onClick={() => toggleReaction(message.id, emoji)}
-                                  title={`Thả cảm xúc ${emoji}`}
-                                  aria-label={`Thả cảm xúc ${emoji}`}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
                             {joined && (
                               <button
                                 type="button"
@@ -779,21 +667,6 @@ export function ChatRoom({
                             )}
                           </div>
                         </div>
-                        {reactionEntries.length > 0 && (
-                          <div className="cm-reactions">
-                            {reactionEntries.map(([emoji, users]) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                className={`cm-reaction-chip${users.includes(me.user_id) ? " is-mine" : ""}`}
-                                onClick={() => toggleReaction(message.id, emoji)}
-                              >
-                                <span>{emoji}</span>
-                                <small>{users.length}</small>
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </article>
                   </div>
@@ -804,35 +677,19 @@ export function ChatRoom({
         </div>
 
         {room.kind === "group" && (
-          <aside className="cm-info" aria-label="Thông tin kênh">
+          <aside className="cm-info" aria-label="Thành viên kênh">
             <div className="cm-info-top">
-              <strong>Thông tin kênh</strong>
+              <strong>Thành viên ({roster.length})</strong>
               <button
                 className="cm-btn-icon cm-info-close"
                 type="button"
                 onClick={() => setShowInfo(false)}
-                aria-label="Đóng thông tin kênh"
+                aria-label="Đóng danh sách thành viên"
               >
                 <Icon name="close" />
               </button>
             </div>
-            <div className="cm-info-head" data-topic={roomTone}>
-              <span className="cm-glyph cm-glyph-lg" data-topic={roomTone} aria-hidden="true">
-                <Icon name={room.icon} />
-              </span>
-              <h3>{title}</h3>
-              {room.about && <p>{room.about}</p>}
-              <div className="cm-info-tags">
-                <span className="cm-row-topic" data-topic={roomTone}>
-                  {room.topic}
-                </span>
-                <span className="cm-mono-meta">{roster.length} thành viên</span>
-              </div>
-            </div>
-            <div className="cm-sec-head">
-              <h4>Thành viên trong kênh</h4>
-              <span>{roster.length}</span>
-            </div>
+            {room.about && <p className="cm-info-about">{room.about}</p>}
             <ul className="cm-roster">
               {roster.map((person, idx) => (
                 <li key={person.user_id}>
@@ -874,28 +731,11 @@ export function ChatRoom({
 
       {joined ? (
         <form className="cm-compose" onSubmit={send}>
-          {!draft && !replyTo && files.length === 0 && (
-            <div className="cm-quick-chips" aria-label="Gợi ý mở đầu thảo luận">
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  className="cm-quick-chip"
-                  onClick={() => {
-                    setDraft(prompt);
-                    input.current?.focus();
-                  }}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          )}
           {replyTo && (
             <p className="cm-replying">
               <Icon name="reply" />
               <span>
-                Đang trả lời <b>{people.get(replyTo.author_id)?.display_name ?? "Thành viên"}</b>
+                <b>{people.get(replyTo.author_id)?.display_name ?? "Thành viên"}</b>
                 <span className="cm-replying-body">{replyTo.body}</span>
               </span>
               <button type="button" onClick={() => setReplyTo(null)} aria-label="Huỷ trả lời">
@@ -952,7 +792,7 @@ export function ChatRoom({
               onClick={() => picker.current?.click()}
               disabled={files.length >= mediaLimits.maxFiles || sending}
               aria-label="Đính kèm ảnh hoặc video"
-              title="Đính kèm ảnh hoặc video (tối đa 4 tệp, 25 MB mỗi tệp)"
+              title="Đính kèm ảnh hoặc video"
             >
               <Icon name="image" />
             </button>
@@ -969,8 +809,7 @@ export function ChatRoom({
               onPaste={onPaste}
               rows={1}
               maxLength={maxLength}
-              placeholder={room.kind === "dm" ? `Nhắn cho ${title}` : "Nhập nội dung thảo luận, gõ @ để nhắc tên"}
-              title="Enter để gửi, Shift+Enter xuống dòng, @ nhắc tên thành viên"
+              placeholder={room.kind === "dm" ? `Nhắn cho ${title}` : `Nhắn trong ${title}`}
               role="combobox"
               aria-autocomplete="list"
               aria-controls="cm-suggest"
@@ -989,14 +828,14 @@ export function ChatRoom({
       ) : (
         <div className="cm-join">
           <p>
-            Bạn đang xem trước <b>{title}</b> ({headcount} thành viên)
+            <b>{title}</b> · {headcount} thành viên
           </p>
           <button
             className="button button-primary button-small"
             type="button"
             onClick={() => void membership(true)}
           >
-            Tham gia kênh
+            Tham gia
           </button>
         </div>
       )}
