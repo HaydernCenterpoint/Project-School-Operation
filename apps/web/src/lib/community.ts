@@ -30,11 +30,11 @@ export type RoomIcon = keyof typeof roomIcons;
 export type RoomAccent = "ocean" | "crimson" | "emerald" | "indigo" | "amber" | "graphite";
 
 export const ROOM_ACCENTS: { id: RoomAccent; label: string; color: string; soft: string }[] = [
-  { id: "ocean", label: "Xanh Zalo", color: "#0068ff", soft: "rgba(0, 104, 255, 0.12)" },
-  { id: "crimson", label: "Đỏ Sao Đỏ", color: "#b81d2a", soft: "rgba(184, 29, 42, 0.12)" },
+  { id: "crimson", label: "Đỏ Hoa Phượng", color: "#c81d2e", soft: "rgba(200, 29, 46, 0.12)" },
+  { id: "ocean", label: "Xanh Đại học", color: "#0066cc", soft: "rgba(0, 102, 204, 0.12)" },
+  { id: "amber", label: "Cam Phượng Vĩ", color: "#e05a2b", soft: "rgba(224, 90, 43, 0.12)" },
   { id: "emerald", label: "Xanh Ngọc", color: "#0d9488", soft: "rgba(13, 148, 136, 0.12)" },
   { id: "indigo", label: "Tím Indigo", color: "#4f46e5", soft: "rgba(79, 70, 229, 0.12)" },
-  { id: "amber", label: "Vàng Hổ phách", color: "#d97706", soft: "rgba(217, 119, 6, 0.12)" },
   { id: "graphite", label: "Than chì", color: "#334155", soft: "rgba(51, 65, 85, 0.12)" },
 ];
 
@@ -129,11 +129,11 @@ export type ChatPreferences = {
   showQuickPrompts: boolean;
 };
 
-const PREFS_KEY = "sao-do:community-prefs:v3";
+const PREFS_KEY = "sao-do:community-prefs:v4";
 const PREFS_EVENT = "sao-do:community-prefs-change";
 
 export const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
-  accent: "ocean",
+  accent: "crimson",
   wallpaper: "zalo",
   customWallpaperUrl: null,
   bubbleStyle: "zalo",
@@ -367,13 +367,15 @@ async function pullRemoteRoomMetaOnce(): Promise<void> {
   if (roomMetaPulled || typeof window === "undefined" || !hasSupabaseEnvironment) return;
   roomMetaPulled = true;
   try {
-    const { data, error } = await getSupabaseBrowserClient()
+    const query = getSupabaseBrowserClient()
       .from("portal_kv_store")
       .select("value")
       .eq("key", KV_ROOM_META_KEY)
       .maybeSingle();
-    if (error || !data?.value || typeof data.value !== "object" || Array.isArray(data.value)) return;
-    const merged: RoomMetaMap = { ...(data.value as RoomMetaMap), ...readRoomMetaMap() };
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 400));
+    const result = await Promise.race([query, timeout]);
+    if (!result || result.error || !result.data?.value || typeof result.data.value !== "object" || Array.isArray(result.data.value)) return;
+    const merged: RoomMetaMap = { ...(result.data.value as RoomMetaMap), ...readRoomMetaMap() };
     window.localStorage.setItem(ROOM_META_KEY, JSON.stringify(merged));
   } catch {
     // Ignore offline errors
@@ -435,7 +437,7 @@ const DEFAULT_ROOM_VISUALS: Record<
   [rid(1)]: {
     avatar_url: "/truong/thuc-hanh-01.jpg",
     banner_url: "/truong/khoa-cntt.jpg",
-    accent: "ocean",
+    accent: "crimson",
     owner_id: uid(286),
     co_owners: ["acc-teacher-duc", uid(287), uid(288)],
     pinned_note: "Lịch bảo vệ bài thực hành số 1 (Kế thừa & Đa hình) thứ Tư tại phòng B1-Lab 3.",
@@ -1000,7 +1002,7 @@ function enrichRoomSummary(base: Omit<RoomSummary, "avatar_url" | "banner_url" |
           ? "emerald"
           : topic === "Tự do"
             ? "indigo"
-            : "ocean");
+            : "crimson");
 
   const owner_id =
     base.kind === "group"

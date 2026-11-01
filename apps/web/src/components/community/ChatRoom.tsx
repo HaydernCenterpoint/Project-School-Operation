@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   ClipboardEvent,
+  CSSProperties,
   DragEvent,
   FormEvent,
   KeyboardEvent,
@@ -12,6 +13,7 @@ import {
   useState,
 } from "react";
 import { Icon } from "@/components/Icon";
+import { MotionPromptShowcase } from "./MotionPromptWidget";
 import {
   community,
   isVideo,
@@ -289,8 +291,10 @@ export function ChatRoom({
 
   useEffect(() => {
     if (externalOpenCustomizeCounter > 0) {
-      setDrawerTab("customize");
-      setDrawerOpen(true);
+      queueMicrotask(() => {
+        setDrawerTab("customize");
+        setDrawerOpen(true);
+      });
     }
   }, [externalOpenCustomizeCounter]);
 
@@ -307,7 +311,7 @@ export function ChatRoom({
   const other = room.kind === "dm" ? people.get(room.dm_user ?? "") : undefined;
   const title = room.kind === "dm" ? (other?.display_name ?? "Tin nhắn riêng") : room.name!;
   const roomTone = room.kind === "group" ? (topicSlug[room.topic] ?? "study") : "dm";
-  const effectiveAccent: RoomAccent = prefs.accent === "auto" ? (room.accent ?? "ocean") : prefs.accent;
+  const effectiveAccent: RoomAccent = prefs.accent === "auto" ? (room.accent ?? "crimson") : prefs.accent;
 
   const load = useCallback(async () => {
     try {
@@ -486,26 +490,6 @@ export function ChatRoom({
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void send();
-    }
-  }
-
-  async function sendTextQuick(bodyText: string) {
-    if (!bodyText.trim() || sending || !joined) return;
-    setSending(true);
-    try {
-      await community.send({
-        room_id: room.id,
-        author_id: me.user_id,
-        body: bodyText.trim(),
-        reply_to: replyTo?.id ?? null,
-        mentions: [],
-        media: [],
-      });
-      setReplyTo(null);
-      stick.current = true;
-      await Promise.all([load(), onChanged()]);
-    } finally {
-      setSending(false);
     }
   }
 
@@ -964,6 +948,7 @@ export function ChatRoom({
                       <article
                         id={`msg-${message.id}`}
                         className={`cm-msg${mine ? " is-mine" : ""}${first ? " is-first" : ""}${last ? " is-last" : ""}${pingsMe ? " is-ping" : ""}${isPinned ? " is-pinned" : ""}`}
+                        style={{ "--stagger-i": Math.min(index, 14) } as CSSProperties}
                       >
                         {(!mine || prefs.showMyAvatar) && (
                           <div className="cm-msg-side">
@@ -1747,11 +1732,11 @@ export function ChatRoom({
                 <div className="cm-seg-grid">
                   {(
                     [
-                      ["zalo", "Xám xanh Zalo"],
+                      ["zalo", "Phấn Hoa Phượng"],
                       ["clean", "Giấy sáng"],
                       ["grid", "Lưới kỹ thuật"],
                       ["dots", "Chấm bi"],
-                      ["warm", "Ấm dịu"],
+                      ["warm", "Kem ấm SDU"],
                       ["campus", "Khuôn viên SDU"],
                     ] as const
                   ).map(([id, label]) => (
@@ -1772,7 +1757,7 @@ export function ChatRoom({
                 <div className="cm-seg-grid">
                   {(
                     [
-                      ["zalo", "Zalo chuẩn (#E5EFFF)"],
+                      ["zalo", "Theo màu trang"],
                       ["modern", "Đậm màu chủ đạo"],
                       ["compact", "Gọn khít"],
                       ["minimal", "Tối giản"],
@@ -1788,6 +1773,13 @@ export function ChatRoom({
                     </button>
                   ))}
                 </div>
+              </section>
+
+              <section className="cm-custom-sec">
+                <div className="cm-custom-sec-head">
+                  <h4>Hiệu ứng chuyển động (Motion Prompt)</h4>
+                </div>
+                <MotionPromptShowcase />
               </section>
 
               <section className="cm-custom-sec">

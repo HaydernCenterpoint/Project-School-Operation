@@ -5,55 +5,56 @@
 .cm-shell,
 .cm-dialog {
   --cm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --cm-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
   --cm-radius: 10px;
-  --cm-accent: #0068ff;
-  --zalo-blue: #0068ff;
-  --zalo-blue-hover: #0052cc;
-  --zalo-canvas: #eef0f5;
-  --zalo-bubble-mine: #e5efff;
-  --zalo-bubble-mine-border: #c5dcff;
-  --zalo-bubble-mine-ink: #081c36;
-  --zalo-bubble-other: #ffffff;
-  --zalo-bubble-other-border: rgba(15, 23, 42, 0.08);
-  --line: var(--border);
-  --line-strong: color-mix(in srgb, var(--ink) 16%, var(--border));
-  --surface: var(--mist);
-  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--mist));
-  --ink-muted: var(--ink-2);
-  --ink-faint: var(--muted);
-  --crimson: var(--red, #b81d24);
-  --cm-study-fg: #0068ff;
-  --cm-study-bg: rgba(0, 104, 255, 0.1);
-  --cm-club-fg: #b45309;
-  --cm-club-bg: rgba(180, 83, 9, 0.1);
+  --cm-accent: var(--red, #c81d2e);
+  --zalo-blue: var(--cm-accent);
+  --zalo-blue-hover: color-mix(in srgb, var(--cm-accent) 86%, #000000);
+  --zalo-canvas: color-mix(in srgb, var(--cm-accent) 4%, var(--mist, #fff6ee));
+  --zalo-bubble-mine: color-mix(in srgb, var(--cm-accent) 10%, var(--paper, #ffffff));
+  --zalo-bubble-mine-border: color-mix(in srgb, var(--cm-accent) 24%, var(--border, #ead8cc));
+  --zalo-bubble-mine-ink: var(--ink, #071a34);
+  --zalo-bubble-other: var(--paper, #ffffff);
+  --zalo-bubble-other-border: var(--border, #ead8cc);
+  --line: var(--border, #ead8cc);
+  --line-strong: color-mix(in srgb, var(--ink) 16%, var(--border, #ead8cc));
+  --surface: var(--mist, #fff6ee);
+  --surface-2: color-mix(in srgb, var(--cm-accent) 6%, var(--mist, #fff6ee));
+  --ink-muted: var(--ink-2, #1d3150);
+  --ink-faint: var(--muted, #5c4947);
+  --crimson: var(--red, #c81d2e);
+  --cm-study-fg: #c81d2e;
+  --cm-study-bg: rgba(200, 29, 46, 0.11);
+  --cm-club-fg: #c2410c;
+  --cm-club-bg: rgba(194, 65, 12, 0.11);
   --cm-career-fg: #047857;
-  --cm-career-bg: rgba(4, 120, 87, 0.1);
-  --cm-sport-fg: #be123c;
-  --cm-sport-bg: rgba(190, 18, 60, 0.1);
+  --cm-career-bg: rgba(4, 120, 87, 0.11);
+  --cm-sport-fg: #0369a1;
+  --cm-sport-bg: rgba(3, 105, 161, 0.11);
   --cm-social-fg: #6d28d9;
-  --cm-social-bg: rgba(109, 40, 217, 0.1);
+  --cm-social-bg: rgba(109, 40, 217, 0.11);
 }
 
 .sd-app[data-theme="dark"] .cm-shell,
 .sd-app[data-theme="dark"] .cm-dialog,
 html[data-theme="dark"] .cm-shell,
 html[data-theme="dark"] .cm-dialog {
-  --zalo-canvas: #0f1623;
-  --zalo-bubble-mine: #16325c;
-  --zalo-bubble-mine-border: #254b85;
-  --zalo-bubble-mine-ink: #f1f5f9;
-  --zalo-bubble-other: #1b2434;
-  --zalo-bubble-other-border: rgba(255, 255, 255, 0.08);
-  --cm-study-fg: #60a5fa;
-  --cm-study-bg: rgba(96, 165, 250, 0.14);
-  --cm-club-fg: #fbbf24;
-  --cm-club-bg: rgba(251, 191, 36, 0.14);
+  --zalo-canvas: color-mix(in srgb, var(--cm-accent) 8%, #1a1113);
+  --zalo-bubble-mine: color-mix(in srgb, var(--cm-accent) 26%, #26181b);
+  --zalo-bubble-mine-border: color-mix(in srgb, var(--cm-accent) 44%, #3d2a2d);
+  --zalo-bubble-mine-ink: var(--ink, #f6e9e2);
+  --zalo-bubble-other: #271a1d;
+  --zalo-bubble-other-border: var(--border, #3d2a2d);
+  --cm-study-fg: #fca5a5;
+  --cm-study-bg: rgba(248, 113, 113, 0.16);
+  --cm-club-fg: #fdba74;
+  --cm-club-bg: rgba(251, 146, 60, 0.16);
   --cm-career-fg: #34d399;
   --cm-career-bg: rgba(52, 211, 153, 0.14);
-  --cm-sport-fg: #fb7185;
-  --cm-sport-bg: rgba(251, 113, 133, 0.14);
-  --cm-social-fg: #a78bfa;
-  --cm-social-bg: rgba(167, 139, 250, 0.14);
+  --cm-sport-fg: #7dd3fc;
+  --cm-sport-bg: rgba(125, 211, 252, 0.14);
+  --cm-social-fg: #c4b5fd;
+  --cm-social-bg: rgba(196, 181, 253, 0.14);
 }
 
 .cm-shell svg,
@@ -99,28 +100,46 @@ html[data-theme="dark"] .cm-dialog {
   overflow: hidden;
 }
 
-/* Accent palette variables */
-.cm-room[data-accent="ocean"] {
-  --cm-accent: #0068ff;
-}
+/* Accent palette variables (page-harmonized Hoa Phượng Đỏ default + custom themes) */
+.cm-shell[data-accent="crimson"],
 .cm-room[data-accent="crimson"] {
-  --cm-accent: #b81d2a;
+  --cm-accent: var(--red, #c81d2e);
+  --zalo-blue: var(--cm-accent);
+  --zalo-blue-hover: color-mix(in srgb, var(--cm-accent) 86%, #000000);
 }
+.cm-shell[data-accent="ocean"],
+.cm-room[data-accent="ocean"] {
+  --cm-accent: #0066cc;
+  --zalo-blue: #0066cc;
+  --zalo-blue-hover: #0052a3;
+}
+.cm-shell[data-accent="emerald"],
 .cm-room[data-accent="emerald"] {
   --cm-accent: #0d9488;
+  --zalo-blue: #0d9488;
+  --zalo-blue-hover: #0f766e;
 }
+.cm-shell[data-accent="indigo"],
 .cm-room[data-accent="indigo"] {
   --cm-accent: #4f46e5;
+  --zalo-blue: #4f46e5;
+  --zalo-blue-hover: #4338ca;
 }
+.cm-shell[data-accent="amber"],
 .cm-room[data-accent="amber"] {
-  --cm-accent: #d97706;
+  --cm-accent: #e05a2b;
+  --zalo-blue: #e05a2b;
+  --zalo-blue-hover: #c2410c;
 }
+.cm-shell[data-accent="graphite"],
 .cm-room[data-accent="graphite"] {
   --cm-accent: #334155;
+  --zalo-blue: #334155;
+  --zalo-blue-hover: #1e293b;
 }
 
 /* ============================================================================
-   Column 1: Zalo Blue Left Navigation Dock (.cm-znav)
+   Column 1: SDU Hoa Phượng Đỏ Left Navigation Dock (.cm-znav)
    ============================================================================ */
 
 .cm-znav {
@@ -129,16 +148,18 @@ html[data-theme="dark"] .cm-dialog {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  background: #0068ff;
+  background: var(--cm-accent);
+  border-right: 1px solid color-mix(in srgb, #000000 12%, var(--cm-accent));
   color: #ffffff;
   user-select: none;
   z-index: 2;
+  transition: background-color 0.25s var(--cm-ease);
 }
 
 .sd-app[data-theme="dark"] .cm-znav,
 html[data-theme="dark"] .cm-znav {
-  background: #0c192c;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--cm-accent) 24%, #1f1517);
+  border-right: 1px solid var(--border, #3d2a2d);
 }
 
 .cm-znav-top,
@@ -198,7 +219,7 @@ html[data-theme="dark"] .cm-znav {
 
 .sd-app[data-theme="dark"] .cm-znav-btn.is-active,
 html[data-theme="dark"] .cm-znav-btn.is-active {
-  background: #0068ff;
+  background: var(--zalo-blue);
   color: #ffffff;
 }
 
@@ -210,14 +231,14 @@ html[data-theme="dark"] .cm-znav-btn.is-active {
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #ef4444;
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--cm-accent);
   font-size: 10px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #0068ff;
+  border: 1.5px solid var(--cm-accent);
 }
 
 /* ============================================================================
@@ -236,7 +257,7 @@ html[data-theme="dark"] .cm-znav-btn.is-active {
   user-select: none;
   overflow: visible;
   color: #ffffff;
-  background: #0068ff;
+  background: var(--cm-accent);
 }
 
 .cm-room[data-avatar-shape="squircle"] .cm-avatar {
@@ -244,7 +265,7 @@ html[data-theme="dark"] .cm-znav-btn.is-active {
 }
 
 .cm-avatar[data-tone="0"] {
-  background: #0068ff;
+  background: #c81d2e;
 }
 .cm-avatar[data-tone="1"] {
   background: #b81d2a;
@@ -470,7 +491,7 @@ html[data-theme="dark"] .cm-zalo-grid4-count {
 }
 
 .cm-btn-icon.is-active {
-  background: rgba(0, 104, 255, 0.12);
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
   color: var(--zalo-blue);
 }
 
@@ -692,12 +713,12 @@ html[data-theme="dark"] .cm-role-tag {
 }
 
 .cm-row[aria-current="true"] {
-  background: #e5efff;
+  background: color-mix(in srgb, var(--zalo-blue) 12%, var(--paper));
 }
 
 .sd-app[data-theme="dark"] .cm-row[aria-current="true"],
 html[data-theme="dark"] .cm-row[aria-current="true"] {
-  background: rgba(0, 104, 255, 0.22);
+  background: color-mix(in srgb, var(--zalo-blue) 26%, var(--paper));
 }
 
 .cm-row-main {
@@ -733,7 +754,7 @@ html[data-theme="dark"] .cm-row[aria-current="true"] {
   height: 16px;
   padding: 0 5px;
   border-radius: 3px;
-  background: rgba(0, 104, 255, 0.1);
+  background: color-mix(in srgb, var(--zalo-blue) 12%, transparent);
   color: var(--zalo-blue);
   font-size: 10px;
   font-weight: 600;
@@ -1083,7 +1104,7 @@ html[data-theme="dark"] .cm-owner-pill {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(0, 104, 255, 0.12);
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
   color: var(--zalo-blue);
   display: inline-flex;
   align-items: center;
@@ -1195,7 +1216,7 @@ html[data-theme="dark"] .cm-owner-pill {
 }
 
 .cm-room[data-wallpaper="warm"] .cm-log {
-  background: color-mix(in srgb, #f59e0b 6%, var(--paper));
+  background: var(--mist, #fff6ee);
 }
 
 .cm-room[data-wallpaper="campus"] .cm-log {
@@ -1275,7 +1296,7 @@ html[data-theme="dark"] .cm-day span {
 }
 
 .cm-msg.is-flash {
-  background: rgba(0, 104, 255, 0.12);
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
 }
 
 .cm-msg-side {
@@ -1460,7 +1481,7 @@ html[data-theme="dark"] .cm-day span {
   padding: 0 3px;
   border: 0;
   border-radius: 4px;
-  background: rgba(0, 104, 255, 0.12);
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
   color: var(--zalo-blue);
   font: inherit;
   font-weight: 500;
@@ -1474,9 +1495,9 @@ html[data-theme="dark"] .cm-day span {
   width: 100%;
   margin-bottom: 6px;
   padding: 6px 10px;
-  border: 1px solid rgba(0, 104, 255, 0.22);
+  border: 1px solid color-mix(in srgb, var(--zalo-blue) 28%, transparent);
   border-radius: 6px;
-  background: rgba(0, 104, 255, 0.06);
+  background: color-mix(in srgb, var(--zalo-blue) 10%, transparent);
   color: inherit;
   font-size: 12px;
   text-align: left;
@@ -1520,7 +1541,7 @@ html[data-theme="dark"] .cm-day span {
 
 .cm-reaction-chip.is-active {
   border-color: var(--zalo-blue);
-  background: rgba(0, 104, 255, 0.1);
+  background: color-mix(in srgb, var(--zalo-blue) 12%, transparent);
 }
 
 .cm-reaction-chip small {
@@ -1763,7 +1784,7 @@ html[data-theme="dark"] .cm-day span {
 
 .cm-zalo-qbtn.is-active .cm-zalo-qicon,
 .cm-zalo-qbtn:hover .cm-zalo-qicon {
-  background: rgba(0, 104, 255, 0.14);
+  background: color-mix(in srgb, var(--zalo-blue) 16%, transparent);
   color: var(--zalo-blue);
 }
 
@@ -2059,7 +2080,7 @@ html[data-theme="dark"] .cm-day span {
 
 .cm-seg-btn.is-active {
   border-color: var(--zalo-blue);
-  background: rgba(0, 104, 255, 0.1);
+  background: color-mix(in srgb, var(--zalo-blue) 12%, transparent);
   color: var(--zalo-blue);
   font-weight: 500;
 }
@@ -2720,7 +2741,7 @@ html[data-theme="dark"] .cm-day span {
 
 .cm-icons input:checked + span {
   border-color: var(--zalo-blue);
-  background: rgba(0, 104, 255, 0.12);
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
   color: var(--zalo-blue);
 }
 
@@ -2911,10 +2932,22 @@ html[data-theme="dark"] .cm-day span {
   align-self: flex-end;
 }
 
-/* Responsive Tablet & Mobile */
-@media (max-width: 1180px) {
+/* Responsive Tablet & Laptop */
+@media (max-width: 1280px) {
+  .cm-shell {
+    grid-template-columns: 52px 268px minmax(0, 1fr);
+  }
   .cm-room.show-info .cm-room-body {
-    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cm-room.show-info .cm-info {
+    position: absolute;
+    top: 68px;
+    right: 0;
+    bottom: 0;
+    width: min(304px, 100%);
+    z-index: 15;
+    box-shadow: -8px 0 24px rgba(15, 23, 42, 0.18);
   }
 }
 
@@ -2948,3 +2981,437 @@ html[data-theme="dark"] .cm-day span {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ============================================================================
+   Motion Prompt System — Ported from https://github.com/showheyohtaki/motion-prompt
+   MIT License (c) 2026 Shohei Ohtaki · Ported per references/porting.md
+   ============================================================================ */
+
+/* Motion Prompt #049 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#049
+   Modal dialog: easeOutCubic (0.32s) scale 0.9 → 1.0, opacity 0 → 1, backdrop 0 → 0.42 */
+@keyframes mp049DialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mp049BackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cm-dialog[open],
+.cm-viewer[open] {
+  animation: mp049DialogIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cm-dialog[open]::backdrop,
+.cm-viewer[open]::backdrop {
+  animation: mp049BackdropIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Motion Prompt #050 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#050
+   Drawer (Off-canvas): easeOutCubic (0.38s) slide-in from right edge */
+@keyframes mp050DrawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cm-info {
+  animation: mp050DrawerIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Motion Prompt #055 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#055
+   Popover: easeOutCubic (0.28s) 6px slide + fade + soft shadow blur 22px */
+@keyframes mp055PopoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cm-Bubble:hover .cm-tools,
+.cm-Bubble:focus-within .cm-tools,
+.cm-suggest,
+.cm-find,
+.cm-pin-banner,
+.cm-replying {
+  animation: mp055PopoverIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Motion Prompt #057 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#057
+   Tabs: 0.25s easeInOutCubic sliding underline + 0.2s 8px rise cross-fade on tab panel */
+@keyframes mp057TabRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cm-zalo-tabs button,
+.cm-info-tabs button {
+  position: relative;
+  transition:
+    color 0.22s cubic-bezier(0.65, 0, 0.35, 1),
+    background-color 0.22s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.cm-zalo-tabs button::after,
+.cm-info-tabs button::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--zalo-blue);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.25s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.cm-zalo-tabs button.is-active::after,
+.cm-info-tabs button.is-active::after {
+  transform: scaleX(1);
+}
+
+.cm-info-scroll > .cm-info-section,
+.cm-welcome-inner {
+  animation: mp057TabRise 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Motion Prompt #071 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#071
+   Badge: 0.3s easeOutCubic scale pop (1 → 1.3 → 1) + 0.5s expanding ripple ring */
+@keyframes mp071BadgePop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes mp071BadgeRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.15);
+    opacity: 0;
+  }
+}
+
+.cm-znav-badge,
+.cm-badge,
+.cm-ping {
+  position: relative;
+  animation: mp071BadgePop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cm-znav-badge::after,
+.cm-row.is-unread .cm-badge::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  pointer-events: none;
+  animation: mp071BadgeRing 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Motion Prompt #074 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#074
+   Fade-in on scroll: 0.48s easeOutCubic staggered rise (translateY 18px → 0, opacity 0 → 1) */
+@keyframes mp074StaggerRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cm-list > li,
+.cm-dir-list > li,
+.cm-dir-people > li,
+.cm-msg {
+  animation: mp074StaggerRise 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stagger-i, 0) * 0.035s);
+}
+
+/* Motion Prompt #081 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#081
+   Hover lift: 0.3s easeOutCubic card lift + spreading shadow */
+.cm-row,
+.cm-dir-row,
+.cm-dir-card,
+.cm-Bubble,
+.cm-shared-file,
+.cm-info-action-btn,
+.cm-react {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-row:hover,
+.cm-dir-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(7, 26, 52, 0.07);
+}
+
+.cm-Bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(7, 26, 52, 0.08);
+}
+
+.cm-info-action-btn:hover > span:first-child,
+.cm-react:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* Motion Prompt #082 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#082
+   Image zoom on hover: 0.5s easeOutCubic inner image scale 1.0 → 1.15 inside overflow:hidden */
+.cm-photo-swatch,
+.cm-shared-thumb,
+.cm-media-open {
+  overflow: hidden;
+}
+
+.cm-photo-swatch img,
+.cm-shared-thumb img,
+.cm-media-open img,
+.cm-avatar .avatar-img {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-photo-swatch:hover img,
+.cm-shared-thumb:hover img,
+.cm-media-open:hover img {
+  transform: scale(1.14);
+}
+
+.cm-row:hover .cm-avatar .avatar-img,
+.cm-dir-row:hover .cm-avatar .avatar-img {
+  transform: scale(1.08);
+}
+
+/* Motion Prompt #085 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#085
+   Ripple effect: 0.6s easeOutCubic radial ink ripple from button center on click/active */
+.cm-zalo-send-btn,
+.cm-znav-btn,
+.cm-zalo-qbtn,
+.cm-topic-pill,
+.cm-theme-chip {
+  position: relative;
+  overflow: hidden;
+}
+
+.cm-zalo-send-btn::after,
+.cm-zalo-qbtn::after,
+.cm-topic-pill::after,
+.cm-theme-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.42) 12%, transparent 70%);
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-zalo-send-btn:active::after,
+.cm-zalo-qbtn:active::after,
+.cm-topic-pill:active::after,
+.cm-theme-chip:active::after {
+  transform: scale(2.6);
+  opacity: 1;
+  transition: 0s;
+}
+
+/* Motion Prompt #086 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#086
+   Underline animation: 0.3s easeOutCubic left-to-right growing/exiting underline */
+.cm-link-btn,
+.cm-title-link strong,
+.cm-name {
+  position: relative;
+  text-decoration: none;
+}
+
+.cm-link-btn::after,
+.cm-title-link strong::after,
+.cm-name::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-link-btn:hover::after,
+.cm-title-link:hover strong::after,
+.cm-name:hover::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+/* Motion Prompt Interactive Showcase Card (.cm-mp-card) */
+.cm-mp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.cm-mp-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cm-mp-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--cm-ease),
+    background-color 0.2s var(--cm-ease),
+    transform 0.2s var(--cm-ease);
+}
+
+.cm-mp-pill:hover {
+  transform: translateY(-1px);
+  border-color: var(--zalo-blue);
+}
+
+.cm-mp-pill.is-active {
+  background: color-mix(in srgb, var(--zalo-blue) 12%, var(--paper));
+  border-color: var(--zalo-blue);
+  color: var(--zalo-blue);
+}
+
+.cm-mp-pill span {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--zalo-blue) 14%, transparent);
+  color: var(--zalo-blue);
+}
+
+.cm-mp-pill small {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-mp-canvas-wrap {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.cm-mp-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 542 / 191;
+}
+
+.cm-mp-caption {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.cm-mp-caption strong {
+  font-family: var(--mono);
+  color: var(--zalo-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-dialog[open],
+  .cm-viewer[open],
+  .cm-info,
+  .cm-list > li,
+  .cm-dir-list > li,
+  .cm-dir-people > li,
+  .cm-msg,
+  .cm-znav-badge,
+  .cm-badge,
+  .cm-ping,
+  .cm-znav-badge::after,
+  .cm-row.is-unread .cm-badge::after,
+  .cm-info-scroll > .cm-info-section,
+  .cm-welcome-inner {
+    animation: none !important;
+  }
+  .cm-row,
+  .cm-dir-row,
+  .cm-Bubble,
+  .cm-photo-swatch img,
+  .cm-shared-thumb img,
+  .cm-media-open img {
+    transition: none !important;
+  }
+}
+

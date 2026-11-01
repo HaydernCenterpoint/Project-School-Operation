@@ -148,7 +148,7 @@ function Community() {
   const mobileHasRoom = Boolean(selectedId && selectedId !== DIRECTORY_VIEW && room && navTab === "messages");
   const totalUnread = rooms.reduce((acc, r) => acc + (r.unread || 0), 0);
   const prefAccent = chatPrefs.accent === "auto" ? undefined : chatPrefs.accent;
-  const shellAccent: RoomAccent = room?.accent ?? prefAccent ?? "crimson";
+  const shellAccent: RoomAccent = prefAccent ?? room?.accent ?? "crimson";
 
   return (
     <div className={`cm-shell${mobileHasRoom ? " has-room" : ""}`} data-accent={shellAccent}>
