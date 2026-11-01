@@ -61,11 +61,9 @@ export default function TeacherClassesLayout({
     data,
     avatarUrl,
     account,
-    supabaseConnected,
     subjectClasses,
     attendanceSessions,
     allSubmissions,
-    switchAccount,
     signOut,
   } = useStudent();
 
@@ -180,30 +178,6 @@ export default function TeacherClassesLayout({
         }
         sideCard={
           <div className="side-foot">
-            <div className="plan-card" style={{ marginBottom: 10 }}>
-              <div className="plan-head">
-                <Icon name="shield" />
-                <strong>Không gian Giảng viên</strong>
-              </div>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>
-                {account.displayName} · {subjectClasses.length} lớp bộ môn · {pendingSubmissions.length} bài chờ chấm
-              </p>
-              <div style={{ marginTop: 6 }}>
-                <span className={`chip ${supabaseConnected ? "reviewed" : ""}`} style={{ fontSize: 11 }}>
-                  {supabaseConnected ? "● Supabase Realtime · Đã kết nối" : "○ Đang kết nối Supabase…"}
-                </span>
-              </div>
-              {account.role !== "teacher" && (
-                <button
-                  type="button"
-                  className="button button-primary button-xs"
-                  style={{ marginTop: 8, width: "100%" }}
-                  onClick={() => switchAccount("acc-teacher-duc")}
-                >
-                  Kích hoạt TK Giảng viên
-                </button>
-              )}
-            </div>
             <div className="side-links">
               <Link href={"/student" as Route}>
                 <Icon name="home" /> <span>Về Cổng học tập</span>
