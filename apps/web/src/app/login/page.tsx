@@ -5,7 +5,7 @@ import { CampusArt } from "@/components/CampusArt";
 import { FallingPetals } from "@/components/landing/FallingPetals";
 import { phuongFonts } from "@/components/landing/fonts";
 import { SceneArrival, SceneCurtain } from "@/components/landing/SceneTransition";
-import { PhuongFlower } from "@/components/landing/Phuong";
+import { PhuongAuthBackdrop, PhuongFlower } from "@/components/landing/Phuong";
 import "../landing.css";
 import { LoginForm } from "./LoginForm";
 
@@ -18,6 +18,7 @@ export default function LoginPage() {
       <SceneCurtain to="/" />
       <FallingPetals />
       <aside className="auth-art" aria-label="Giới thiệu Đại học Sao Đỏ">
+        <PhuongAuthBackdrop />
         <Link href="/" className="brand-lockup" aria-label="Về trang chủ">
           <Image src="/sao-do-logo.png" alt="" width={48} height={51} priority />
           <span>

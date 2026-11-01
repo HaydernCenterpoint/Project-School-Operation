@@ -316,11 +316,15 @@
 .sd.auth-page { --mp-ease: cubic-bezier(0.22, 1, 0.36, 1); min-height: 100dvh; background: transparent; }
 .sd.auth-page.auth-single { grid-template-columns: minmax(0, 1fr); }
 .sd > aside { position: relative; z-index: 1; }
-.sd .auth-art { grid-template-rows: auto minmax(0, 1fr) auto; gap: clamp(16px, 2.4vh, 28px); padding: clamp(20px, 3.4vh, 40px) clamp(24px, 3vw, 44px); color: var(--sd-ink); background: linear-gradient(165deg, #fffaf4 0%, #ffeede 100%); border: 1px solid var(--sd-line); box-shadow: var(--sd-shadow); }
+.sd .auth-art { position: relative; isolation: isolate; grid-template-rows: auto minmax(0, 1fr) auto; gap: clamp(16px, 2.4vh, 28px); padding: clamp(20px, 3.4vh, 40px) clamp(24px, 3vw, 44px); color: var(--sd-ink); background: linear-gradient(165deg, #fffaf4 0%, #ffeede 100%); border: 1px solid var(--sd-line); box-shadow: var(--sd-shadow); }
+.sd .auth-art .auth-art-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; user-select: none; }
+.sd .auth-art > *:not(.auth-art-backdrop) { position: relative; z-index: 1; }
+.sd .auth-art .brand-lockup { justify-self: start; text-shadow: 0 1px 10px rgba(255, 250, 244, 0.95); }
 .sd .auth-art .brand-lockup small { color: var(--sd-muted); }
-.sd .auth-art .campus-frame { min-height: 0; padding: 10px; background: #fff; border: 0; border-radius: 24px; box-shadow: var(--sd-shadow); transform: rotate(-1.2deg); transition: transform 420ms var(--mp-ease), box-shadow 420ms var(--mp-ease); }
+.sd .auth-art .campus-frame { width: min(100%, 88%); justify-self: center; min-height: 0; padding: 10px; background: rgba(255, 255, 255, 0.96); border: 1px solid rgba(230, 57, 70, 0.14); border-radius: 24px; box-shadow: 0 22px 48px -18px rgba(96, 24, 16, 0.28), var(--sd-shadow); transform: rotate(-1.2deg); transition: transform 420ms var(--mp-ease), box-shadow 420ms var(--mp-ease); }
 .sd .auth-art .campus-frame:hover { transform: rotate(0deg) translateY(-2px); }
 .sd .auth-art .campus-frame img { height: 100%; object-fit: cover; object-position: center 30%; border-radius: 16px; }
+.sd .auth-art > div:last-child { max-width: 520px; text-shadow: 0 1px 12px rgba(255, 250, 244, 0.95); }
 .sd .auth-art .sd-eyebrow { margin: 0 0 8px; color: var(--sd-red); }
 .sd .auth-art h2 { max-width: 560px; color: var(--sd-ink); font-size: clamp(1.8rem, 2.8vw, 2.6rem); letter-spacing: -.01em; line-height: 1.15; }
 .sd .auth-art h2 em { font-size: 1.15em; }
@@ -431,6 +435,13 @@
 .sd-panicle-sway {
   transform-origin: 0 0;
   animation: sd-panicle-bloom 4.2s ease-in-out var(--panicle-delay, 0s) infinite alternate;
+}
+.sd-willow-strand {
+  animation: sd-willow-wave var(--willow-dur, 6.2s) ease-in-out var(--willow-delay, 0s) infinite alternate;
+}
+@keyframes sd-willow-wave {
+  from { transform: rotate(-2.2deg) scaleY(0.99); }
+  to { transform: rotate(2.6deg) scaleY(1.01); }
 }
 @keyframes sd-panicle-bloom {
   from { transform: rotate(-3.2deg) scale(.97); }
