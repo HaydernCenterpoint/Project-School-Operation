@@ -3,9 +3,9 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, FormEvent, useMemo, useRef, useState } from "react";
+import { type CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
+import { DemoBanner } from "@/components/portal/Parts";
 import { streamChat } from "@/lib/ai-client";
 import { initials } from "@/lib/format";
 import {
@@ -13,11 +13,11 @@ import {
   buildEditableDossierTemplates,
   clubs,
   conduct,
-  courses,
   gpa,
   initialClubs,
   initialProfileUpdates,
   objectiveObservations,
+  portfolioCompetencies,
   portfolioProjects,
   profile,
   program,
@@ -32,7 +32,7 @@ import {
 import { useStudent } from "@/lib/student-context";
 
 /* ==========================================================================
-   Canva-style AI CV Studio Types & Presets
+   CV Studio Types & Presets
    ========================================================================== */
 
 type CvLayoutStyleId = "modern-split" | "harvard" | "impressive" | "minimal";
@@ -40,6 +40,7 @@ type CvLayoutStyleId = "modern-split" | "harvard" | "impressive" | "minimal";
 type CvLayoutStyle = {
   id: CvLayoutStyleId;
   name: string;
+  shortName: string;
   tag: string;
   summary: string;
   defaultAccent: string;
@@ -49,13 +50,15 @@ const cvLayoutStyles: CvLayoutStyle[] = [
   {
     id: "modern-split",
     name: "Mẫu Chuyên nghiệp 2 Cột",
+    shortName: "2 Cột Hiện đại",
     tag: "Chuẩn TopCV & Canva",
-    summary: "Cột trái hiển thị kỹ năng, chứng chỉ, ngoại ngữ; cột phải trình bày mục tiêu, học vấn và dự án.",
+    summary: "Cột trái hiển thị kỹ năng, chứng chỉ, hoạt động; cột phải trình bày mục tiêu, học vấn và dự án.",
     defaultAccent: "#c81d2e",
   },
   {
     id: "harvard",
     name: "Mẫu Harvard / Chuẩn ATS",
+    shortName: "Harvard ATS",
     tag: "Tối ưu lọc CV tự động",
     summary: "Bố cục 1 cột cổ điển, đường kẻ phân mục chuẩn quốc tế, dễ đọc với hệ thống ATS tập đoàn & ngân hàng.",
     defaultAccent: "#1f2937",
@@ -63,6 +66,7 @@ const cvLayoutStyles: CvLayoutStyle[] = [
   {
     id: "impressive",
     name: "Mẫu Ấn tượng / Tech Portfolio",
+    shortName: "Tech Portfolio",
     tag: "Nổi bật dự án & chỉ số",
     summary: "Header đóng khung chỉ số học thuật (GPA, truy vấn SQL, điểm Lab), làm nổi bật dự án công nghệ.",
     defaultAccent: "#0f4c81",
@@ -70,6 +74,7 @@ const cvLayoutStyles: CvLayoutStyle[] = [
   {
     id: "minimal",
     name: "Mẫu Đơn giản / Tinh gọn",
+    shortName: "Tinh gọn A4",
     tag: "Gọn 1 trang A4",
     summary: "Thiết kế tối giản khoảng trắng thoáng, ưu tiên mục tiêu nghề nghiệp và học phần cốt lõi đạt điểm A.",
     defaultAccent: "#2d6a4f",
@@ -81,7 +86,7 @@ type CvAvatarShapeId = "rounded" | "circle" | "square" | "hidden";
 type CvDensityId = "compact" | "normal" | "airy";
 type CvSectionId = "objective" | "education" | "projects" | "skills" | "certs" | "activities";
 
-type StudioDockTabId = "ai" | "templates" | "design" | "sections" | "data";
+type StudioLeftTabId = "collect" | "edit" | "sections" | "ai" | "forms";
 
 type CvColorSwatch = {
   id: string;
@@ -160,7 +165,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-fullstack",
     sector: "CNTT & Phần mềm",
-    shortLabel: "Lập trình viên Backend / Web",
+    shortLabel: "Backend / Fullstack Web",
     roleTitle: "Thực tập sinh Lập trình viên Backend / Fullstack Web",
     companyType: "Công ty Sản phẩm công nghệ & Phần mềm",
     recommendedLayout: "modern-split",
@@ -214,7 +219,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-qa",
     sector: "CNTT & Phần mềm",
-    shortLabel: "Kiểm thử phần mềm (QA / Tester)",
+    shortLabel: "QA / Tester",
     roleTitle: "Thực tập sinh Kiểm thử phần mềm (Manual / Automation QA)",
     companyType: "Doanh nghiệp Gia công & Phát triển Phần mềm",
     recommendedLayout: "harvard",
@@ -258,7 +263,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-ba",
     sector: "CNTT & Nghiệp vụ",
-    shortLabel: "Business Analyst (BA Intern)",
+    shortLabel: "Business Analyst (BA)",
     roleTitle: "Thực tập sinh Phân tích nghiệp vụ (IT Business Analyst)",
     companyType: "Khối Ngân hàng, Tài chính, ERP & Chuyển đổi số",
     recommendedLayout: "harvard",
@@ -288,7 +293,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-data",
     sector: "Dữ liệu & AI",
-    shortLabel: "Phân tích dữ liệu (Data / SQL)",
+    shortLabel: "Data / SQL Analyst",
     roleTitle: "Thực tập sinh Phân tích dữ liệu & Cơ sở dữ liệu (Data / SQL Intern)",
     companyType: "Doanh nghiệp Thương mại điện tử, Fintech & AI",
     recommendedLayout: "impressive",
@@ -319,7 +324,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-network",
     sector: "Hạ tầng & Hệ thống",
-    shortLabel: "Quản trị mạng / IT Helpdesk",
+    shortLabel: "Mạng & IT Helpdesk",
     roleTitle: "Thực tập sinh Quản trị mạng & Hệ thống (Network / System Admin)",
     companyType: "Khu công nghiệp, Nhà máy sản xuất & Viễn thông",
     recommendedLayout: "modern-split",
@@ -349,7 +354,7 @@ const jobRoleTracks: JobRoleTrack[] = [
   {
     id: "role-sales-eng",
     sector: "Kinh doanh & Tư vấn",
-    shortLabel: "Tư vấn giải pháp (Sales IT / EdTech)",
+    shortLabel: "Technical Sales / EdTech",
     roleTitle: "Thực tập sinh Tư vấn giải pháp Công nghệ (Technical Sales / Solution)",
     companyType: "Công ty Giải pháp Phần mềm, EdTech & Dịch vụ CNTT",
     recommendedLayout: "modern-split",
@@ -383,9 +388,18 @@ const defaultSectionLabels: Record<CvSectionId, string> = {
   education: "Học vấn & Thành tích học thuật",
   projects: "Dự án & Đồ án thực tế",
   skills: "Kỹ năng chuyên môn",
-  certs: "Chứng chỉ & Ngoại ngữ",
-  activities: "Hoạt động & Giải thưởng",
+  certs: "Chứng chỉ & Minh chứng SDU",
+  activities: "Hoạt động & Rèn luyện",
 };
+
+function findProfileField(
+  list: { label: string; value: string | null }[],
+  keyword: string,
+  fallback: string,
+): string {
+  const found = list.find((item) => item.label.toLowerCase().includes(keyword.toLowerCase()));
+  return found?.value ?? fallback;
+}
 
 export default function StudentPortfolioPage() {
   const { data, avatarUrl, account } = useStudent();
@@ -397,17 +411,43 @@ export default function StudentPortfolioPage() {
   );
   const [joinedClubs] = useDemoState<string[]>("clubs", () => initialClubs);
 
-  // Compute real student stats
-  const allRows = terms.flatMap((t) => t.rows);
-  const overallGpa = gpa(allRows);
-  const earnedCredits = allRows.reduce((sum, r) => sum + r.credits, 0);
-  const standingText = standing(overallGpa.value);
+  // Auto-harvest real student academic & personal metrics from portal
+  const allRows = useMemo(() => terms.flatMap((t) => t.rows), []);
+  const overallGpa = useMemo(() => gpa(allRows), [allRows]);
+  const earnedCredits = useMemo(
+    () => allRows.reduce((sum, r) => sum + r.credits, 0),
+    [allRows],
+  );
+  const standingText = useMemo(() => standing(overallGpa.value), [overallGpa.value]);
 
-  const totalSessions = attendanceRecords.reduce((sum, r) => sum + r.totalPeriods, 0);
-  const attendedSessions = attendanceRecords.reduce((sum, r) => sum + r.attendedPeriods, 0);
+  const totalSessions = useMemo(
+    () => attendanceRecords.reduce((sum, r) => sum + r.totalPeriods, 0),
+    [],
+  );
+  const attendedSessions = useMemo(
+    () => attendanceRecords.reduce((sum, r) => sum + r.attendedPeriods, 0),
+    [],
+  );
   const attendancePct = totalSessions
     ? ((attendedSessions / totalSessions) * 100).toFixed(1)
     : "100.0";
+
+  const harvestedPersonal = useMemo(() => {
+    const dob = findProfileField(profile.personal, "Ngày sinh", "18/09/2004");
+    const residence = findProfileField(
+      profile.personal,
+      "Nơi ở hiện tại",
+      "Chí Linh, Hải Dương",
+    );
+    const hometown = findProfileField(profile.personal, "Quê quán", "Hải Dương");
+    const specialization = findProfileField(
+      profile.education,
+      "Chuyên ngành",
+      "Công nghệ phần mềm",
+    );
+    const studyYears = findProfileField(profile.education, "Niên khóa", "2022 – 2026");
+    return { dob, residence, hometown, specialization, studyYears };
+  }, []);
 
   const studentIdentity = useMemo(
     () => ({
@@ -434,7 +474,7 @@ export default function StudentPortfolioPage() {
     [studentIdentity],
   );
 
-  const topCourses = useMemo(
+  const allScoredCourses = useMemo(
     () =>
       terms
         .flatMap((t) =>
@@ -445,18 +485,29 @@ export default function StudentPortfolioPage() {
           })),
         )
         .filter((r): r is typeof r & { score10: number } => r.score10 !== null)
-        .sort((a, b) => b.score10 - a.score10)
-        .slice(0, 5),
+        .sort((a, b) => b.score10 - a.score10),
     [],
   );
 
-  const joinedClubObjects = clubs.filter((c) => joinedClubs.includes(c.id));
+  const [selectedCourseCodes, setSelectedCourseCodes] = useState<string[]>(() =>
+    allScoredCourses.slice(0, 6).map((c) => c.code),
+  );
 
-  /* ---------- Canva Studio State ---------- */
-  const [dockTab, setDockTab] = useState<StudioDockTabId>("ai");
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+  const displayedCourses = useMemo(
+    () => allScoredCourses.filter((c) => selectedCourseCodes.includes(c.code)),
+    [allScoredCourses, selectedCourseCodes],
+  );
+
+  const joinedClubObjects = useMemo(
+    () => clubs.filter((c) => joinedClubs.includes(c.id)),
+    [joinedClubs],
+  );
+
+  /* ---------- Studio Workspace State ---------- */
+  const [leftTab, setLeftTab] = useState<StudioLeftTabId>("collect");
+  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
   const [cvTitle, setCvTitle] = useState<string>(
-    `CV_${account.displayName.replace(/\s+/g, "_")}_Intern`,
+    `CV_${account.displayName.replace(/\s+/g, "_")}_${account.code}`,
   );
   const [cvStyleId, setCvStyleId] = useState<CvLayoutStyleId>("modern-split");
   const [roleTrackId, setRoleTrackId] = useState<string>(jobRoleTracks[0]!.id);
@@ -465,7 +516,8 @@ export default function StudentPortfolioPage() {
   const [avatarShape, setAvatarShape] = useState<CvAvatarShapeId>("rounded");
   const [density, setDensity] = useState<CvDensityId>("normal");
   const [zoomPct, setZoomPct] = useState<number>(100);
-  const [activeSectionFocus, setActiveSectionFocus] = useState<CvSectionId | null>("objective");
+  const [activeSectionFocus, setActiveSectionFocus] = useState<CvSectionId | "header">("objective");
+  const [lastSyncedAt, setLastSyncedAt] = useState<string>("Vừa tự động thu thập");
 
   const selectedTrack =
     jobRoleTracks.find((t) => t.id === roleTrackId) ?? jobRoleTracks[0]!;
@@ -493,20 +545,34 @@ export default function StudentPortfolioPage() {
     () => ({ ...defaultSectionLabels }),
   );
 
-  // Editable CV Header & Contact fields on the A4 canvas
+  // Editable CV Header & Contact fields auto-populated from Student Account + Profile
   const [headerFields, setHeaderFields] = useState(() => ({
     fullName: account.displayName,
     targetRole: jobRoleTracks[0]!.roleTitle,
     email: account.email,
     phone: account.phone,
     classAndDept: `${account.cohortClass} · ${account.department}`,
-    location: "Chí Linh, Hải Dương (Sẵn sàng thực tập Hà Nội / Hải Dương / Bắc Ninh)",
-    githubPortfolio: "github.com/sv-saodo/portfolio",
+    location: harvestedPersonal.residence,
+    githubPortfolio: `github.com/${account.code.toLowerCase()}-sdu/portfolio`,
     gpaBadge: `${overallGpa.value.toFixed(2)}/4.0`,
-    standingBadge: `Xếp loại ${standingText}`,
+    standingBadge: `Xếp loại ${standingText} · ${earnedCredits}/${program.requiredCredits} TC`,
   }));
 
-  // Editable Projects on the CV artboard
+  // Keep header synced if user switches account in sidebar
+  useEffect(() => {
+    setHeaderFields((prev) => ({
+      ...prev,
+      fullName: account.displayName,
+      email: account.email,
+      phone: account.phone,
+      classAndDept: `${account.cohortClass} · ${account.department}`,
+      gpaBadge: `${overallGpa.value.toFixed(2)}/4.0`,
+      standingBadge: `Xếp loại ${standingText} · ${earnedCredits}/${program.requiredCredits} TC`,
+    }));
+    setCvTitle(`CV_${account.displayName.replace(/\s+/g, "_")}_${account.code}`);
+  }, [account.code, account.cohortClass, account.department, account.displayName, account.email, account.phone, earnedCredits, overallGpa.value, standingText]);
+
+  // Editable Projects on the CV artboard (auto-collected from portfolioProjects)
   const [cvProjects, setCvProjects] = useState<EditableCvProject[]>(() =>
     portfolioProjects.map((p) => ({
       id: p.id,
@@ -517,7 +583,7 @@ export default function StudentPortfolioPage() {
       score: p.score,
       summary: p.highlight,
       techStack: p.stack.join(" · "),
-      artifactUrl: "",
+      artifactUrl: `github.com/sdu-student/${p.id}`,
     })),
   );
 
@@ -530,8 +596,8 @@ export default function StudentPortfolioPage() {
     })),
   );
 
-  // Editable Certificates & Languages
-  const [cvCerts, setCvCerts] = useState<EditableCvCertItem[]>([
+  // Editable Certificates & Verified Academic Badges
+  const [cvCerts, setCvCerts] = useState<EditableCvCertItem[]>(() => [
     {
       id: "cert-1",
       title: "Chuẩn ngoại ngữ Tiếng Anh B1",
@@ -540,7 +606,12 @@ export default function StudentPortfolioPage() {
     {
       id: "cert-2",
       title: `Chuyên cần thực hành Lab ${attendancePct}%`,
-      detail: `Có mặt ${attendedSessions}/${totalSessions} buổi thực hành phòng máy`,
+      detail: `Có mặt ${attendedSessions}/${totalSessions} tiết thực hành phòng máy`,
+    },
+    {
+      id: "cert-3",
+      title: `Năng lực Thực hành phần mềm (${portfolioCompetencies[1]?.studentScore ?? 88}/100)`,
+      detail: "Hoàn thành 100% đồ án môn học OOP & Cơ sở dữ liệu chuẩn 3NF",
     },
   ]);
 
@@ -576,14 +647,14 @@ export default function StudentPortfolioPage() {
     () => jobRoleTracks[0]!.aiSuggestions,
   );
 
-  // Bottom Administrative Dossier Form Studio state
+  // Administrative Dossier Form state (in Tab 5 "forms")
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(baseTemplates[0]!.id);
   const [customOverrides, setCustomOverrides] = useDemoState<
     Record<string, Record<string, string>>
   >("portfolio-form-drafts-v2", () => ({}));
   const [bannerNotice, setBannerNotice] = useState<string>("");
 
-  const studioRef = useRef<HTMLElement>(null);
+  const canvasViewportRef = useRef<HTMLDivElement>(null);
 
   if (!data) return null;
 
@@ -609,6 +680,101 @@ export default function StudentPortfolioPage() {
         objectivePitch: nextText,
       },
     }));
+  }
+
+  /* ---------- Full Auto-Harvest from Student Portal Data ---------- */
+  function syncAllStudentDataToCanvas() {
+    setHeaderFields({
+      fullName: account.displayName,
+      targetRole: selectedTrack.roleTitle,
+      email: account.email,
+      phone: account.phone,
+      classAndDept: `${account.cohortClass} · ${account.department}`,
+      location: harvestedPersonal.residence,
+      githubPortfolio: `github.com/${account.code.toLowerCase()}-sdu/portfolio`,
+      gpaBadge: `${overallGpa.value.toFixed(2)}/4.0`,
+      standingBadge: `Xếp loại ${standingText} · ${earnedCredits}/${program.requiredCredits} TC`,
+    });
+    setSelectedCourseCodes(allScoredCourses.slice(0, 6).map((c) => c.code));
+    setCvProjects(
+      portfolioProjects.map((p) => ({
+        id: p.id,
+        title: p.title,
+        courseCode: p.courseCode,
+        semester: p.semester,
+        role: p.role,
+        score: p.score,
+        summary: p.highlight,
+        techStack: p.stack.join(" · "),
+        artifactUrl: `github.com/sdu-student/${p.id}`,
+      })),
+    );
+    setCvSkillGroups(
+      selectedTrack.cvSkills.map((g, idx) => ({
+        id: `sk-sync-${idx}`,
+        group: g.group,
+        items: g.items.join(", "),
+      })),
+    );
+    setCvCerts([
+      {
+        id: "cert-1",
+        title: "Chuẩn ngoại ngữ Tiếng Anh B1",
+        detail: "Tiếng Anh 1 (8.0) · Tiếng Anh 2 (8.9 - Điểm A)",
+      },
+      {
+        id: "cert-2",
+        title: `Chuyên cần thực hành Lab ${attendancePct}%`,
+        detail: `Có mặt ${attendedSessions}/${totalSessions} tiết thực hành phòng máy`,
+      },
+      {
+        id: "cert-3",
+        title: `Năng lực Thực hành phần mềm (${portfolioCompetencies[1]?.studentScore ?? 88}/100)`,
+        detail: "Hoàn thành 100% đồ án môn học OOP & Cơ sở dữ liệu chuẩn 3NF",
+      },
+    ]);
+    setCvActivities([
+      ...(joinedClubObjects.length > 0
+        ? joinedClubObjects.map((club, idx) => ({
+            id: `act-club-${idx}`,
+            title: club.name,
+            detail: `${club.category} · ${club.place} (${club.time})`,
+          }))
+        : [
+            {
+              id: "act-club-default",
+              title: "CLB Tin học & Lập trình SDU",
+              detail: "Thành viên nhóm thuật toán & hỗ trợ kỹ thuật",
+            },
+          ]),
+      {
+        id: "act-conduct",
+        title: `Điểm rèn luyện: ${conduct.score}/100 (${conduct.rank})`,
+        detail: `Đủ điều kiện xét Học bổng Khuyến khích học tập ${semester.short}`,
+      },
+    ]);
+    setHiddenSections({
+      objective: false,
+      education: false,
+      projects: false,
+      skills: false,
+      certs: false,
+      activities: false,
+    });
+    const nowStr = new Date().toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    setLastSyncedAt(`Đã đồng bộ lúc ${nowStr}`);
+    setBannerNotice(
+      `Đã tự động thu thập toàn bộ hồ sơ của ${account.displayName} (GPA ${overallGpa.value.toFixed(2)}, ${earnedCredits} TC, ${portfolioProjects.length} đồ án, ${allScoredCourses.length} môn học) lên Canvas A4.`,
+    );
+  }
+
+  function toggleCourseInCv(code: string) {
+    setSelectedCourseCodes((prev) =>
+      prev.includes(code) ? prev.filter((item) => item !== code) : [...prev, code],
+    );
   }
 
   /* ---------- Role / Template Switching ---------- */
@@ -652,6 +818,11 @@ export default function StudentPortfolioPage() {
       ...prev,
       [sectionId]: !prev[sectionId],
     }));
+  }
+
+  function focusSectionInEditor(sectionId: CvSectionId | "header") {
+    setActiveSectionFocus(sectionId);
+    if (leftCollapsed) setLeftCollapsed(false);
   }
 
   /* ---------- Apply Individual AI Suggestion ---------- */
@@ -706,7 +877,6 @@ export default function StudentPortfolioPage() {
     setAiSortingAndFilling(true);
     setAiStatusText("AI đang đọc bảng điểm, đồ án Lab, điểm rèn luyện và sắp xếp bố cục CV...");
 
-    // Step 1: Automatically apply best section order & layout for the target role
     setSectionOrder(selectedTrack.recommendedOrder);
     setHeaderFields((prev) => ({
       ...prev,
@@ -722,7 +892,6 @@ export default function StudentPortfolioPage() {
       })),
     );
 
-    // Step 2: Stream tailored Career Objective from /api/ai/chat using real student record
     const prompt = [
       `Bạn là chuyên gia thiết kế CV chuẩn TopCV & Canva. Hãy đọc hồ sơ học tập thực tế của sinh viên dưới đây và viết đoạn "Mục tiêu nghề nghiệp" (65-100 từ) thật sắc bén, giàu số liệu định lượng để điền trực tiếp vào CV:`,
       `- Ứng viên: ${studentIdentity.displayName} (${studentIdentity.cohortClass}, ${studentIdentity.department}, Trường Đại học Sao Đỏ).`,
@@ -768,7 +937,7 @@ export default function StudentPortfolioPage() {
       setAiSortingAndFilling(false);
       setAiStatusText("");
       setBannerNotice(
-        `AI đã đọc dữ liệu học tập của ${studentIdentity.displayName}, tự động sắp xếp 6 mục CV theo chuẩn "${selectedTrack.shortLabel}" và điền Mục tiêu nghề nghiệp.`,
+        `AI đã tự động thu thập dữ liệu học tập của ${studentIdentity.displayName}, sắp xếp 6 mục CV theo chuẩn "${selectedTrack.shortLabel}" và điền Mục tiêu nghề nghiệp.`,
       );
     }
   }
@@ -903,7 +1072,7 @@ export default function StudentPortfolioPage() {
     }
 
     if (secId === "education") {
-      const courseListHtml = topCourses
+      const courseListHtml = displayedCourses
         .map(
           (c) =>
             `<span class="course-pill"><b>${escapeHtml(c.code)}</b> ${escapeHtml(c.name)}: <b>${c.score10.toFixed(1)}</b></span>`,
@@ -912,8 +1081,8 @@ export default function StudentPortfolioPage() {
       return `
         <div class="cv-sec">
           <h2>${title}</h2>
-          <p><strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong> (2022 – 2026)</p>
-          <p class="sub">Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: ${escapeHtml(studentIdentity.advisorName)} · <strong>GPA ${escapeHtml(headerFields.gpaBadge)}</strong> (${escapeHtml(headerFields.standingBadge)} · ${earnedCredits}/${program.requiredCredits} TC)</p>
+          <p><strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong> (${escapeHtml(harvestedPersonal.studyYears)})</p>
+          <p class="sub">Chuyên ngành ${escapeHtml(harvestedPersonal.specialization)} · Cố vấn học tập: ${escapeHtml(studentIdentity.advisorName)} · <strong>GPA ${escapeHtml(headerFields.gpaBadge)}</strong> (${escapeHtml(headerFields.standingBadge)})</p>
           <p class="sub"><strong>Học phần cốt lõi điểm cao:</strong> ${courseListHtml}</p>
         </div>`;
     }
@@ -1131,7 +1300,7 @@ export default function StudentPortfolioPage() {
     }, 600);
   }
 
-  /* ---------- Bottom Administrative Form Studio Handlers ---------- */
+  /* ---------- Administrative Form Studio Handlers ---------- */
   function updateDraftField(key: string, value: string) {
     setCustomOverrides((prev) => ({
       ...prev,
@@ -1149,13 +1318,6 @@ export default function StudentPortfolioPage() {
       return next;
     });
     setBannerNotice("Đã khôi phục dữ liệu trích xuất gốc từ hệ thống đào tạo.");
-  }
-
-  function focusStudioWithTemplate(templateId: string) {
-    setSelectedTemplateId(templateId);
-    setTimeout(() => {
-      studioRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 40);
   }
 
   function exportTemplateAsWordDoc(tpl: EditableDossierTemplate) {
@@ -1277,47 +1439,87 @@ export default function StudentPortfolioPage() {
   /* ---------- Render Helpers for Individual CV Sections on A4 Canvas ---------- */
   const leftSidebarSections: CvSectionId[] = ["skills", "certs", "activities"];
 
-  function renderSectionToolbar(sectionId: CvSectionId, allowAiRewrite?: () => void, onAdd?: () => void) {
+  function renderSectionToolbar(
+    sectionId: CvSectionId,
+    allowAiRewrite?: () => void,
+    onAdd?: () => void,
+  ) {
     const idx = sectionOrder.indexOf(sectionId);
     return (
-      <div className="cv-block-floating-tools" role="toolbar" aria-label={`Công cụ mục ${sectionTitles[sectionId]}`}>
+      <div
+        className="cv-block-floating-tools"
+        role="toolbar"
+        aria-label={`Công cụ mục ${sectionTitles[sectionId]}`}
+      >
         <button
           type="button"
           className="cv-tool-mini"
-          onClick={() => moveSection(sectionId, -1)}
-          disabled={idx <= 0}
-          title="Đưa mục này lên trên"
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveSectionFocus(sectionId);
+            setLeftTab("edit");
+            setLeftCollapsed(false);
+          }}
+          title="Mở bảng chỉnh sửa chi tiết ở cột trái"
         >
-          ↑ Lên
+          <Icon name="pen" /> Sửa bên trái
         </button>
         <button
           type="button"
           className="cv-tool-mini"
-          onClick={() => moveSection(sectionId, 1)}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveSection(sectionId, -1);
+          }}
+          disabled={idx <= 0}
+          title="Đưa mục này lên trên"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="cv-tool-mini"
+          onClick={(e) => {
+            e.stopPropagation();
+            moveSection(sectionId, 1);
+          }}
           disabled={idx < 0 || idx >= sectionOrder.length - 1}
           title="Đưa mục này xuống dưới"
         >
-          ↓ Xuống
+          ↓
         </button>
         {allowAiRewrite && (
           <button
             type="button"
             className="cv-tool-mini is-ai"
-            onClick={allowAiRewrite}
+            onClick={(e) => {
+              e.stopPropagation();
+              allowAiRewrite();
+            }}
             disabled={aiGenerating || aiSortingAndFilling}
           >
             <Icon name="sparkle" /> AI viết lại
           </button>
         )}
         {onAdd && (
-          <button type="button" className="cv-tool-mini" onClick={onAdd}>
+          <button
+            type="button"
+            className="cv-tool-mini"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
+          >
             + Thêm dòng
           </button>
         )}
         <button
           type="button"
           className="cv-tool-mini"
-          onClick={() => toggleSectionVisibility(sectionId)}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSectionVisibility(sectionId);
+          }}
           title="Ẩn mục này khỏi CV"
         >
           Ẩn
@@ -1335,7 +1537,7 @@ export default function StudentPortfolioPage() {
         <section
           key="objective"
           className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-          onClick={() => setActiveSectionFocus("objective")}
+          onClick={() => focusSectionInEditor("objective")}
         >
           {renderSectionToolbar("objective", () => void rewriteObjectiveWithAi())}
           <header className="pf-cv-block-head">
@@ -1348,7 +1550,7 @@ export default function StudentPortfolioPage() {
               }
               aria-label="Tiêu đề mục Mục tiêu nghề nghiệp"
             />
-            <span>Click để sửa trực tiếp hoặc dùng AI</span>
+            <span>Tự tổng hợp từ GPA {overallGpa.value.toFixed(2)} &amp; Đồ án</span>
           </header>
           <textarea
             className="pf-cv-objective-input"
@@ -1366,7 +1568,7 @@ export default function StudentPortfolioPage() {
         <section
           key="education"
           className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-          onClick={() => setActiveSectionFocus("education")}
+          onClick={() => focusSectionInEditor("education")}
         >
           {renderSectionToolbar("education")}
           <header className="pf-cv-block-head">
@@ -1379,13 +1581,14 @@ export default function StudentPortfolioPage() {
               }
               aria-label="Tiêu đề mục Học vấn"
             />
-            <span>2022 – 2026</span>
+            <span>{harvestedPersonal.studyYears}</span>
           </header>
           <div className="pf-cv-edu-row">
             <div>
-              <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
+              <strong>Trường Đại học Sao Đỏ — {account.department}</strong>
               <p>
-                Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
+                Chuyên ngành {harvestedPersonal.specialization} · Lớp {account.cohortClass} · Cố vấn:{" "}
+                {studentIdentity.advisorName}
               </p>
             </div>
             <code>
@@ -1393,9 +1596,11 @@ export default function StudentPortfolioPage() {
             </code>
           </div>
           <div className="pf-cv-top-courses">
-            <span className="pf-cv-sublabel">Học phần cốt lõi đạt điểm cao (Xác thực từ SDU):</span>
+            <span className="pf-cv-sublabel">
+              Học phần cốt lõi trích xuất từ bảng điểm ({displayedCourses.length} môn):
+            </span>
             <div className="pf-course-pills">
-              {topCourses.map((course) => (
+              {displayedCourses.map((course) => (
                 <span key={course.code} className="pf-course-tag">
                   <code>{course.code}</code> {course.name}:{" "}
                   <strong>{course.score10.toFixed(1)}</strong>
@@ -1412,7 +1617,7 @@ export default function StudentPortfolioPage() {
         <section
           key="projects"
           className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-          onClick={() => setActiveSectionFocus("projects")}
+          onClick={() => focusSectionInEditor("projects")}
         >
           {renderSectionToolbar(
             "projects",
@@ -1444,7 +1649,7 @@ export default function StudentPortfolioPage() {
               }
               aria-label="Tiêu đề mục Dự án"
             />
-            <span>{cvProjects.length} dự án</span>
+            <span>{cvProjects.length} đồ án xác thực</span>
           </header>
           <div className="pf-cv-projects">
             {cvProjects.map((proj, idx) => (
@@ -1499,7 +1704,10 @@ export default function StudentPortfolioPage() {
                     <button
                       type="button"
                       className="cv-mini-icon-btn"
-                      onClick={() => void rewriteProjectWithAi(idx)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void rewriteProjectWithAi(idx);
+                      }}
                       disabled={aiGenerating}
                       title="Dùng AI viết lại mô tả dự án này theo chuẩn STAR"
                     >
@@ -1509,9 +1717,10 @@ export default function StudentPortfolioPage() {
                       <button
                         type="button"
                         className="cv-mini-icon-btn is-danger"
-                        onClick={() =>
-                          setCvProjects((prev) => prev.filter((_, i) => i !== idx))
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCvProjects((prev) => prev.filter((_, i) => i !== idx));
+                        }}
                         title="Xóa dự án này khỏi CV"
                       >
                         ×
@@ -1574,7 +1783,7 @@ export default function StudentPortfolioPage() {
         <section
           key="skills"
           className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-          onClick={() => setActiveSectionFocus("skills")}
+          onClick={() => focusSectionInEditor("skills")}
         >
           {renderSectionToolbar("skills", undefined, () =>
             setCvSkillGroups((prev) => [
@@ -1619,9 +1828,10 @@ export default function StudentPortfolioPage() {
                     <button
                       type="button"
                       className="cv-mini-icon-btn is-danger"
-                      onClick={() =>
-                        setCvSkillGroups((prev) => prev.filter((_, i) => i !== idx))
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCvSkillGroups((prev) => prev.filter((_, i) => i !== idx));
+                      }}
                       title="Xóa nhóm kỹ năng"
                     >
                       ×
@@ -1653,7 +1863,7 @@ export default function StudentPortfolioPage() {
         <section
           key="certs"
           className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-          onClick={() => setActiveSectionFocus("certs")}
+          onClick={() => focusSectionInEditor("certs")}
         >
           {renderSectionToolbar("certs", undefined, () =>
             setCvCerts((prev) => [
@@ -1679,19 +1889,34 @@ export default function StudentPortfolioPage() {
           <ul className="pf-cv-compact-list">
             {cvCerts.map((cert, idx) => (
               <li key={cert.id} className="cv-editable-list-item">
-                <input
-                  type="text"
-                  className="cv-inline-input is-strong"
-                  value={cert.title}
-                  onChange={(e) =>
-                    setCvCerts((prev) =>
-                      prev.map((c, i) =>
-                        i === idx ? { ...c, title: e.target.value } : c,
-                      ),
-                    )
-                  }
-                  aria-label={`Tên chứng chỉ ${idx + 1}`}
-                />
+                <div className="cv-list-item-head">
+                  <input
+                    type="text"
+                    className="cv-inline-input is-strong"
+                    value={cert.title}
+                    onChange={(e) =>
+                      setCvCerts((prev) =>
+                        prev.map((c, i) =>
+                          i === idx ? { ...c, title: e.target.value } : c,
+                        ),
+                      )
+                    }
+                    aria-label={`Tên chứng chỉ ${idx + 1}`}
+                  />
+                  {cvCerts.length > 1 && (
+                    <button
+                      type="button"
+                      className="cv-mini-icon-btn is-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCvCerts((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      title="Xóa chứng chỉ"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   className="cv-inline-input is-sub"
@@ -1716,7 +1941,7 @@ export default function StudentPortfolioPage() {
       <section
         key="activities"
         className={`pf-cv-block cv-editable-block${isFocused ? " is-selected" : ""}`}
-        onClick={() => setActiveSectionFocus("activities")}
+        onClick={() => focusSectionInEditor("activities")}
       >
         {renderSectionToolbar("activities", undefined, () =>
           setCvActivities((prev) => [
@@ -1742,19 +1967,34 @@ export default function StudentPortfolioPage() {
         <ul className="pf-cv-compact-list">
           {cvActivities.map((act, idx) => (
             <li key={act.id} className="cv-editable-list-item">
-              <input
-                type="text"
-                className="cv-inline-input is-strong"
-                value={act.title}
-                onChange={(e) =>
-                  setCvActivities((prev) =>
-                    prev.map((a, i) =>
-                      i === idx ? { ...a, title: e.target.value } : a,
-                    ),
-                  )
-                }
-                aria-label={`Tên hoạt động ${idx + 1}`}
-              />
+              <div className="cv-list-item-head">
+                <input
+                  type="text"
+                  className="cv-inline-input is-strong"
+                  value={act.title}
+                  onChange={(e) =>
+                    setCvActivities((prev) =>
+                      prev.map((a, i) =>
+                        i === idx ? { ...a, title: e.target.value } : a,
+                      ),
+                    )
+                  }
+                  aria-label={`Tên hoạt động ${idx + 1}`}
+                />
+                {cvActivities.length > 1 && (
+                  <button
+                    type="button"
+                    className="cv-mini-icon-btn is-danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCvActivities((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                    title="Xóa hoạt động"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 className="cv-inline-input is-sub"
@@ -1794,13 +2034,13 @@ export default function StudentPortfolioPage() {
         <section key="print-education" className="cv-print-block">
           <header className="cv-print-block-head">
             <h3>{sectionTitles.education}</h3>
-            <span>2022 – 2026</span>
+            <span>{harvestedPersonal.studyYears}</span>
           </header>
           <div className="cv-print-edu-row">
             <div>
-              <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
+              <strong>Trường Đại học Sao Đỏ — {account.department}</strong>
               <p>
-                Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
+                Chuyên ngành {harvestedPersonal.specialization} · Cố vấn học tập: {studentIdentity.advisorName}
               </p>
             </div>
             <code>
@@ -1808,7 +2048,7 @@ export default function StudentPortfolioPage() {
             </code>
           </div>
           <div className="cv-print-courses">
-            {topCourses.map((course) => (
+            {displayedCourses.map((course) => (
               <span key={course.code} className="cv-print-course-pill">
                 <b>{course.code}</b> {course.name}: <strong>{course.score10.toFixed(1)}</strong>
               </span>
@@ -1909,46 +2149,14 @@ export default function StudentPortfolioPage() {
   } as CSSProperties;
 
   return (
-    <>
+    <div className="cv-studio-page">
       <DemoBanner />
 
-      <PageTitle
-        title="Không gian thiết kế CV bằng AI"
-        lead="Tùy chỉnh bố cục, màu sắc, thứ tự mục trực tiếp trên trang A4 như Canva — tích hợp AI đọc dữ liệu học tập để tự sắp xếp, điền CV và đề xuất nâng cấp"
-      >
-        <div className="pf-top-actions">
-          <button
-            type="button"
-            className="button button-primary button-sm"
-            onClick={() => void runAiAutoArrangeAndFillAll()}
-            disabled={aiSortingAndFilling || aiGenerating}
-          >
-            <Icon name="sparkle" />
-            <span>{aiSortingAndFilling ? "Đang điền CV…" : "AI Điền CV"}</span>
-          </button>
-          <button
-            type="button"
-            className="button button-outline button-sm"
-            onClick={exportLiveCvToWordDoc}
-          >
-            <Icon name="file" />
-            <span>Xuất Word</span>
-          </button>
-          <button
-            type="button"
-            className="button button-quiet button-sm"
-            onClick={exportLiveCvToPdfA4}
-          >
-            <span>Xuất PDF</span>
-          </button>
-        </div>
-      </PageTitle>
-
       {bannerNotice && (
-        <div className="notice ok" role="status" style={{ marginBottom: 16 }}>
+        <div className="notice ok cv-studio-notice" role="status">
           <Icon name="checkCircle" />
           <div>
-            <strong>Trợ lý Thiết kế CV AI</strong>
+            <strong>SDU CV Studio</strong>
             <p>{bannerNotice}</p>
           </div>
           <button
@@ -1962,24 +2170,105 @@ export default function StudentPortfolioPage() {
       )}
 
       {/* ====================================================================
-          CANVA-STYLE TOP TOOLBAR
+          1. TOP EDITOR TOOLBAR (THANH CÔNG CỤ PHÍA TRÊN CANVAS)
           ==================================================================== */}
-      <div className="cv-canva-topbar" role="toolbar" aria-label="Thanh công cụ thiết kế CV">
-        <div className="cv-topbar-left">
-          <span className="cv-topbar-badge">SDU CV Studio</span>
-          <input
-            type="text"
-            className="cv-doc-title-input"
-            value={cvTitle}
-            onChange={(e) => setCvTitle(e.target.value)}
-            aria-label="Tên file CV"
-          />
-          <span className="cv-autosave-pill">
-            <i aria-hidden="true" /> Đã đồng bộ dữ liệu SDU
-          </span>
+      <header className="cv-studio-top-ribbon" role="toolbar" aria-label="Thanh công cụ thiết kế CV phía trên">
+        {/* Top Row: Document Identity + Auto-Harvest Status + Primary Actions */}
+        <div className="cv-ribbon-row is-primary">
+          <div className="cv-ribbon-brand">
+            <span className="cv-topbar-badge">SDU CV Studio</span>
+            <input
+              type="text"
+              className="cv-doc-title-input"
+              value={cvTitle}
+              onChange={(e) => setCvTitle(e.target.value)}
+              aria-label="Tên file CV"
+            />
+            <button
+              type="button"
+              className="cv-harvest-pill"
+              onClick={syncAllStudentDataToCanvas}
+              title="Thu thập và đồng bộ lại toàn bộ thông tin cá nhân, GPA, bảng điểm, đồ án, rèn luyện của sinh viên lên Canvas"
+            >
+              <span className="cv-harvest-dot" aria-hidden="true" />
+              <span>{lastSyncedAt} · Tự thu thập SDU</span>
+              <Icon name="retry" />
+            </button>
+          </div>
+
+          <div className="cv-ribbon-actions">
+            <button
+              type="button"
+              className="button button-primary button-sm"
+              onClick={() => void runAiAutoArrangeAndFillAll()}
+              disabled={aiSortingAndFilling || aiGenerating}
+            >
+              <Icon name="sparkle" />
+              <span>{aiSortingAndFilling ? "Đang tối ưu CV…" : "AI Tự điền & Xếp CV"}</span>
+            </button>
+            <button
+              type="button"
+              className="button button-outline button-sm"
+              onClick={exportLiveCvToWordDoc}
+            >
+              <Icon name="file" />
+              <span>Xuất Word (.doc)</span>
+            </button>
+            <button
+              type="button"
+              className="button button-quiet button-sm"
+              onClick={exportLiveCvToPdfA4}
+            >
+              <span>In / Xuất PDF A4</span>
+            </button>
+          </div>
         </div>
 
-        <div className="cv-topbar-center">
+        {/* Bottom Row: Visual & Structural Editing Controls Above Canvas */}
+        <div className="cv-ribbon-row is-controls">
+          {/* Layout Template Switcher */}
+          <div className="cv-ribbon-group" role="group" aria-label="Bố cục trang A4">
+            <span className="cv-ribbon-label">Bố cục:</span>
+            <div className="cv-ribbon-pills">
+              {cvLayoutStyles.map((style) => (
+                <button
+                  key={style.id}
+                  type="button"
+                  className={`cv-ribbon-pill${cvStyleId === style.id ? " is-active" : ""}`}
+                  onClick={() => selectCvLayout(style)}
+                  title={style.summary}
+                >
+                  {style.shortName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <span className="cv-ribbon-divider" aria-hidden="true" />
+
+          {/* Target Career Role Selector */}
+          <div className="cv-ribbon-group">
+            <span className="cv-ribbon-label">Vị trí:</span>
+            <select
+              className="cv-topbar-select"
+              value={roleTrackId}
+              onChange={(e) => {
+                const found = jobRoleTracks.find((r) => r.id === e.target.value);
+                if (found) selectJobRoleTrack(found);
+              }}
+              aria-label="Vị trí ứng tuyển mục tiêu"
+            >
+              {jobRoleTracks.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.shortLabel} ({role.sector})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <span className="cv-ribbon-divider" aria-hidden="true" />
+
+          {/* Color Swatches */}
           <div className="cv-swatch-bar" role="group" aria-label="Màu chủ đạo CV">
             {cvColorSwatches.map((sw) => (
               <button
@@ -1999,19 +2288,20 @@ export default function StudentPortfolioPage() {
                 onChange={(e) => setAccentColor(e.target.value)}
                 aria-label="Chọn màu tùy chỉnh"
               />
-              <span>Màu khác</span>
+              <span>Màu</span>
             </label>
           </div>
 
+          {/* Font & Spacing & Avatar */}
           <select
             className="cv-topbar-select"
             value={fontPair}
             onChange={(e) => setFontPair(e.target.value as CvFontPairId)}
             aria-label="Phông chữ CV"
           >
-            <option value="sans">Font: Hiện đại (Plus Jakarta)</option>
-            <option value="serif">Font: Cổ điển Harvard (Serif)</option>
-            <option value="mono-tech">Font: Kỹ thuật số (Tech Mono)</option>
+            <option value="sans">Font: Hiện đại</option>
+            <option value="serif">Font: Harvard Serif</option>
+            <option value="mono-tech">Font: Tech Mono</option>
           </select>
 
           <select
@@ -2020,639 +2310,1158 @@ export default function StudentPortfolioPage() {
             onChange={(e) => setDensity(e.target.value as CvDensityId)}
             aria-label="Độ thoáng dòng"
           >
-            <option value="compact">Khoảng cách: Thu gọn</option>
-            <option value="normal">Khoảng cách: Chuẩn A4</option>
-            <option value="airy">Khoảng cách: Thoáng rộng</option>
+            <option value="compact">Khổ: Thu gọn</option>
+            <option value="normal">Khổ: Chuẩn A4</option>
+            <option value="airy">Khổ: Thoáng</option>
           </select>
-        </div>
 
-        <div className="cv-topbar-right">
+          <select
+            className="cv-topbar-select"
+            value={avatarShape}
+            onChange={(e) => setAvatarShape(e.target.value as CvAvatarShapeId)}
+            aria-label="Khung ảnh đại diện"
+          >
+            <option value="rounded">Ảnh: Bo góc</option>
+            <option value="circle">Ảnh: Tròn</option>
+            <option value="square">Ảnh: Vuông</option>
+            <option value="hidden">Ảnh: Ẩn (ATS)</option>
+          </select>
+
+          {/* Zoom Controls */}
           <div className="cv-zoom-controls" role="group" aria-label="Thu phóng trang A4">
             <button
               type="button"
-              onClick={() => setZoomPct((z) => Math.max(80, z - 10))}
-              title="Thu nhỏ"
+              onClick={() => setZoomPct((z) => Math.max(75, z - 10))}
+              title="Thu nhỏ Canvas"
             >
               −
             </button>
-            <span>{zoomPct}%</span>
             <button
               type="button"
-              onClick={() => setZoomPct((z) => Math.min(115, z + 10))}
-              title="Phóng to"
+              className="cv-zoom-reset"
+              onClick={() => setZoomPct(100)}
+              title="Đặt lại tỷ lệ 100%"
+            >
+              {zoomPct}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomPct((z) => Math.min(120, z + 10))}
+              title="Phóng to Canvas"
             >
               +
             </button>
           </div>
-          <button
-            type="button"
-            className="button button-quiet button-sm"
-            onClick={() => focusStudioWithTemplate("tpl-onestop-service")}
-          >
-            Mẫu Một cửa
-          </button>
         </div>
-      </div>
+      </header>
 
       {/* ====================================================================
-          CANVA STUDIO MAIN WORKSPACE (LEFT DOCK + DRAWER + RIGHT A4 STAGE)
+          2. MAIN STUDIO WORKBENCH (LEFT EDITING SIDEBAR + LARGE RIGHT CANVAS)
           ==================================================================== */}
-      <div className={`cv-canva-workspace${drawerOpen ? "" : " is-drawer-collapsed"}`}>
-        {/* 1. Left Icon Rail (Canva Dock) */}
-        <nav className="cv-dock-rail" aria-label="Bảng công cụ thiết kế CV">
-          {(
-            [
-              { id: "ai", icon: "sparkle", label: "Trợ lý AI" },
-              { id: "templates", icon: "briefcase", label: "Mẫu CV" },
-              { id: "design", icon: "image", label: "Giao diện" },
-              { id: "sections", icon: "file", label: "Thứ tự mục" },
-              { id: "data", icon: "award", label: "Dữ liệu SDU" },
-            ] as const
-          ).map((tab) => {
-            const active = drawerOpen && dockTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`cv-dock-btn${active ? " is-active" : ""}`}
-                onClick={() => {
-                  if (dockTab === tab.id) {
-                    setDrawerOpen((o) => !o);
-                  } else {
-                    setDockTab(tab.id);
-                    setDrawerOpen(true);
-                  }
-                }}
-              >
-                <Icon name={tab.icon} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* 2. Left Contextual Drawer Panel */}
-        {drawerOpen && (
-          <aside className="cv-dock-drawer" aria-label="Khung tùy chỉnh chi tiết">
-          {dockTab === "ai" && (
-            <div className="cv-drawer-pane">
-              <header className="cv-drawer-head">
-                <div>
-                  <span className="pf-section-eyebrow">Trợ lý AI & Đề xuất thông minh</span>
-                  <h3>Tự động đọc hồ sơ & Sắp xếp CV</h3>
-                </div>
-                <Link href={"/student/ai" as Route} className="pf-rank-tag">
-                  Chat AI
-                </Link>
-              </header>
-
-              <p className="pf-ai-desc">
-                AI phân tích bảng điểm (<code>GPA {overallGpa.value.toFixed(2)}</code>), 2 đồ án thực hành phòng Lab và vị trí bạn chọn để tự sắp xếp thứ tự mục, điền nội dung và gợi ý nâng cấp CV.
-              </p>
-
-              <div className="pf-ai-controls">
-                <label className="field">
-                  Vị trí công việc mục tiêu
-                  <select
-                    value={roleTrackId}
-                    onChange={(e) => {
-                      const found = jobRoleTracks.find((r) => r.id === e.target.value);
-                      if (found) selectJobRoleTrack(found);
-                    }}
-                  >
-                    {jobRoleTracks.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.sector} — {role.shortLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="field">
-                  Công ty hoặc yêu cầu JD cụ thể (tùy chọn)
-                  <input
-                    type="text"
-                    value={customCompanyHint}
-                    onChange={(e) => setCustomCompanyHint(e.target.value)}
-                    placeholder="Ví dụ: FPT Software, Viettel, yêu cầu SQL..."
-                  />
-                </label>
-
-                <label className="field">
-                  Giọng văn Mục tiêu nghề nghiệp
-                  <select
-                    value={aiFocus}
-                    onChange={(e) => setAiFocus(e.target.value as typeof aiFocus)}
-                  >
-                    <option value="ats">Chuẩn TopCV / ATS (Ngắn gọn, súc tích)</option>
-                    <option value="project">Nhấn mạnh Đồ án & Chỉ số định lượng</option>
-                    <option value="intern">Cầu thị, kỷ luật Lab & cam kết thực tập</option>
-                    <option value="fresher">Định hướng lên Kỹ sư Fresher chính thức</option>
-                  </select>
-                </label>
-
+      <div className={`cv-studio-workbench${leftCollapsed ? " is-left-collapsed" : ""}`}>
+        {/* 2A. Left Component & Data Collector Sidebar */}
+        <aside className="cv-studio-left-sidebar" aria-label="Thanh công cụ chỉnh sửa bên trái Canvas">
+          {/* Vertical Icon Rail */}
+          <nav className="cv-left-rail" aria-label="Các nhóm công cụ chỉnh sửa CV">
+            {(
+              [
+                { id: "collect", icon: "award", label: "Dữ liệu SV" },
+                { id: "edit", icon: "pen", label: "Sửa mục" },
+                { id: "sections", icon: "list", label: "Bố cục" },
+                { id: "ai", icon: "sparkle", label: "AI Gợi ý" },
+                { id: "forms", icon: "clipboard", label: "Biểu mẫu" },
+              ] as const
+            ).map((tab) => {
+              const active = !leftCollapsed && leftTab === tab.id;
+              return (
                 <button
+                  key={tab.id}
                   type="button"
-                  className="button button-primary button-sm cv-full-btn"
-                  onClick={() => void runAiAutoArrangeAndFillAll()}
-                  disabled={aiSortingAndFilling || aiGenerating}
+                  className={`cv-dock-btn${active ? " is-active" : ""}`}
+                  onClick={() => {
+                    if (leftTab === tab.id) {
+                      setLeftCollapsed((c) => !c);
+                    } else {
+                      setLeftTab(tab.id);
+                      setLeftCollapsed(false);
+                    }
+                  }}
                 >
-                  <Icon name="sparkle" />
-                  <span>
-                    {aiSortingAndFilling ? "Đang điền CV…" : "AI Tự điền & Xếp CV"}
-                  </span>
+                  <Icon name={tab.icon} />
+                  <span>{tab.label}</span>
                 </button>
+              );
+            })}
+          </nav>
 
-                <div className="cv-ai-quick-btns">
-                  <button
-                    type="button"
-                    className="pf-export-btn"
-                    onClick={() => void rewriteObjectiveWithAi()}
-                    disabled={aiGenerating}
-                  >
-                    Viết lại Mục tiêu
-                  </button>
-                  <button
-                    type="button"
-                    className="pf-export-btn"
-                    onClick={() => void rewriteProjectWithAi(0)}
-                    disabled={aiGenerating}
-                  >
-                    Tối ưu Đồ án
-                  </button>
-                </div>
-
-                {aiStatusText && <p className="pf-ai-note">{aiStatusText}</p>}
-              </div>
-
-              <div className="cv-ai-suggestions-box">
-                <div className="cv-subhead-row">
-                  <strong>Đề xuất từ AI cho vị trí {selectedTrack.shortLabel}</strong>
-                  <span>{aiSuggestions.length} gợi ý</span>
-                </div>
-                <p className="cv-recruiter-note">{selectedTrack.recruiterVerdict}</p>
-                <div className="cv-suggestion-list">
-                  {aiSuggestions.map((sug) => (
-                    <article
-                      key={sug.id}
-                      className={`cv-suggestion-card${sug.applied ? " is-applied" : ""}`}
+          {/* Left Inspector Drawer Content */}
+          {!leftCollapsed && (
+            <div className="cv-left-inspector">
+              {/* TAB 1: AUTO-COLLECTED STUDENT DATA FROM PORTAL */}
+              {leftTab === "collect" && (
+                <div className="cv-drawer-pane">
+                  <header className="cv-drawer-head">
+                    <div>
+                      <span className="pf-section-eyebrow">Tự động thu thập từ Cổng SDU</span>
+                      <h3>Hồ sơ sinh viên trực tiếp</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="cv-tool-mini is-ai"
+                      onClick={syncAllStudentDataToCanvas}
                     >
-                      <div className="cv-sug-top">
-                        <strong>{sug.title}</strong>
-                        <span className="cv-sug-badge">
-                          {sug.applied ? "Đã áp dụng" : "Đề xuất AI"}
-                        </span>
+                      <Icon name="retry" /> Đồng bộ tất cả
+                    </button>
+                  </header>
+
+                  {/* Collected Summary Card */}
+                  <div className="cv-collector-summary-card">
+                    <div className="cv-collector-student">
+                      <strong>{account.displayName}</strong>
+                      <code>{account.code} · {account.cohortClass}</code>
+                    </div>
+                    <div className="cv-collector-metrics">
+                      <div>
+                        <span>GPA tích lũy</span>
+                        <strong>{overallGpa.value.toFixed(2)}/4.0</strong>
                       </div>
-                      <p>{sug.reason}</p>
+                      <div>
+                        <span>Tín chỉ</span>
+                        <strong>{earnedCredits}/{program.requiredCredits}</strong>
+                      </div>
+                      <div>
+                        <span>Chuyên cần Lab</span>
+                        <strong>{attendancePct}%</strong>
+                      </div>
+                      <div>
+                        <span>Rèn luyện</span>
+                        <strong>{conduct.score}/100</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1. High-scoring courses from Transcript */}
+                  <div className="cv-drawer-group">
+                    <div className="cv-subhead-row">
+                      <span className="cv-group-label">1. Học phần điểm cao (Bấm để bật/tắt trên CV)</span>
+                      <span>{displayedCourses.length}/{allScoredCourses.length} môn</span>
+                    </div>
+                    <div className="cv-collected-course-list">
+                      {allScoredCourses.slice(0, 10).map((course) => {
+                        const checked = selectedCourseCodes.includes(course.code);
+                        return (
+                          <button
+                            key={course.code}
+                            type="button"
+                            className={`cv-collected-course-chip${checked ? " is-selected" : ""}`}
+                            onClick={() => toggleCourseInCv(course.code)}
+                          >
+                            <span className="cv-course-check">{checked ? "✓" : "+"}</span>
+                            <div className="cv-course-chip-body">
+                              <strong>
+                                <code>{course.code}</code> {course.name}
+                              </strong>
+                              <small>{course.termName} · {course.credits} TC</small>
+                            </div>
+                            <b className="cv-course-score-badge">{course.score10.toFixed(1)}</b>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. Verified Course Projects & Submissions */}
+                  <div className="cv-drawer-group">
+                    <div className="cv-subhead-row">
+                      <span className="cv-group-label">2. Đồ án & Bài tập lớn từ lớp học phần</span>
+                      <span>{portfolioProjects.length} đồ án</span>
+                    </div>
+                    <div className="cv-data-snippets">
+                      {portfolioProjects.map((proj) => {
+                        const inCv = cvProjects.some((p) => p.title === proj.title);
+                        return (
+                          <article key={proj.id} className="cv-data-card">
+                            <div className="pf-obs-head">
+                              <strong>{proj.title}</strong>
+                              <code className="pf-obs-metric">{proj.score}</code>
+                            </div>
+                            <p>{proj.highlight}</p>
+                            <button
+                              type="button"
+                              className="pf-inline-link"
+                              onClick={() => {
+                                if (inCv) {
+                                  setActiveSectionFocus("projects");
+                                  setLeftTab("edit");
+                                  return;
+                                }
+                                setCvProjects((prev) => [
+                                  ...prev,
+                                  {
+                                    id: `proj-sync-${Date.now()}`,
+                                    title: proj.title,
+                                    courseCode: proj.courseCode,
+                                    semester: proj.semester,
+                                    role: proj.role,
+                                    score: proj.score,
+                                    summary: proj.highlight,
+                                    techStack: proj.stack.join(" · "),
+                                    artifactUrl: `github.com/sdu-student/${proj.id}`,
+                                  },
+                                ]);
+                                setBannerNotice(`Đã đưa đồ án "${proj.title}" vào Canvas CV.`);
+                              }}
+                            >
+                              <span>{inCv ? "Đã có trên CV (Bấm để sửa)" : "+ Đưa vào CV"}</span>
+                            </button>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. Verified Academic & Competency Evidence */}
+                  <div className="cv-drawer-group">
+                    <span className="cv-group-label">3. Minh chứng & Nhận xét học vụ SDU</span>
+                    <div className="cv-data-snippets">
+                      {objectiveObservations.map((obs) => (
+                        <article key={obs.id} className="cv-data-card">
+                          <div className="pf-obs-head">
+                            <strong>{obs.title}</strong>
+                            <code className="pf-obs-metric">{obs.metric}</code>
+                          </div>
+                          <p>{obs.summary}</p>
+                          <button
+                            type="button"
+                            className="pf-inline-link"
+                            onClick={() => {
+                              setCvCerts((prev) => [
+                                ...prev,
+                                {
+                                  id: `cert-obs-${Date.now()}`,
+                                  title: `${obs.title} (${obs.metric})`,
+                                  detail: obs.evidenceRef,
+                                },
+                              ]);
+                              setBannerNotice(`Đã chèn minh chứng "${obs.title}" vào mục Chứng chỉ trên CV.`);
+                            }}
+                          >
+                            <span>+ Chèn vào Chứng chỉ CV</span>
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: DIRECT COMPONENT EDITOR FOR SELECTED SECTION */}
+              {leftTab === "edit" && (
+                <div className="cv-drawer-pane">
+                  <header className="cv-drawer-head">
+                    <div>
+                      <span className="pf-section-eyebrow">Chỉnh sửa thành phần CV</span>
+                      <h3>Biên tập chi tiết từng khối</h3>
+                    </div>
+                  </header>
+
+                  {/* Section Selector Pills */}
+                  <div className="cv-edit-target-pills" role="tablist" aria-label="Chọn mục cần sửa">
+                    {(
+                      [
+                        { id: "header", label: "Thông tin & Liên hệ" },
+                        { id: "objective", label: "Mục tiêu" },
+                        { id: "education", label: "Học vấn" },
+                        { id: "projects", label: "Dự án" },
+                        { id: "skills", label: "Kỹ năng" },
+                        { id: "certs", label: "Chứng chỉ" },
+                        { id: "activities", label: "Hoạt động" },
+                      ] as const
+                    ).map((sec) => (
                       <button
+                        key={sec.id}
                         type="button"
-                        className="pf-inline-link"
-                        onClick={() => applyAiSuggestion(sug)}
+                        role="tab"
+                        aria-selected={activeSectionFocus === sec.id}
+                        className={`cv-target-pill${activeSectionFocus === sec.id ? " is-active" : ""}`}
+                        onClick={() => setActiveSectionFocus(sec.id)}
                       >
-                        <span>{sug.applied ? "Áp dụng lại" : sug.actionLabel}</span>
-                        <Icon name="arrow" />
+                        {sec.label}
                       </button>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+                    ))}
+                  </div>
 
-          {dockTab === "templates" && (
-            <div className="cv-drawer-pane">
-              <header className="cv-drawer-head">
-                <div>
-                  <span className="pf-section-eyebrow">Thư viện Mẫu CV</span>
-                  <h3>Chọn bố cục & Ngành nghề</h3>
-                </div>
-              </header>
-
-              <div className="cv-drawer-group">
-                <span className="cv-group-label">1. Kiểu bố cục trang A4 (4 mẫu)</span>
-                <div className="cv-vertical-cards">
-                  {cvLayoutStyles.map((style) => {
-                    const active = cvStyleId === style.id;
-                    return (
-                      <button
-                        key={style.id}
-                        type="button"
-                        className={`pf-style-card${active ? " is-active" : ""}`}
-                        onClick={() => selectCvLayout(style)}
-                      >
-                        <div className="pf-style-card-top">
-                          <strong>{style.name}</strong>
-                          <code>{style.tag}</code>
-                        </div>
-                        <p>{style.summary}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="cv-drawer-group">
-                <span className="cv-group-label">2. Mẫu nội dung theo vị trí công việc (6 ngành)</span>
-                <div className="cv-vertical-cards">
-                  {jobRoleTracks.map((role) => {
-                    const active = roleTrackId === role.id;
-                    return (
-                      <button
-                        key={role.id}
-                        type="button"
-                        className={`pf-role-pill${active ? " is-active" : ""}`}
-                        onClick={() => selectJobRoleTrack(role)}
-                      >
-                        <span className="pf-role-sector">{role.sector}</span>
-                        <strong>{role.shortLabel}</strong>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {dockTab === "design" && (
-            <div className="cv-drawer-pane">
-              <header className="cv-drawer-head">
-                <div>
-                  <span className="pf-section-eyebrow">Cá nhân hóa như Canva</span>
-                  <h3>Màu sắc, Phông chữ & Khung ảnh</h3>
-                </div>
-              </header>
-
-              <div className="cv-drawer-group">
-                <span className="cv-group-label">Bảng màu nhấn trên CV</span>
-                <div className="cv-palette-grid">
-                  {cvColorSwatches.map((sw) => (
-                    <button
-                      key={sw.id}
-                      type="button"
-                      className={`cv-palette-card${accentColor.toLowerCase() === sw.hex.toLowerCase() ? " is-active" : ""}`}
-                      onClick={() => setAccentColor(sw.hex)}
-                    >
-                      <span className="cv-palette-swatch" style={{ backgroundColor: sw.hex }} />
-                      <strong>{sw.label}</strong>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="cv-drawer-group">
-                <span className="cv-group-label">Kiểu hiển thị ảnh đại diện trên CV</span>
-                <div className="cv-segmented-2x2">
-                  {(
-                    [
-                      { id: "rounded", label: "Bo góc hiện đại" },
-                      { id: "circle", label: "Hình tròn" },
-                      { id: "square", label: "Vuông hồ sơ" },
-                      { id: "hidden", label: "Ẩn ảnh (ATS)" },
-                    ] as const
-                  ).map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={`pf-export-btn${avatarShape === opt.id ? " is-selected-pill" : ""}`}
-                      onClick={() => setAvatarShape(opt.id)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="cv-drawer-group">
-                <span className="cv-group-label">Cặp phông chữ trình bày</span>
-                <div className="cv-vertical-cards">
-                  {(
-                    [
-                      {
-                        id: "sans",
-                        name: "Plus Jakarta Sans",
-                        desc: "Hiện đại, rõ ràng, phù hợp CV Công nghệ & Kỹ thuật",
-                      },
-                      {
-                        id: "serif",
-                        name: "Playfair & Serif cổ điển",
-                        desc: "Trang trọng chuẩn Harvard, phù hợp BA, Ngân hàng, Học bổng",
-                      },
-                      {
-                        id: "mono-tech",
-                        name: "JetBrains Mono Tech",
-                        desc: "Đậm chất Developer & Data Engineer",
-                      },
-                    ] as const
-                  ).map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      className={`pf-style-card${fontPair === f.id ? " is-active" : ""}`}
-                      onClick={() => setFontPair(f.id)}
-                    >
-                      <strong>{f.name}</strong>
-                      <p>{f.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {dockTab === "sections" && (
-            <div className="cv-drawer-pane">
-              <header className="cv-drawer-head">
-                <div>
-                  <span className="pf-section-eyebrow">Quản lý cấu trúc CV</span>
-                  <h3>Sắp xếp thứ tự & Ẩn/Hiện mục</h3>
-                </div>
-              </header>
-              <p className="pf-ai-desc">
-                Đổi thứ tự ưu tiên hoặc đổi tên tiêu đề từng phần. Bạn cũng có thể bấm nút{" "}
-                <strong>AI Tự sắp xếp</strong> để AI xếp theo vị trí ứng tuyển.
-              </p>
-
-              <div className="cv-section-manager-list">
-                {sectionOrder.map((secId, idx) => {
-                  const isHidden = hiddenSections[secId];
-                  return (
-                    <div
-                      key={secId}
-                      className={`cv-sec-row${isHidden ? " is-muted" : ""}`}
-                    >
-                      <div className="cv-sec-row-top">
-                        <code>#{idx + 1}</code>
+                  {activeSectionFocus === "header" && (
+                    <div className="pf-ai-controls">
+                      <label className="field">
+                        Họ và tên hiển thị trên CV
                         <input
                           type="text"
-                          value={sectionTitles[secId]}
+                          value={headerFields.fullName}
                           onChange={(e) =>
-                            setSectionTitles((prev) => ({
+                            setHeaderFields((prev) => ({ ...prev, fullName: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Vị trí ứng tuyển (Title)
+                        <input
+                          type="text"
+                          value={headerFields.targetRole}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({ ...prev, targetRole: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Email liên hệ
+                        <input
+                          type="text"
+                          value={headerFields.email}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Số điện thoại
+                        <input
+                          type="text"
+                          value={headerFields.phone}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({ ...prev, phone: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Lớp &amp; Khoa
+                        <input
+                          type="text"
+                          value={headerFields.classAndDept}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({ ...prev, classAndDept: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        GitHub / Portfolio / Khu vực
+                        <input
+                          type="text"
+                          value={headerFields.githubPortfolio}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({
                               ...prev,
-                              [secId]: e.target.value,
+                              githubPortfolio: e.target.value,
                             }))
                           }
-                          aria-label={`Đổi tên mục ${secId}`}
                         />
-                      </div>
-                      <div className="cv-sec-row-actions">
-                        <button
-                          type="button"
-                          className="cv-tool-mini"
-                          onClick={() => moveSection(secId, -1)}
-                          disabled={idx === 0}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          className="cv-tool-mini"
-                          onClick={() => moveSection(secId, 1)}
-                          disabled={idx === sectionOrder.length - 1}
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          className="cv-tool-mini"
-                          onClick={() => toggleSectionVisibility(secId)}
-                        >
-                          {isHidden ? "Hiện lại" : "Ẩn mục"}
-                        </button>
+                      </label>
+                      <label className="field">
+                        Nhãn GPA góc phải
+                        <input
+                          type="text"
+                          value={headerFields.gpaBadge}
+                          onChange={(e) =>
+                            setHeaderFields((prev) => ({ ...prev, gpaBadge: e.target.value }))
+                          }
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {activeSectionFocus === "objective" && (
+                    <div className="pf-ai-controls">
+                      <label className="field">
+                        Tiêu đề mục
+                        <input
+                          type="text"
+                          value={sectionTitles.objective}
+                          onChange={(e) =>
+                            setSectionTitles((prev) => ({ ...prev, objective: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        Nội dung Mục tiêu nghề nghiệp
+                        <textarea
+                          rows={6}
+                          value={currentCareerObjective}
+                          onChange={(e) => setCareerObjectiveText(e.target.value)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="button button-primary button-sm cv-full-btn"
+                        onClick={() => void rewriteObjectiveWithAi()}
+                        disabled={aiGenerating}
+                      >
+                        <Icon name="sparkle" />
+                        <span>{aiGenerating ? "Đang viết..." : "Dùng AI viết lại Mục tiêu"}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {activeSectionFocus === "education" && (
+                    <div className="pf-ai-controls">
+                      <label className="field">
+                        Tiêu đề mục Học vấn
+                        <input
+                          type="text"
+                          value={sectionTitles.education}
+                          onChange={(e) =>
+                            setSectionTitles((prev) => ({ ...prev, education: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <p className="pf-ai-desc">
+                        Chọn các học phần điểm cao từ bảng điểm SDU để hiển thị trong mục Học vấn:
+                      </p>
+                      <div className="cv-collected-course-list">
+                        {allScoredCourses.map((course) => {
+                          const checked = selectedCourseCodes.includes(course.code);
+                          return (
+                            <button
+                              key={course.code}
+                              type="button"
+                              className={`cv-collected-course-chip${checked ? " is-selected" : ""}`}
+                              onClick={() => toggleCourseInCv(course.code)}
+                            >
+                              <span className="cv-course-check">{checked ? "✓" : "+"}</span>
+                              <div className="cv-course-chip-body">
+                                <strong>
+                                  <code>{course.code}</code> {course.name}
+                                </strong>
+                                <small>{course.termName}</small>
+                              </div>
+                              <b className="cv-course-score-badge">{course.score10.toFixed(1)}</b>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                  )}
 
-          {dockTab === "data" && (
-            <div className="cv-drawer-pane">
-              <header className="cv-drawer-head">
-                <div>
-                  <span className="pf-section-eyebrow">Kho dữ liệu xác thực SDU</span>
-                  <h3>Chèn nhanh dữ liệu học tập vào CV</h3>
+                  {activeSectionFocus === "projects" && (
+                    <div className="pf-ai-controls">
+                      <div className="cv-subhead-row">
+                        <strong>Danh sách Dự án ({cvProjects.length})</strong>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() =>
+                            setCvProjects((prev) => [
+                              ...prev,
+                              {
+                                id: `proj-custom-${Date.now()}`,
+                                title: "Dự án mới",
+                                courseCode: "SDU-PRJ",
+                                semester: semester.short,
+                                role: "Fullstack Developer",
+                                score: "9.0 / 10",
+                                summary: "Mô tả giải pháp kỹ thuật và kết quả định lượng.",
+                                techStack: "TypeScript · React · PostgreSQL",
+                                artifactUrl: "",
+                              },
+                            ])
+                          }
+                        >
+                          + Thêm dự án
+                        </button>
+                      </div>
+                      {cvProjects.map((proj, idx) => (
+                        <div key={proj.id} className="cv-left-item-editor">
+                          <div className="cv-subhead-row">
+                            <code>Dự án #{idx + 1}</code>
+                            <button
+                              type="button"
+                              className="cv-tool-mini is-ai"
+                              onClick={() => void rewriteProjectWithAi(idx)}
+                              disabled={aiGenerating}
+                            >
+                              <Icon name="sparkle" /> AI STAR
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={proj.title}
+                            onChange={(e) =>
+                              setCvProjects((prev) =>
+                                prev.map((p, i) =>
+                                  i === idx ? { ...p, title: e.target.value } : p,
+                                ),
+                              )
+                            }
+                            placeholder="Tên dự án"
+                          />
+                          <input
+                            type="text"
+                            value={proj.role}
+                            onChange={(e) =>
+                              setCvProjects((prev) =>
+                                prev.map((p, i) =>
+                                  i === idx ? { ...p, role: e.target.value } : p,
+                                ),
+                              )
+                            }
+                            placeholder="Vai trò"
+                          />
+                          <textarea
+                            rows={3}
+                            value={proj.summary}
+                            onChange={(e) =>
+                              setCvProjects((prev) =>
+                                prev.map((p, i) =>
+                                  i === idx ? { ...p, summary: e.target.value } : p,
+                                ),
+                              )
+                            }
+                            placeholder="Mô tả dự án"
+                          />
+                          <input
+                            type="text"
+                            value={proj.techStack}
+                            onChange={(e) =>
+                              setCvProjects((prev) =>
+                                prev.map((p, i) =>
+                                  i === idx ? { ...p, techStack: e.target.value } : p,
+                                ),
+                              )
+                            }
+                            placeholder="Công nghệ"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeSectionFocus === "skills" && (
+                    <div className="pf-ai-controls">
+                      <div className="cv-subhead-row">
+                        <strong>Nhóm Kỹ năng ({cvSkillGroups.length})</strong>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() =>
+                            setCvSkillGroups((prev) => [
+                              ...prev,
+                              {
+                                id: `sk-${Date.now()}`,
+                                group: "Nhóm kỹ năng mới",
+                                items: "Kỹ năng A, Kỹ năng B",
+                              },
+                            ])
+                          }
+                        >
+                          + Thêm nhóm
+                        </button>
+                      </div>
+                      {cvSkillGroups.map((group, idx) => (
+                        <div key={group.id} className="cv-left-item-editor">
+                          <input
+                            type="text"
+                            value={group.group}
+                            onChange={(e) =>
+                              setCvSkillGroups((prev) =>
+                                prev.map((g, i) =>
+                                  i === idx ? { ...g, group: e.target.value } : g,
+                                ),
+                              )
+                            }
+                            placeholder="Tên nhóm kỹ năng"
+                          />
+                          <textarea
+                            rows={2}
+                            value={group.items}
+                            onChange={(e) =>
+                              setCvSkillGroups((prev) =>
+                                prev.map((g, i) =>
+                                  i === idx ? { ...g, items: e.target.value } : g,
+                                ),
+                              )
+                            }
+                            placeholder="Các kỹ năng (phân cách bằng dấu phẩy)"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeSectionFocus === "certs" && (
+                    <div className="pf-ai-controls">
+                      <div className="cv-subhead-row">
+                        <strong>Chứng chỉ &amp; Minh chứng ({cvCerts.length})</strong>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() =>
+                            setCvCerts((prev) => [
+                              ...prev,
+                              {
+                                id: `cert-${Date.now()}`,
+                                title: "Chứng chỉ mới",
+                                detail: "Chi tiết chứng chỉ",
+                              },
+                            ])
+                          }
+                        >
+                          + Thêm dòng
+                        </button>
+                      </div>
+                      {cvCerts.map((cert, idx) => (
+                        <div key={cert.id} className="cv-left-item-editor">
+                          <input
+                            type="text"
+                            value={cert.title}
+                            onChange={(e) =>
+                              setCvCerts((prev) =>
+                                prev.map((c, i) =>
+                                  i === idx ? { ...c, title: e.target.value } : c,
+                                ),
+                              )
+                            }
+                          />
+                          <input
+                            type="text"
+                            value={cert.detail}
+                            onChange={(e) =>
+                              setCvCerts((prev) =>
+                                prev.map((c, i) =>
+                                  i === idx ? { ...c, detail: e.target.value } : c,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeSectionFocus === "activities" && (
+                    <div className="pf-ai-controls">
+                      <div className="cv-subhead-row">
+                        <strong>Hoạt động &amp; Rèn luyện ({cvActivities.length})</strong>
+                        <button
+                          type="button"
+                          className="cv-tool-mini"
+                          onClick={() =>
+                            setCvActivities((prev) => [
+                              ...prev,
+                              {
+                                id: `act-${Date.now()}`,
+                                title: "Hoạt động mới",
+                                detail: "Vai trò & Thời gian",
+                              },
+                            ])
+                          }
+                        >
+                          + Thêm dòng
+                        </button>
+                      </div>
+                      {cvActivities.map((act, idx) => (
+                        <div key={act.id} className="cv-left-item-editor">
+                          <input
+                            type="text"
+                            value={act.title}
+                            onChange={(e) =>
+                              setCvActivities((prev) =>
+                                prev.map((a, i) =>
+                                  i === idx ? { ...a, title: e.target.value } : a,
+                                ),
+                              )
+                            }
+                          />
+                          <input
+                            type="text"
+                            value={act.detail}
+                            onChange={(e) =>
+                              setCvActivities((prev) =>
+                                prev.map((a, i) =>
+                                  i === idx ? { ...a, detail: e.target.value } : a,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </header>
-              <p className="pf-ai-desc">
-                Dữ liệu thật trích xuất từ Cổng đào tạo Đại học Sao Đỏ. Nhấp để chèn thêm vào CV của bạn:
-              </p>
+              )}
 
-              <div className="cv-data-snippets">
-                {objectiveObservations.map((obs) => (
-                  <article key={obs.id} className="cv-data-card">
-                    <div className="pf-obs-head">
-                      <strong>{obs.title}</strong>
-                      <code className="pf-obs-metric">{obs.metric}</code>
+              {/* TAB 3: SECTIONS ORDER & TEMPLATES */}
+              {leftTab === "sections" && (
+                <div className="cv-drawer-pane">
+                  <header className="cv-drawer-head">
+                    <div>
+                      <span className="pf-section-eyebrow">Quản lý cấu trúc Canvas</span>
+                      <h3>Thứ tự mục &amp; Mẫu bố cục</h3>
                     </div>
-                    <p>{obs.summary}</p>
+                  </header>
+
+                  <div className="cv-drawer-group">
+                    <span className="cv-group-label">Sắp xếp thứ tự &amp; Ẩn/Hiện mục trên CV</span>
+                    <div className="cv-section-manager-list">
+                      {sectionOrder.map((secId, idx) => {
+                        const isHidden = hiddenSections[secId];
+                        return (
+                          <div
+                            key={secId}
+                            className={`cv-sec-row${isHidden ? " is-muted" : ""}`}
+                          >
+                            <div className="cv-sec-row-top">
+                              <code>#{idx + 1}</code>
+                              <input
+                                type="text"
+                                value={sectionTitles[secId]}
+                                onChange={(e) =>
+                                  setSectionTitles((prev) => ({
+                                    ...prev,
+                                    [secId]: e.target.value,
+                                  }))
+                                }
+                                aria-label={`Đổi tên mục ${secId}`}
+                              />
+                            </div>
+                            <div className="cv-sec-row-actions">
+                              <button
+                                type="button"
+                                className="cv-tool-mini"
+                                onClick={() => moveSection(secId, -1)}
+                                disabled={idx === 0}
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                className="cv-tool-mini"
+                                onClick={() => moveSection(secId, 1)}
+                                disabled={idx === sectionOrder.length - 1}
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                className="cv-tool-mini"
+                                onClick={() => toggleSectionVisibility(secId)}
+                              >
+                                {isHidden ? "Hiện lại" : "Ẩn mục"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="cv-drawer-group">
+                    <span className="cv-group-label">4 Mẫu bố cục trang A4</span>
+                    <div className="cv-vertical-cards">
+                      {cvLayoutStyles.map((style) => {
+                        const active = cvStyleId === style.id;
+                        return (
+                          <button
+                            key={style.id}
+                            type="button"
+                            className={`pf-style-card${active ? " is-active" : ""}`}
+                            onClick={() => selectCvLayout(style)}
+                          >
+                            <div className="pf-style-card-top">
+                              <strong>{style.name}</strong>
+                              <code>{style.tag}</code>
+                            </div>
+                            <p>{style.summary}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: AI ASSISTANT & SMART SUGGESTIONS */}
+              {leftTab === "ai" && (
+                <div className="cv-drawer-pane">
+                  <header className="cv-drawer-head">
+                    <div>
+                      <span className="pf-section-eyebrow">Trợ lý AI &amp; Đề xuất thông minh</span>
+                      <h3>Tối ưu CV theo vị trí ứng tuyển</h3>
+                    </div>
+                    <Link href={"/student/ai" as Route} className="pf-rank-tag">
+                      Chat AI
+                    </Link>
+                  </header>
+
+                  <div className="pf-ai-controls">
+                    <label className="field">
+                      Công ty hoặc yêu cầu JD cụ thể (tùy chọn)
+                      <input
+                        type="text"
+                        value={customCompanyHint}
+                        onChange={(e) => setCustomCompanyHint(e.target.value)}
+                        placeholder="Ví dụ: FPT Software, Viettel, yêu cầu SQL..."
+                      />
+                    </label>
+
+                    <label className="field">
+                      Giọng văn Mục tiêu nghề nghiệp
+                      <select
+                        value={aiFocus}
+                        onChange={(e) => setAiFocus(e.target.value as typeof aiFocus)}
+                      >
+                        <option value="ats">Chuẩn TopCV / ATS (Ngắn gọn, súc tích)</option>
+                        <option value="project">Nhấn mạnh Đồ án &amp; Chỉ số định lượng</option>
+                        <option value="intern">Cầu thị, kỷ luật Lab &amp; cam kết thực tập</option>
+                        <option value="fresher">Định hướng lên Kỹ sư Fresher chính thức</option>
+                      </select>
+                    </label>
+
                     <button
                       type="button"
-                      className="pf-inline-link"
-                      onClick={() => {
-                        setCvCerts((prev) => [
-                          ...prev,
-                          {
-                            id: `cert-obs-${Date.now()}`,
-                            title: `${obs.title} (${obs.metric})`,
-                            detail: obs.evidenceRef,
-                          },
-                        ]);
-                        setBannerNotice(`Đã chèn minh chứng "${obs.title}" vào tờ CV.`);
-                      }}
+                      className="button button-primary button-sm cv-full-btn"
+                      onClick={() => void runAiAutoArrangeAndFillAll()}
+                      disabled={aiSortingAndFilling || aiGenerating}
                     >
-                      <span>+ Chèn vào CV</span>
+                      <Icon name="sparkle" />
+                      <span>
+                        {aiSortingAndFilling ? "Đang điền CV…" : "AI Tự điền & Xếp CV"}
+                      </span>
                     </button>
-                  </article>
-                ))}
-              </div>
+
+                    {aiStatusText && <p className="pf-ai-note">{aiStatusText}</p>}
+                  </div>
+
+                  <div className="cv-ai-suggestions-box">
+                    <div className="cv-subhead-row">
+                      <strong>Đề xuất cho {selectedTrack.shortLabel}</strong>
+                      <span>{aiSuggestions.length} gợi ý</span>
+                    </div>
+                    <p className="cv-recruiter-note">{selectedTrack.recruiterVerdict}</p>
+                    <div className="cv-suggestion-list">
+                      {aiSuggestions.map((sug) => (
+                        <article
+                          key={sug.id}
+                          className={`cv-suggestion-card${sug.applied ? " is-applied" : ""}`}
+                        >
+                          <div className="cv-sug-top">
+                            <strong>{sug.title}</strong>
+                            <span className="cv-sug-badge">
+                              {sug.applied ? "Đã áp dụng" : "Đề xuất AI"}
+                            </span>
+                          </div>
+                          <p>{sug.reason}</p>
+                          <button
+                            type="button"
+                            className="pf-inline-link"
+                            onClick={() => applyAiSuggestion(sug)}
+                          >
+                            <span>{sug.applied ? "Áp dụng lại" : sug.actionLabel}</span>
+                            <Icon name="arrow" />
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: ADMINISTRATIVE SDU FORMS */}
+              {leftTab === "forms" && (
+                <div className="cv-drawer-pane">
+                  <header className="cv-drawer-head">
+                    <div>
+                      <span className="pf-section-eyebrow">Biểu mẫu hành chính SDU</span>
+                      <h3>Trích xuất sang Hồ sơ trường</h3>
+                    </div>
+                  </header>
+
+                  <div className="cv-vertical-cards">
+                    {baseTemplates.map((tpl) => {
+                      const active = tpl.id === activeTemplate.id;
+                      return (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          className={`pf-style-card${active ? " is-active" : ""}`}
+                          onClick={() => setSelectedTemplateId(tpl.id)}
+                        >
+                          <div className="pf-style-card-top">
+                            <strong>{tpl.title}</strong>
+                            <code>{tpl.code}</code>
+                          </div>
+                          <p>{tpl.recipient}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <form className="pf-ai-controls" onSubmit={dispatchFormSubmit}>
+                    {activeTemplate.fields.map((field) => {
+                      const val = activeDraftValues[field.key] ?? "";
+                      return (
+                        <label key={field.key} className="field">
+                          <span>{field.label}</span>
+                          {field.multiline ? (
+                            <textarea
+                              rows={3}
+                              value={val}
+                              onChange={(e) => updateDraftField(field.key, e.target.value)}
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={val}
+                              onChange={(e) => updateDraftField(field.key, e.target.value)}
+                            />
+                          )}
+                        </label>
+                      );
+                    })}
+                    <div className="cv-ai-quick-btns">
+                      <button
+                        type="button"
+                        className="pf-export-btn"
+                        onClick={() => resetTemplateDraft(activeTemplate.id)}
+                      >
+                        Mặc định
+                      </button>
+                      <button
+                        type="button"
+                        className="pf-export-btn"
+                        onClick={() => exportTemplateAsWordDoc(activeTemplate)}
+                      >
+                        Xuất Word
+                      </button>
+                    </div>
+                    <button type="submit" className="button button-primary button-sm cv-full-btn">
+                      <Icon name="send" />
+                      <span>Gửi biểu mẫu {activeTemplate.code}</span>
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           )}
-          </aside>
-        )}
+        </aside>
 
-        {/* 3. Right Interactive A4 Artboard Stage */}
-        <div className="cv-artboard-stage">
-          <article
-            className={`pf-cv-sheet cv-sheet-a4 is-layout-${cvStyleId} is-font-${fontPair} is-density-${density}`}
-            style={artboardCssVars}
-            aria-label="Trang giấy thiết kế CV A4 tương tác trực tiếp"
-          >
-            {/* CV Header with inline editable inputs */}
-            <header className="pf-cv-header">
-              <div className="pf-dossier-identity">
-                {avatarShape !== "hidden" && (
-                  <div className={`pf-dossier-avatar is-shape-${avatarShape}`}>
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={`Ảnh đại diện của ${headerFields.fullName}`}
-                      />
-                    ) : (
-                      <span>{initials(headerFields.fullName)}</span>
-                    )}
-                  </div>
-                )}
-                <div className="pf-dossier-meta">
-                  <span className="pf-record-id">
-                    {selectedLayout.name} · Mã xác thực SDU{" "}
-                    <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
-                  </span>
-                  <input
-                    type="text"
-                    className="cv-header-name-input"
-                    value={headerFields.fullName}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({ ...prev, fullName: e.target.value }))
-                    }
-                    aria-label="Họ và tên trên CV"
-                  />
-                  <input
-                    type="text"
-                    className="cv-header-role-input"
-                    value={headerFields.targetRole}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({ ...prev, targetRole: e.target.value }))
-                    }
-                    aria-label="Vị trí ứng tuyển trên CV"
-                  />
-                </div>
-              </div>
-
-              <div className="pf-score-stamp">
-                <span className="pf-score-label">GPA tích lũy xác thực</span>
-                <input
-                  type="text"
-                  className="cv-stamp-gpa-input"
-                  value={headerFields.gpaBadge}
-                  onChange={(e) =>
-                    setHeaderFields((prev) => ({ ...prev, gpaBadge: e.target.value }))
-                  }
-                  aria-label="GPA hiển thị trên CV"
-                />
-                <span className="pf-score-delta">{headerFields.standingBadge}</span>
-              </div>
-            </header>
-
-            {/* Editable Contact Strip */}
-            <dl className="pf-cv-contact">
-              <div>
-                <dt>Email</dt>
-                <dd>
-                  <input
-                    type="text"
-                    className="cv-contact-input"
-                    value={headerFields.email}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                    aria-label="Email liên hệ"
-                  />
-                </dd>
-              </div>
-              <div>
-                <dt>Điện thoại</dt>
-                <dd>
-                  <input
-                    type="text"
-                    className="cv-contact-input"
-                    value={headerFields.phone}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({ ...prev, phone: e.target.value }))
-                    }
-                    aria-label="Số điện thoại"
-                  />
-                </dd>
-              </div>
-              <div>
-                <dt>Lớp & Khoa</dt>
-                <dd>
-                  <input
-                    type="text"
-                    className="cv-contact-input"
-                    value={headerFields.classAndDept}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({
-                        ...prev,
-                        classAndDept: e.target.value,
-                      }))
-                    }
-                    aria-label="Lớp và Khoa"
-                  />
-                </dd>
-              </div>
-              <div>
-                <dt>GitHub / Khu vực thực tập</dt>
-                <dd>
-                  <input
-                    type="text"
-                    className="cv-contact-input"
-                    value={headerFields.githubPortfolio}
-                    onChange={(e) =>
-                      setHeaderFields((prev) => ({
-                        ...prev,
-                        githubPortfolio: e.target.value,
-                      }))
-                    }
-                    aria-label="Link GitHub hoặc địa điểm"
-                  />
-                </dd>
-              </div>
-            </dl>
-
-            {/* Dynamic CV Body Grid (2-column split or 1-column ordered flow) */}
-            {cvStyleId === "modern-split" ? (
-              <div className="pf-cv-body-grid">
-                <div className="pf-cv-side-col">
-                  {sectionOrder
-                    .filter((id) => leftSidebarSections.includes(id))
-                    .map((id) => renderCvSectionBlock(id))}
-                </div>
-                <div className="pf-cv-main-col">
-                  {sectionOrder
-                    .filter((id) => !leftSidebarSections.includes(id))
-                    .map((id) => renderCvSectionBlock(id))}
-                </div>
-              </div>
-            ) : (
-              <div className="pf-cv-body-grid">
-                <div className="pf-cv-main-col">
-                  {sectionOrder.map((id) => renderCvSectionBlock(id))}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Bottom Action Bar inside A4 Sheet */}
-            <footer className="pf-quick-export-bar">
-              <span className="pf-quick-export-label">
-                Mẹo: Nhấp vào từng dòng trên trang A4 để sửa trực tiếp hoặc bấm AI ở góc mục.
+        {/* 2B. Large Interactive A4 Canvas Viewport */}
+        <section
+          ref={canvasViewportRef}
+          className="cv-studio-canvas-viewport"
+          aria-label="Không gian Canvas thiết kế CV khổ lớn"
+        >
+          {/* Canvas Status Header Strip inside the viewport */}
+          <div className="cv-canvas-hud">
+            <div className="cv-canvas-hud-left">
+              <button
+                type="button"
+                className="cv-hud-chip"
+                onClick={() => setLeftCollapsed((c) => !c)}
+                title="Đóng/mở thanh chỉnh sửa bên trái"
+              >
+                <Icon name="panel" />
+                <span>{leftCollapsed ? "Mở thanh công cụ trái" : "Thu gọn cột trái"}</span>
+              </button>
+              <span className="cv-hud-meta">
+                Khổ chuẩn <strong>A4 (210 × 297 mm)</strong> · Tự thu thập từ MSSV{" "}
+                <code>{account.code}</code>
               </span>
-              <div className="pf-export-links">
-                <button
-                  type="button"
-                  className="pf-export-btn"
-                  onClick={() => void runAiAutoArrangeAndFillAll()}
-                >
-                  AI Điền lại
-                </button>
-                <button
-                  type="button"
-                  className="pf-export-btn"
-                  onClick={exportLiveCvToWordDoc}
-                >
-                  Xuất Word
-                </button>
-                <button
-                  type="button"
-                  className="pf-export-btn"
-                  onClick={exportLiveCvToPdfA4}
-                >
-                  Xuất PDF
-                </button>
-              </div>
-            </footer>
-          </article>
-        </div>
+            </div>
+            <div className="cv-canvas-hud-right">
+              <span className="cv-hud-hint">
+                Nhấp trực tiếp vào bất kỳ dòng nào trên tờ CV hoặc chọn ở cột trái để chỉnh sửa
+              </span>
+            </div>
+          </div>
+
+          {/* The Large A4 Sheet Canvas */}
+          <div className="cv-canvas-stage-scroll">
+            <article
+              className={`pf-cv-sheet cv-sheet-a4 is-layout-${cvStyleId} is-font-${fontPair} is-density-${density}`}
+              style={artboardCssVars}
+              aria-label="Trang giấy thiết kế CV A4 tương tác trực tiếp"
+            >
+              {/* CV Header with inline editable inputs */}
+              <header
+                className={`pf-cv-header cv-editable-block${activeSectionFocus === "header" ? " is-selected" : ""}`}
+                onClick={() => focusSectionInEditor("header")}
+              >
+                <div className="pf-dossier-identity">
+                  {avatarShape !== "hidden" && (
+                    <div className={`pf-dossier-avatar is-shape-${avatarShape}`}>
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={`Ảnh đại diện của ${headerFields.fullName}`}
+                        />
+                      ) : (
+                        <span>{initials(headerFields.fullName)}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="pf-dossier-meta">
+                    <span className="pf-record-id">
+                      {selectedLayout.name} · Mã xác thực SDU{" "}
+                      <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
+                    </span>
+                    <input
+                      type="text"
+                      className="cv-header-name-input"
+                      value={headerFields.fullName}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({ ...prev, fullName: e.target.value }))
+                      }
+                      aria-label="Họ và tên trên CV"
+                    />
+                    <input
+                      type="text"
+                      className="cv-header-role-input"
+                      value={headerFields.targetRole}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({ ...prev, targetRole: e.target.value }))
+                      }
+                      aria-label="Vị trí ứng tuyển trên CV"
+                    />
+                  </div>
+                </div>
+
+                <div className="pf-score-stamp">
+                  <span className="pf-score-label">GPA tích lũy xác thực</span>
+                  <input
+                    type="text"
+                    className="cv-stamp-gpa-input"
+                    value={headerFields.gpaBadge}
+                    onChange={(e) =>
+                      setHeaderFields((prev) => ({ ...prev, gpaBadge: e.target.value }))
+                    }
+                    aria-label="GPA hiển thị trên CV"
+                  />
+                  <span className="pf-score-delta">{headerFields.standingBadge}</span>
+                </div>
+              </header>
+
+              {/* Editable Contact Strip */}
+              <dl
+                className="pf-cv-contact"
+                onClick={() => focusSectionInEditor("header")}
+              >
+                <div>
+                  <dt>Email</dt>
+                  <dd>
+                    <input
+                      type="text"
+                      className="cv-contact-input"
+                      value={headerFields.email}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      aria-label="Email liên hệ"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Điện thoại</dt>
+                  <dd>
+                    <input
+                      type="text"
+                      className="cv-contact-input"
+                      value={headerFields.phone}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({ ...prev, phone: e.target.value }))
+                      }
+                      aria-label="Số điện thoại"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Lớp &amp; Khoa</dt>
+                  <dd>
+                    <input
+                      type="text"
+                      className="cv-contact-input"
+                      value={headerFields.classAndDept}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({
+                          ...prev,
+                          classAndDept: e.target.value,
+                        }))
+                      }
+                      aria-label="Lớp và Khoa"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt>GitHub / Khu vực</dt>
+                  <dd>
+                    <input
+                      type="text"
+                      className="cv-contact-input"
+                      value={headerFields.githubPortfolio}
+                      onChange={(e) =>
+                        setHeaderFields((prev) => ({
+                          ...prev,
+                          githubPortfolio: e.target.value,
+                        }))
+                      }
+                      aria-label="Link GitHub hoặc địa điểm"
+                    />
+                  </dd>
+                </div>
+              </dl>
+
+              {/* Dynamic CV Body Grid (2-column split or 1-column ordered flow) */}
+              {cvStyleId === "modern-split" ? (
+                <div className="pf-cv-body-grid">
+                  <div className="pf-cv-side-col">
+                    {sectionOrder
+                      .filter((id) => leftSidebarSections.includes(id))
+                      .map((id) => renderCvSectionBlock(id))}
+                  </div>
+                  <div className="pf-cv-main-col">
+                    {sectionOrder
+                      .filter((id) => !leftSidebarSections.includes(id))
+                      .map((id) => renderCvSectionBlock(id))}
+                  </div>
+                </div>
+              ) : (
+                <div className="pf-cv-body-grid">
+                  <div className="pf-cv-main-col">
+                    {sectionOrder.map((id) => renderCvSectionBlock(id))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Bottom Action Bar inside A4 Sheet */}
+              <footer className="pf-quick-export-bar">
+                <span className="pf-quick-export-label">
+                  Hồ sơ tự động thu thập từ Cổng đào tạo ĐH Sao Đỏ · Chuyên cần Lab {attendancePct}% · ĐRL {conduct.score}/100
+                </span>
+                <div className="pf-export-links">
+                  <button
+                    type="button"
+                    className="pf-export-btn"
+                    onClick={syncAllStudentDataToCanvas}
+                  >
+                    Đồng bộ lại SDU
+                  </button>
+                  <button
+                    type="button"
+                    className="pf-export-btn"
+                    onClick={exportLiveCvToWordDoc}
+                  >
+                    Xuất Word
+                  </button>
+                  <button
+                    type="button"
+                    className="pf-export-btn"
+                    onClick={exportLiveCvToPdfA4}
+                  >
+                    Xuất PDF
+                  </button>
+                </div>
+              </footer>
+            </article>
+          </div>
+        </section>
       </div>
 
       {/* ====================================================================
@@ -2703,7 +3512,7 @@ export default function StudentPortfolioPage() {
             <dd>{headerFields.phone}</dd>
           </div>
           <div>
-            <dt>Lớp & Khoa</dt>
+            <dt>Lớp &amp; Khoa</dt>
             <dd>{headerFields.classAndDept}</dd>
           </div>
           <div>
@@ -2731,119 +3540,6 @@ export default function StudentPortfolioPage() {
           </div>
         )}
       </article>
-
-      {/* ====================================================================
-          ADMINISTRATIVE DOSSIER EXPORT STUDIO (MẪU 01-CVTT, 02-XNSV, 03-HBKK, 04-ĐXCN)
-          ==================================================================== */}
-      <section ref={studioRef} id="xuat-bieu-mau">
-        <Section
-          title="Trích xuất sang Biểu mẫu hành chính & Hồ sơ trường (.doc / Một cửa)"
-          action={<span className="reg-table-meta">4 biểu mẫu chuẩn ĐH Sao Đỏ · Phòng Một cửa & Đào tạo</span>}
-        >
-          <div className="pf-studio-layout">
-            <div
-              className="pf-template-rail"
-              role="tablist"
-              aria-label="Danh sách mẫu biểu mẫu trích xuất"
-            >
-              {baseTemplates.map((tpl) => {
-                const active = tpl.id === activeTemplate.id;
-                const hasEdits = Boolean(
-                  customOverrides[tpl.id] &&
-                    Object.keys(customOverrides[tpl.id]!).length > 0,
-                );
-                return (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    className={`pf-rail-item${active ? " is-active" : ""}`}
-                    onClick={() => setSelectedTemplateId(tpl.id)}
-                  >
-                    <div className="pf-rail-top">
-                      <code>{tpl.code}</code>
-                      <span>{hasEdits ? "Đã chỉnh sửa" : tpl.recipient}</span>
-                    </div>
-                    <strong>{tpl.title}</strong>
-                  </button>
-                );
-              })}
-            </div>
-
-            <form className="pf-studio-shell" onSubmit={dispatchFormSubmit}>
-              <header className="pf-studio-head">
-                <div>
-                  <div className="pf-studio-code-row">
-                    <code>{activeTemplate.code}</code>
-                    <span>Nơi tiếp nhận: {activeTemplate.recipient}</span>
-                  </div>
-                  <h3>{activeTemplate.title}</h3>
-                  <p className="pt-muted">{activeTemplate.description}</p>
-                </div>
-
-                <div className="pf-studio-toolbar">
-                  <button
-                    type="button"
-                    className="button button-quiet button-sm"
-                    onClick={() => resetTemplateDraft(activeTemplate.id)}
-                  >
-                    Mặc định
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-outline button-sm"
-                    onClick={() => exportTemplateAsWordDoc(activeTemplate)}
-                  >
-                    <Icon name="file" />
-                    <span>Xuất Word</span>
-                  </button>
-                </div>
-              </header>
-
-              <div className="pf-studio-grid">
-                {activeTemplate.fields.map((field) => {
-                  const val = activeDraftValues[field.key] ?? "";
-                  return (
-                    <label
-                      key={field.key}
-                      className={`field${field.wide ? " is-wide" : ""}`}
-                    >
-                      <span>{field.label}</span>
-                      {field.multiline ? (
-                        <textarea
-                          rows={3}
-                          value={val}
-                          onChange={(e) => updateDraftField(field.key, e.target.value)}
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          value={val}
-                          onChange={(e) => updateDraftField(field.key, e.target.value)}
-                        />
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
-
-              <footer className="pf-studio-actions">
-                <p className="pt-muted">
-                  Mã hồ sơ trích xuất:{" "}
-                  <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
-                </p>
-                <div className="pf-studio-primary-actions">
-                  <button type="submit" className="button button-primary button-sm">
-                    <Icon name="send" />
-                    <span>Gửi biểu mẫu</span>
-                  </button>
-                </div>
-              </footer>
-            </form>
-          </div>
-        </Section>
-      </section>
-    </>
+    </div>
   );
 }
