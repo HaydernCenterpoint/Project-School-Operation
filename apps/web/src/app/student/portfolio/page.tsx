@@ -180,7 +180,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Đưa mục Dự án & Đồ án lên trước Học vấn",
         reason: "Nhà tuyển dụng vị trí Backend/Web ưu tiên xem đồ án OOP (9.2) và CSDL 3NF (9.0) ngay sau Mục tiêu nghề nghiệp.",
-        actionLabel: "Tự động sắp xếp lại bố cục",
+        actionLabel: "Xếp lại bố cục",
         payload: {
           newSectionOrder: ["objective", "projects", "education", "skills", "certs", "activities"],
         },
@@ -190,7 +190,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "project",
         title: "Viết lại mô tả Đồ án theo công thức định lượng STAR",
         reason: "Nhấn mạnh con số 2.400 đầu sách, 14 bảng chuẩn 3NF và thời gian phản hồi truy vấn < 8ms.",
-        actionLabel: "Áp dụng mô tả chuẩn STAR",
+        actionLabel: "Áp dụng STAR",
         payload: {
           updateProjectSummary: {
             index: 0,
@@ -204,7 +204,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "missing",
         title: "Bổ sung liên kết GitHub & Live Demo công khai",
         reason: "Dữ liệu trường cho thấy 2 đồ án đạt điểm A nhưng trên CV chưa gắn đường dẫn mã nguồn để Tech Lead kiểm tra.",
-        actionLabel: "Điền mẫu GitHub chuẩn SDU",
+        actionLabel: "Điền link GitHub",
         payload: {
           fillGithubDemo: "github.com/khanhlinh-sdu/sdu-digital-library",
         },
@@ -234,7 +234,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Chuyển sang Mẫu Harvard / Chuẩn ATS 1 cột",
         reason: "Các công ty Outsourcing/QA ưu tiên CV 1 cột chuẩn mực, trình bày rõ quy trình kiểm thử và độ chính xác.",
-        actionLabel: "Áp dụng Mẫu Harvard ATS",
+        actionLabel: "Dùng mẫu Harvard",
         payload: {
           newLayout: "harvard",
           newSectionOrder: ["objective", "education", "projects", "skills", "certs", "activities"],
@@ -245,7 +245,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "skill",
         title: "Thêm nhóm kỹ năng Thiết kế Test Case & Truy vấn SQL",
         reason: "Nổi bật hóa 18 test case biên từ môn IT3040 và khả năng kiểm tra dữ liệu bằng SQL.",
-        actionLabel: "Thêm vào mục Kỹ năng",
+        actionLabel: "Thêm kỹ năng",
         payload: {
           addSkillGroup: {
             group: "Công cụ & Phương pháp Kiểm thử",
@@ -278,7 +278,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Đẩy mục Hoạt động CLB & Học vấn lên cao",
         reason: "Vị trí BA đánh giá cao khả năng giao tiếp, điều phối sự kiện CLB Tin học và điểm Tiếng Anh 8.9.",
-        actionLabel: "Sắp xếp bố cục chuẩn BA",
+        actionLabel: "Xếp lại bố cục",
         payload: {
           newSectionOrder: ["objective", "education", "projects", "activities", "skills", "certs"],
         },
@@ -308,7 +308,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Chọn Mẫu Ấn tượng / Tech Portfolio để làm nổi bật con số < 8ms",
         reason: "Nhà tuyển dụng Data chú ý ngay vào các con số hiệu năng truy vấn SQL và điểm A Giải thuật.",
-        actionLabel: "Đổi sang Mẫu Ấn tượng",
+        actionLabel: "Dùng mẫu Ấn tượng",
         payload: {
           newLayout: "impressive",
           newSectionOrder: ["objective", "projects", "skills", "education", "certs", "activities"],
@@ -339,7 +339,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Đưa mục Kỹ năng hệ thống & Chuyên cần lên đầu",
         reason: "Khối nhà máy FDI/Khu công nghiệp cần kiểm tra nhanh kỹ năng mạng LAN/VLAN và tính kỷ luật.",
-        actionLabel: "Tối ưu bố cục IT Helpdesk",
+        actionLabel: "Xếp lại bố cục",
         payload: {
           newSectionOrder: ["objective", "skills", "education", "projects", "certs", "activities"],
         },
@@ -369,7 +369,7 @@ const jobRoleTracks: JobRoleTrack[] = [
         category: "layout",
         title: "Đưa Hoạt động ngoại khóa & Dự án lên trước",
         reason: "Vị trí Sales IT / Solution cần thấy ngay sự năng động, khả năng demo sản phẩm và giao tiếp.",
-        actionLabel: "Áp dụng bố cục Sales IT",
+        actionLabel: "Xếp lại bố cục",
         payload: {
           newSectionOrder: ["objective", "activities", "projects", "education", "skills", "certs"],
         },
@@ -880,53 +880,230 @@ export default function StudentPortfolioPage() {
     }
   }
 
-  /* ---------- Export Word (.doc) from Live Canva Artboard ---------- */
+  /* ---------- HTML Escape & Export Word (.doc) / PDF A4 ---------- */
+  function escapeHtml(raw: string): string {
+    return raw
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildWordSectionHtml(secId: CvSectionId): string {
+    if (hiddenSections[secId]) return "";
+    const title = escapeHtml(sectionTitles[secId]);
+
+    if (secId === "objective") {
+      return `
+        <div class="cv-sec">
+          <h2>${title}</h2>
+          <p>${escapeHtml(currentCareerObjective).replace(/\n/g, "<br/>")}</p>
+        </div>`;
+    }
+
+    if (secId === "education") {
+      const courseListHtml = topCourses
+        .map(
+          (c) =>
+            `<span class="course-pill"><b>${escapeHtml(c.code)}</b> ${escapeHtml(c.name)}: <b>${c.score10.toFixed(1)}</b></span>`,
+        )
+        .join(" · ");
+      return `
+        <div class="cv-sec">
+          <h2>${title}</h2>
+          <p><strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong> (2022 – 2026)</p>
+          <p class="sub">Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: ${escapeHtml(studentIdentity.advisorName)} · <strong>GPA ${escapeHtml(headerFields.gpaBadge)}</strong> (${escapeHtml(headerFields.standingBadge)} · ${earnedCredits}/${program.requiredCredits} TC)</p>
+          <p class="sub"><strong>Học phần cốt lõi điểm cao:</strong> ${courseListHtml}</p>
+        </div>`;
+    }
+
+    if (secId === "projects") {
+      const projHtml = cvProjects
+        .map(
+          (p) => `
+          <div class="proj-item">
+            <p class="proj-title"><strong>${escapeHtml(p.title)}</strong> <span>(${escapeHtml(p.courseCode)} — <b>${escapeHtml(p.score)}</b>)</span> · <em>${escapeHtml(p.role)}</em></p>
+            <p>${escapeHtml(p.summary).replace(/\n/g, "<br/>")}</p>
+            <p class="proj-meta">Công nghệ: ${escapeHtml(p.techStack)}${p.artifactUrl ? ` · Link: ${escapeHtml(p.artifactUrl)}` : ""}</p>
+          </div>`,
+        )
+        .join("");
+      return `
+        <div class="cv-sec">
+          <h2>${title}</h2>
+          ${projHtml}
+        </div>`;
+    }
+
+    if (secId === "skills") {
+      const skillRows = cvSkillGroups
+        .map(
+          (g) =>
+            `<tr><th>${escapeHtml(g.group)}</th><td>${escapeHtml(g.items)}</td></tr>`,
+        )
+        .join("");
+      return `
+        <div class="cv-sec">
+          <h2>${title}</h2>
+          <table class="skill-table"><tbody>${skillRows}</tbody></table>
+        </div>`;
+    }
+
+    if (secId === "certs") {
+      const items = cvCerts
+        .map(
+          (c) =>
+            `<li><strong>${escapeHtml(c.title)}:</strong> ${escapeHtml(c.detail)}</li>`,
+        )
+        .join("");
+      return `
+        <div class="cv-sec">
+          <h2>${title}</h2>
+          <ul>${items}</ul>
+        </div>`;
+    }
+
+    const actItems = cvActivities
+      .map(
+        (a) =>
+          `<li><strong>${escapeHtml(a.title)}:</strong> ${escapeHtml(a.detail)}</li>`,
+      )
+      .join("");
+    return `
+      <div class="cv-sec">
+        <h2>${title}</h2>
+        <ul>${actItems}</ul>
+      </div>`;
+  }
+
   function exportLiveCvToWordDoc() {
-    const htmlContent = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    const wordFontFamily =
+      fontPair === "serif"
+        ? "Georgia, serif"
+        : fontPair === "mono-tech"
+          ? "'JetBrains Mono', monospace"
+          : "'Plus Jakarta Sans', system-ui, sans-serif";
+
+    const visibleOrdered = sectionOrder.filter((id) => !hiddenSections[id]);
+    const sideIds: CvSectionId[] = ["skills", "certs", "activities"];
+
+    const bodyLayoutHtml =
+      cvStyleId === "modern-split"
+        ? `<table class="layout-split" role="presentation">
+            <tbody>
+              <tr>
+                <td class="col-side">
+                  ${visibleOrdered
+                    .filter((id) => sideIds.includes(id))
+                    .map((id) => buildWordSectionHtml(id))
+                    .join("")}
+                </td>
+                <td class="col-main">
+                  ${visibleOrdered
+                    .filter((id) => !sideIds.includes(id))
+                    .map((id) => buildWordSectionHtml(id))
+                    .join("")}
+                </td>
+              </tr>
+            </tbody>
+          </table>`
+        : visibleOrdered.map((id) => buildWordSectionHtml(id)).join("");
+
+    const safeFileTitle = (cvTitle || `CV_${studentIdentity.code}`).replace(/[\\/:*?"<>|]+/g, "_");
+
+    const htmlContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
       xmlns:w="urn:schemas-microsoft-com:office:word"
       xmlns="http://www.w3.org/TR/REC-html40">
 <head>
-<meta charset="utf-8" />
-<title>${cvTitle}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>${escapeHtml(safeFileTitle)}</title>
+<!--[if gte mso 9]>
+<xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+  </w:WordDocument>
+</xml>
+<![endif]-->
 <style>
-  body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 2cm; }
-  h1 { font-size: 18pt; margin: 0 0 4pt; text-transform: uppercase; color: ${accentColor}; }
-  h2 { font-size: 12.5pt; margin: 14pt 0 6pt; text-transform: uppercase; border-bottom: 1.5pt solid ${accentColor}; padding-bottom: 2pt; color: ${accentColor}; }
-  p { margin: 3pt 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 6pt; }
-  td, th { border: 1px solid #ccc; padding: 6pt 8pt; vertical-align: top; text-align: left; font-size: 11pt; }
-  th { width: 30%; background: #f5f5f5; font-weight: bold; }
+  @page Section1 {
+    size: 21.0cm 29.7cm;
+    margin: 1.4cm 1.5cm 1.4cm 1.5cm;
+    mso-header-margin: 1.0cm;
+    mso-footer-margin: 1.0cm;
+  }
+  div.Section1 { page: Section1; }
+  body {
+    font-family: ${wordFontFamily};
+    font-size: 10.5pt;
+    line-height: 1.42;
+    color: #111827;
+    margin: 0;
+  }
+  .cv-head-table { width: 100%; border-collapse: collapse; border-bottom: 2pt solid ${accentColor}; padding-bottom: 8pt; margin-bottom: 8pt; }
+  .cv-head-table td { border: none; padding: 0 0 8pt 0; vertical-align: top; }
+  .cv-meta-tag { font-size: 8.5pt; color: #6b7280; margin: 0 0 2pt 0; }
+  h1 { font-size: 18pt; margin: 0 0 3pt 0; color: #0f172a; letter-spacing: -0.01em; }
+  .cv-role { font-size: 11pt; font-weight: bold; color: ${accentColor}; margin: 0; }
+  .gpa-box { text-align: right; background: #f8fafc; border: 1pt solid #cbd5e1; padding: 6pt 10pt; }
+  .gpa-num { font-size: 13pt; font-weight: bold; color: ${accentColor}; margin: 2pt 0; }
+  .contact-bar { width: 100%; border-collapse: collapse; background: #f8fafc; border: 1pt solid #e2e8f0; margin-bottom: 10pt; }
+  .contact-bar td { width: 25%; border: 1pt solid #e2e8f0; padding: 5pt 7pt; font-size: 9pt; vertical-align: top; }
+  .contact-bar b { display: block; font-size: 8pt; color: #64748b; text-transform: uppercase; }
+  .cv-sec { margin-bottom: 10pt; }
+  h2 { font-size: 11pt; text-transform: uppercase; color: ${accentColor}; border-bottom: 1pt solid ${accentColor}; padding-bottom: 2pt; margin: 10pt 0 5pt 0; }
+  p { margin: 2.5pt 0; }
+  .sub { font-size: 9.5pt; color: #334155; }
+  .proj-item { margin-bottom: 7pt; padding-bottom: 5pt; border-bottom: 1pt dashed #e2e8f0; }
+  .proj-title { font-size: 10.5pt; margin-bottom: 2pt; }
+  .proj-meta { font-size: 9pt; color: #475569; }
+  .skill-table { width: 100%; border-collapse: collapse; margin-top: 4pt; }
+  .skill-table th, .skill-table td { border: 1pt solid #cbd5e1; padding: 4.5pt 6pt; font-size: 9.5pt; text-align: left; vertical-align: top; }
+  .skill-table th { width: 32%; background: #f1f5f9; font-weight: bold; color: #1e293b; }
+  .layout-split { width: 100%; border-collapse: collapse; }
+  .layout-split > tbody > tr > td { border: none; vertical-align: top; }
+  .layout-split .col-side { width: 34%; padding-right: 10pt; border-right: 1pt solid #e2e8f0; }
+  .layout-split .col-main { width: 66%; padding-left: 10pt; }
+  ul { margin: 3pt 0 3pt 16pt; padding: 0; }
+  li { margin-bottom: 3pt; font-size: 9.5pt; }
 </style>
 </head>
 <body>
-  <h1>${headerFields.fullName}</h1>
-  <p><strong>${headerFields.targetRole}</strong></p>
-  <p>Email: ${headerFields.email} | ĐT: ${headerFields.phone} | Lớp: ${headerFields.classAndDept}</p>
-  <p>Địa chỉ: ${headerFields.location} | Portfolio: ${headerFields.githubPortfolio}</p>
-  <h2>1. ${sectionTitles.objective}</h2>
-  <p>${currentCareerObjective}</p>
-  <h2>2. ${sectionTitles.education}</h2>
-  <p><strong>Trường Đại học Sao Đỏ</strong> — ${headerFields.classAndDept} (${headerFields.gpaBadge} · ${headerFields.standingBadge})</p>
-  <h2>3. ${sectionTitles.skills}</h2>
-  <table>
+<div class="Section1">
+  <table class="cv-head-table" role="presentation">
     <tbody>
-      ${cvSkillGroups
-        .map((g) => `<tr><th>${g.group}</th><td>${g.items}</td></tr>`)
-        .join("")}
+      <tr>
+        <td>
+          <p class="cv-meta-tag">${escapeHtml(selectedLayout.name)} · Mã xác thực SDU: 22SDU.CNTT.${escapeHtml(studentIdentity.code.slice(-4))}</p>
+          <h1>${escapeHtml(headerFields.fullName)}</h1>
+          <p class="cv-role">${escapeHtml(headerFields.targetRole)}</p>
+        </td>
+        <td style="width: 155pt;">
+          <div class="gpa-box">
+            <div style="font-size: 8pt; color: #64748b;">GPA tích lũy xác thực</div>
+            <div class="gpa-num">${escapeHtml(headerFields.gpaBadge)}</div>
+            <div style="font-size: 8.5pt; color: #059669; font-weight: bold;">${escapeHtml(headerFields.standingBadge)}</div>
+          </div>
+        </td>
+      </tr>
     </tbody>
   </table>
-  <h2>4. ${sectionTitles.projects}</h2>
-  ${cvProjects
-    .map(
-      (p) =>
-        `<p><strong>${p.title} (${p.courseCode} — ${p.score})</strong> · <em>${p.role}</em><br/>${p.summary}<br/><small>Công nghệ: ${p.techStack}${p.artifactUrl ? ` · Link: ${p.artifactUrl}` : ""}</small></p>`,
-    )
-    .join("")}
-  <h2>5. ${sectionTitles.certs} & ${sectionTitles.activities}</h2>
-  ${[...cvCerts, ...cvActivities]
-    .map((c) => `<p>- <strong>${c.title}:</strong> ${c.detail}</p>`)
-    .join("")}
+
+  <table class="contact-bar" role="presentation">
+    <tbody>
+      <tr>
+        <td><b>Email</b>${escapeHtml(headerFields.email)}</td>
+        <td><b>Điện thoại</b>${escapeHtml(headerFields.phone)}</td>
+        <td><b>Lớp &amp; Khoa</b>${escapeHtml(headerFields.classAndDept)}</td>
+        <td><b>GitHub / Khu vực</b>${escapeHtml(headerFields.githubPortfolio)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  ${bodyLayoutHtml}
+</div>
 </body>
 </html>`;
 
@@ -936,12 +1113,22 @@ export default function StudentPortfolioPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${cvTitle || `CV_${studentIdentity.code}`}.doc`;
+    a.download = `${safeFileTitle}.doc`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    setBannerNotice(`Đã tải xuống "${cvTitle}.doc" theo đúng thiết kế trên khung CV.`);
+    setBannerNotice(`Đã tải xuống "${safeFileTitle}.doc" chuẩn khổ A4.`);
+  }
+
+  function exportLiveCvToPdfA4() {
+    const prevTitle = document.title;
+    const safeFileTitle = (cvTitle || `CV_${studentIdentity.code}`).replace(/[\\/:*?"<>|]+/g, "_");
+    document.title = safeFileTitle;
+    window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 600);
   }
 
   /* ---------- Bottom Administrative Form Studio Handlers ---------- */
@@ -980,18 +1167,34 @@ export default function StudentPortfolioPage() {
       .map(
         (field) => `
         <tr>
-          <td style="width:34%;padding:8px 10px;border:1px solid #d4c6b8;font-weight:bold;background:#faf6f0;">${field.label}</td>
-          <td style="width:66%;padding:8px 10px;border:1px solid #d4c6b8;white-space:pre-line;">${(values[field.key] ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+          <td style="width:34%;padding:8pt 10pt;border:1pt solid #cbd5e1;font-weight:bold;background:#f8fafc;">${escapeHtml(field.label)}</td>
+          <td style="width:66%;padding:8pt 10pt;border:1pt solid #cbd5e1;">${escapeHtml(values[field.key] ?? "").replace(/\n/g, "<br/>")}</td>
         </tr>`,
       )
       .join("");
 
-    const htmlContent = `<!DOCTYPE html>
-<html><head><meta charset="utf-8" /><title>${tpl.code} - ${tpl.title}</title></head>
-<body style="font-family:Georgia,serif;font-size:12pt;margin:2cm;">
-  <h2 style="text-align:center;">TRƯỜNG ĐẠI HỌC SAO ĐỎ · ${tpl.code}</h2>
-  <h3 style="text-align:center;">${tpl.title}</h3>
+    const htmlContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>${escapeHtml(tpl.code)} - ${escapeHtml(tpl.title)}</title>
+<!--[if gte mso 9]>
+<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
+<![endif]-->
+<style>
+  @page Section1 { size: 21.0cm 29.7cm; margin: 2.0cm 2.0cm 2.0cm 2.0cm; }
+  div.Section1 { page: Section1; }
+  body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.45; color: #111; margin: 0; }
+</style>
+</head>
+<body>
+<div class="Section1">
+  <p style="text-align:center;font-weight:bold;margin:0;">TRƯỜNG ĐẠI HỌC SAO ĐỎ · MÃ BIỂU MẪU: ${escapeHtml(tpl.code)}</p>
+  <p style="text-align:center;font-size:10.5pt;color:#475569;margin:2pt 0 12pt;">Nơi tiếp nhận: ${escapeHtml(tpl.recipient)} · Mã xác thực: 22SDU.CNTT.${escapeHtml(studentIdentity.code.slice(-4))}</p>
+  <h2 style="text-align:center;font-size:15pt;text-transform:uppercase;margin:0 0 14pt;">${escapeHtml(tpl.title)}</h2>
   <table style="width:100%;border-collapse:collapse;"><tbody>${rowsHtml}</tbody></table>
+</div>
 </body></html>`;
 
     const blob = new Blob(["﻿", htmlContent], {
@@ -1572,6 +1775,133 @@ export default function StudentPortfolioPage() {
     );
   }
 
+  function renderPrintSectionBlock(sectionId: CvSectionId) {
+    if (hiddenSections[sectionId]) return null;
+
+    if (sectionId === "objective") {
+      return (
+        <section key="print-objective" className="cv-print-block">
+          <header className="cv-print-block-head">
+            <h3>{sectionTitles.objective}</h3>
+          </header>
+          <p className="cv-print-text">{currentCareerObjective}</p>
+        </section>
+      );
+    }
+
+    if (sectionId === "education") {
+      return (
+        <section key="print-education" className="cv-print-block">
+          <header className="cv-print-block-head">
+            <h3>{sectionTitles.education}</h3>
+            <span>2022 – 2026</span>
+          </header>
+          <div className="cv-print-edu-row">
+            <div>
+              <strong>Trường Đại học Sao Đỏ — Ngành Công nghệ thông tin</strong>
+              <p>
+                Chuyên ngành Công nghệ phần mềm · Cố vấn học tập: {studentIdentity.advisorName}
+              </p>
+            </div>
+            <code>
+              GPA {overallGpa.value.toFixed(2)}/4.0 · {earnedCredits}/{program.requiredCredits} TC
+            </code>
+          </div>
+          <div className="cv-print-courses">
+            {topCourses.map((course) => (
+              <span key={course.code} className="cv-print-course-pill">
+                <b>{course.code}</b> {course.name}: <strong>{course.score10.toFixed(1)}</strong>
+              </span>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "projects") {
+      return (
+        <section key="print-projects" className="cv-print-block">
+          <header className="cv-print-block-head">
+            <h3>{sectionTitles.projects}</h3>
+            <span>{cvProjects.length} dự án</span>
+          </header>
+          <div className="cv-print-projects">
+            {cvProjects.map((proj) => (
+              <article key={proj.id} className="cv-print-proj-item">
+                <div className="cv-print-proj-head">
+                  <div>
+                    <strong>{proj.title}</strong>
+                    <span>
+                      {proj.role} · <code>{proj.courseCode}</code>
+                    </span>
+                  </div>
+                  <code className="cv-print-proj-score">{proj.score}</code>
+                </div>
+                <p className="cv-print-text">{proj.summary}</p>
+                <div className="cv-print-proj-meta">
+                  <span>Công nghệ: {proj.techStack}</span>
+                  {proj.artifactUrl && <span>{proj.artifactUrl}</span>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "skills") {
+      return (
+        <section key="print-skills" className="cv-print-block">
+          <header className="cv-print-block-head">
+            <h3>{sectionTitles.skills}</h3>
+          </header>
+          <div className="cv-print-skills">
+            {cvSkillGroups.map((group) => (
+              <div key={group.id} className="cv-print-skill-row">
+                <strong>{group.group}</strong>
+                <span>{group.items}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    if (sectionId === "certs") {
+      return (
+        <section key="print-certs" className="cv-print-block">
+          <header className="cv-print-block-head">
+            <h3>{sectionTitles.certs}</h3>
+          </header>
+          <ul className="cv-print-list">
+            {cvCerts.map((cert) => (
+              <li key={cert.id}>
+                <strong>{cert.title}</strong>
+                <span>{cert.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    return (
+      <section key="print-activities" className="cv-print-block">
+        <header className="cv-print-block-head">
+          <h3>{sectionTitles.activities}</h3>
+        </header>
+        <ul className="cv-print-list">
+          {cvActivities.map((act) => (
+            <li key={act.id}>
+              <strong>{act.title}</strong>
+              <span>{act.detail}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
   const artboardCssVars = {
     "--cv-accent": accentColor,
     transform: zoomPct === 100 ? undefined : `scale(${zoomPct / 100})`,
@@ -1589,31 +1919,27 @@ export default function StudentPortfolioPage() {
         <div className="pf-top-actions">
           <button
             type="button"
-            className="button button-primary"
+            className="button button-primary button-sm"
             onClick={() => void runAiAutoArrangeAndFillAll()}
             disabled={aiSortingAndFilling || aiGenerating}
           >
             <Icon name="sparkle" />
-            <span>
-              {aiSortingAndFilling
-                ? "AI đang sắp xếp & điền CV…"
-                : "AI Tự đọc hồ sơ & Điền toàn bộ CV"}
-            </span>
+            <span>{aiSortingAndFilling ? "Đang điền CV…" : "AI Điền CV"}</span>
           </button>
           <button
             type="button"
-            className="button button-outline"
+            className="button button-outline button-sm"
             onClick={exportLiveCvToWordDoc}
           >
             <Icon name="file" />
-            <span>Tải CV Word (.doc)</span>
+            <span>Xuất Word</span>
           </button>
           <button
             type="button"
-            className="button button-quiet"
-            onClick={() => window.print()}
+            className="button button-quiet button-sm"
+            onClick={exportLiveCvToPdfA4}
           >
-            <span>In / Xuất PDF A4</span>
+            <span>Xuất PDF</span>
           </button>
         </div>
       </PageTitle>
@@ -1723,7 +2049,7 @@ export default function StudentPortfolioPage() {
             className="button button-quiet button-sm"
             onClick={() => focusStudioWithTemplate("tpl-onestop-service")}
           >
-            Biểu mẫu Một cửa
+            Mẫu Một cửa
           </button>
         </div>
       </div>
@@ -1827,15 +2153,13 @@ export default function StudentPortfolioPage() {
 
                 <button
                   type="button"
-                  className="button button-primary cv-full-btn"
+                  className="button button-primary button-sm cv-full-btn"
                   onClick={() => void runAiAutoArrangeAndFillAll()}
                   disabled={aiSortingAndFilling || aiGenerating}
                 >
                   <Icon name="sparkle" />
                   <span>
-                    {aiSortingAndFilling
-                      ? "Đang phân tích & sắp xếp CV…"
-                      : "AI Tự sắp xếp bố cục & Điền toàn bộ CV"}
+                    {aiSortingAndFilling ? "Đang điền CV…" : "AI Tự điền & Xếp CV"}
                   </span>
                 </button>
 
@@ -1854,7 +2178,7 @@ export default function StudentPortfolioPage() {
                     onClick={() => void rewriteProjectWithAi(0)}
                     disabled={aiGenerating}
                   >
-                    Tối ưu Đồ án STAR
+                    Tối ưu Đồ án
                   </button>
                 </div>
 
@@ -2137,7 +2461,7 @@ export default function StudentPortfolioPage() {
                         setBannerNotice(`Đã chèn minh chứng "${obs.title}" vào tờ CV.`);
                       }}
                     >
-                      <span>+ Chèn minh chứng này vào CV</span>
+                      <span>+ Chèn vào CV</span>
                     </button>
                   </article>
                 ))}
@@ -2301,7 +2625,7 @@ export default function StudentPortfolioPage() {
             {/* Quick Bottom Action Bar inside A4 Sheet */}
             <footer className="pf-quick-export-bar">
               <span className="pf-quick-export-label">
-                Mẹo: Nhấp vào bất kỳ dòng chữ nào trên trang A4 để sửa trực tiếp, hoặc bấm nút AI ở góc từng mục.
+                Mẹo: Nhấp vào từng dòng trên trang A4 để sửa trực tiếp hoặc bấm AI ở góc mục.
               </span>
               <div className="pf-export-links">
                 <button
@@ -2309,20 +2633,104 @@ export default function StudentPortfolioPage() {
                   className="pf-export-btn"
                   onClick={() => void runAiAutoArrangeAndFillAll()}
                 >
-                  AI Tự sắp xếp & Điền lại
+                  AI Điền lại
                 </button>
                 <button
                   type="button"
                   className="pf-export-btn"
                   onClick={exportLiveCvToWordDoc}
                 >
-                  Xuất file Word (.doc)
+                  Xuất Word
+                </button>
+                <button
+                  type="button"
+                  className="pf-export-btn"
+                  onClick={exportLiveCvToPdfA4}
+                >
+                  Xuất PDF
                 </button>
               </div>
             </footer>
           </article>
         </div>
       </div>
+
+      {/* ====================================================================
+          DEDICATED A4 PRINT / PDF SHEET (VISIBLE ONLY IN @media print)
+          ==================================================================== */}
+      <article
+        className={`cv-print-only-sheet is-layout-${cvStyleId} is-font-${fontPair}`}
+        style={{ "--cv-accent": accentColor } as CSSProperties}
+        aria-hidden="true"
+      >
+        <header className="cv-print-header">
+          <div className="cv-print-identity">
+            {avatarShape !== "hidden" && (
+              <div className={`pf-dossier-avatar is-shape-${avatarShape}`}>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={`Ảnh đại diện của ${headerFields.fullName}`}
+                  />
+                ) : (
+                  <span>{initials(headerFields.fullName)}</span>
+                )}
+              </div>
+            )}
+            <div className="cv-print-title-block">
+              <span className="cv-print-meta-code">
+                {selectedLayout.name} · Mã xác thực SDU{" "}
+                <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
+              </span>
+              <h1>{headerFields.fullName}</h1>
+              <p className="cv-print-role">{headerFields.targetRole}</p>
+            </div>
+          </div>
+          <div className="cv-print-gpa-box">
+            <span>GPA tích lũy xác thực</span>
+            <strong>{headerFields.gpaBadge}</strong>
+            <small>{headerFields.standingBadge}</small>
+          </div>
+        </header>
+
+        <dl className="cv-print-contact-grid">
+          <div>
+            <dt>Email</dt>
+            <dd>{headerFields.email}</dd>
+          </div>
+          <div>
+            <dt>Điện thoại</dt>
+            <dd>{headerFields.phone}</dd>
+          </div>
+          <div>
+            <dt>Lớp & Khoa</dt>
+            <dd>{headerFields.classAndDept}</dd>
+          </div>
+          <div>
+            <dt>GitHub / Khu vực</dt>
+            <dd>{headerFields.githubPortfolio}</dd>
+          </div>
+        </dl>
+
+        {cvStyleId === "modern-split" ? (
+          <div className="cv-print-body-split">
+            <div className="cv-print-col-side">
+              {sectionOrder
+                .filter((id) => leftSidebarSections.includes(id))
+                .map((id) => renderPrintSectionBlock(id))}
+            </div>
+            <div className="cv-print-col-main">
+              {sectionOrder
+                .filter((id) => !leftSidebarSections.includes(id))
+                .map((id) => renderPrintSectionBlock(id))}
+            </div>
+          </div>
+        ) : (
+          <div className="cv-print-body-single">
+            {sectionOrder.map((id) => renderPrintSectionBlock(id))}
+          </div>
+        )}
+      </article>
 
       {/* ====================================================================
           ADMINISTRATIVE DOSSIER EXPORT STUDIO (MẪU 01-CVTT, 02-XNSV, 03-HBKK, 04-ĐXCN)
@@ -2380,7 +2788,7 @@ export default function StudentPortfolioPage() {
                     className="button button-quiet button-sm"
                     onClick={() => resetTemplateDraft(activeTemplate.id)}
                   >
-                    Khôi phục mặc định
+                    Mặc định
                   </button>
                   <button
                     type="button"
@@ -2388,7 +2796,7 @@ export default function StudentPortfolioPage() {
                     onClick={() => exportTemplateAsWordDoc(activeTemplate)}
                   >
                     <Icon name="file" />
-                    <span>Tải Word (.doc)</span>
+                    <span>Xuất Word</span>
                   </button>
                 </div>
               </header>
@@ -2426,9 +2834,9 @@ export default function StudentPortfolioPage() {
                   <code>22SDU.CNTT.{studentIdentity.code.slice(-4)}</code>
                 </p>
                 <div className="pf-studio-primary-actions">
-                  <button type="submit" className="button button-primary">
+                  <button type="submit" className="button button-primary button-sm">
                     <Icon name="send" />
-                    <span>Gửi biểu mẫu tới {activeTemplate.recipient}</span>
+                    <span>Gửi biểu mẫu</span>
                   </button>
                 </div>
               </footer>

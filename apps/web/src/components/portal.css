@@ -4030,7 +4030,12 @@
 
 .cv-full-btn {
   width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
   justify-content: center;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: normal;
 }
 
 .cv-ai-quick-btns {
@@ -5160,6 +5165,402 @@
   }
   .pf-studio-grid .field.is-wide {
     grid-column: span 1;
+  }
+}
+
+/* ---------- Dedicated A4 Print / PDF Sheet (/student/portfolio) ---------- */
+
+.cv-print-only-sheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  html body:has(.cv-print-only-sheet),
+  html body:has(.cv-print-only-sheet) .app-shell.sd-app,
+  html body:has(.cv-print-only-sheet) .app-shell.sd-app[data-theme="dark"] {
+    --ink: #071a34;
+    --ink-2: #1d3150;
+    --muted: #5c4947;
+    --paper: #fff;
+    --mist: #fff6ee;
+    --border: #ead8cc;
+    --success: #067647;
+    background: var(--paper);
+    color: var(--ink);
+    color-scheme: light;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html body:has(.cv-print-only-sheet) .sd-gradient-bg,
+  html body:has(.cv-print-only-sheet) .skip-link,
+  html body:has(.cv-print-only-sheet) .nav-progress,
+  html body:has(.cv-print-only-sheet) .nav-pill,
+  html body:has(.cv-print-only-sheet) .sd-app .app-side,
+  html body:has(.cv-print-only-sheet) .sd-app .app-top,
+  html body:has(.cv-print-only-sheet) .sd-app .app-footer,
+  html body:has(.cv-print-only-sheet) .sd-app .app-bottom,
+  html body:has(.cv-print-only-sheet) .demo-banner,
+  html body:has(.cv-print-only-sheet) .pt-title,
+  html body:has(.cv-print-only-sheet) .notice,
+  html body:has(.cv-print-only-sheet) .cv-canva-topbar,
+  html body:has(.cv-print-only-sheet) .cv-canva-workspace,
+  html body:has(.cv-print-only-sheet) #xuat-bieu-mau {
+    display: none;
+  }
+
+  html body:has(.cv-print-only-sheet) .app-shell.sd-app,
+  html body:has(.cv-print-only-sheet) .sd-app .app-main,
+  html body:has(.cv-print-only-sheet) .sd-app .app-content {
+    display: block;
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .cv-print-only-sheet {
+    --cv-accent: var(--red);
+    display: grid;
+    gap: 12px;
+    padding: 0;
+    padding-top: 8px;
+    border-top: 4px solid var(--cv-accent);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .cv-print-only-sheet.is-font-serif {
+    font-family: var(--font-display), Georgia, serif;
+  }
+
+  .cv-print-only-sheet.is-font-mono-tech h1,
+  .cv-print-only-sheet.is-font-mono-tech h3 {
+    font-family: var(--font-mono), monospace;
+  }
+
+  .cv-print-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cv-print-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .cv-print-only-sheet.is-layout-harvard .pf-dossier-avatar {
+    display: none;
+  }
+
+  .cv-print-title-block {
+    display: grid;
+    gap: 2px;
+  }
+
+  .cv-print-meta-code {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .cv-print-meta-code code {
+    font-family: var(--font-mono), monospace;
+    color: var(--ink-2);
+  }
+
+  .cv-print-title-block h1 {
+    margin: 0;
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .cv-print-role {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cv-accent);
+  }
+
+  .cv-print-gpa-box {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: right;
+    flex: none;
+  }
+
+  .cv-print-gpa-box span {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .cv-print-gpa-box strong {
+    font-family: var(--font-mono), monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cv-accent);
+  }
+
+  .cv-print-gpa-box small {
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+  }
+
+  .cv-print-contact-grid {
+    margin: 0;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .cv-print-contact-grid dt {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .cv-print-contact-grid dd {
+    margin: 2px 0 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  .cv-print-body-split {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .cv-print-col-side {
+    padding: 12px;
+    display: grid;
+    gap: 12px;
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .cv-print-col-main,
+  .cv-print-body-single {
+    display: grid;
+    gap: 12px;
+  }
+
+  .cv-print-block {
+    display: grid;
+    gap: 6px;
+    break-inside: avoid;
+  }
+
+  .cv-print-block + .cv-print-block {
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .cv-print-block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--cv-accent);
+  }
+
+  .cv-print-block-head h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--cv-accent);
+  }
+
+  .cv-print-block-head span {
+    font-family: var(--font-mono), monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .cv-print-text {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    white-space: pre-line;
+  }
+
+  .cv-print-edu-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .cv-print-edu-row strong {
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .cv-print-edu-row p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .cv-print-edu-row code {
+    padding: 2px 6px;
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .cv-print-courses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .cv-print-course-pill {
+    padding: 2px 6px;
+    font-size: 10.5px;
+    color: var(--ink-2);
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .cv-print-course-pill b {
+    font-family: var(--font-mono), monospace;
+    color: var(--cv-accent);
+  }
+
+  .cv-print-projects,
+  .cv-print-skills {
+    display: grid;
+    gap: 8px;
+  }
+
+  .cv-print-proj-item {
+    padding: 8px 10px;
+    display: grid;
+    gap: 4px;
+    background: var(--mist);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    break-inside: avoid;
+  }
+
+  .cv-print-proj-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .cv-print-proj-head strong {
+    display: block;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .cv-print-proj-head span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .cv-print-proj-score {
+    padding: 2px 6px;
+    font-family: var(--font-mono), monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--success);
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .cv-print-proj-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+    font-family: var(--font-mono), monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .cv-print-skill-row {
+    display: grid;
+    gap: 2px;
+  }
+
+  .cv-print-skill-row strong {
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  .cv-print-skill-row span {
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  .cv-print-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+
+  .cv-print-list li {
+    display: grid;
+    gap: 2px;
+  }
+
+  .cv-print-list strong {
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  .cv-print-list span {
+    font-size: 10.5px;
+    color: var(--muted);
   }
 }
 
