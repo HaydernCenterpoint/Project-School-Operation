@@ -27,11 +27,11 @@ export const roomIcons = {
 } as const satisfies Partial<Record<IconName, string>>;
 export type RoomIcon = keyof typeof roomIcons;
 
-export type RoomAccent = "crimson" | "ocean" | "emerald" | "indigo" | "amber" | "graphite";
+export type RoomAccent = "ocean" | "crimson" | "emerald" | "indigo" | "amber" | "graphite";
 
 export const ROOM_ACCENTS: { id: RoomAccent; label: string; color: string; soft: string }[] = [
+  { id: "ocean", label: "Xanh Zalo", color: "#0068ff", soft: "rgba(0, 104, 255, 0.12)" },
   { id: "crimson", label: "Đỏ Sao Đỏ", color: "#b81d2a", soft: "rgba(184, 29, 42, 0.12)" },
-  { id: "ocean", label: "Xanh Đại dương", color: "#0284c7", soft: "rgba(2, 132, 199, 0.12)" },
   { id: "emerald", label: "Xanh Ngọc", color: "#0d9488", soft: "rgba(13, 148, 136, 0.12)" },
   { id: "indigo", label: "Tím Indigo", color: "#4f46e5", soft: "rgba(79, 70, 229, 0.12)" },
   { id: "amber", label: "Vàng Hổ phách", color: "#d97706", soft: "rgba(217, 119, 6, 0.12)" },
@@ -49,7 +49,7 @@ export const ROOM_PHOTO_PRESETS: { id: string; label: string; url: string }[] = 
   { id: "the-thao", label: "Phong trào & Thể thao", url: "/truong/su-kien-trao-thuong.jpg" },
 ];
 
-export const QUICK_REACTIONS = ["👍", "❤️", "🔥", "🎯", "👏", "✅"] as const;
+export const QUICK_REACTIONS = ["👍", "❤️", "😆", "😮", "😢", "🔥"] as const;
 
 export type Profile = {
   user_id: string;
@@ -118,9 +118,9 @@ export type ChatMessage = {
 
 export type ChatPreferences = {
   accent: "auto" | RoomAccent;
-  wallpaper: "clean" | "grid" | "dots" | "warm" | "campus" | "custom";
+  wallpaper: "zalo" | "clean" | "grid" | "dots" | "warm" | "campus" | "custom";
   customWallpaperUrl: string | null;
-  bubbleStyle: "modern" | "compact" | "minimal";
+  bubbleStyle: "zalo" | "modern" | "compact" | "minimal";
   density: "compact" | "cozy" | "comfortable";
   fontSize: "sm" | "md" | "lg";
   avatarShape: "circle" | "squircle";
@@ -129,14 +129,14 @@ export type ChatPreferences = {
   showQuickPrompts: boolean;
 };
 
-const PREFS_KEY = "sao-do:community-prefs:v2";
+const PREFS_KEY = "sao-do:community-prefs:v3";
 const PREFS_EVENT = "sao-do:community-prefs-change";
 
 export const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
-  accent: "auto",
-  wallpaper: "clean",
+  accent: "ocean",
+  wallpaper: "zalo",
   customWallpaperUrl: null,
-  bubbleStyle: "modern",
+  bubbleStyle: "zalo",
   density: "cozy",
   fontSize: "md",
   avatarShape: "circle",

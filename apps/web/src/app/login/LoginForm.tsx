@@ -47,6 +47,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
 
   useEffect(() => {
     if (!hasSupabaseEnvironment) return;
@@ -165,8 +166,10 @@ export function LoginForm() {
               aria-invalid={Boolean(error)}
               name="password"
               type={showPassword ? "text" : "password"}
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
               autoComplete="current-password"
-              defaultValue="saodo2026"
+              placeholder="Nhập mật khẩu…"
               required
             />
             <button
