@@ -18,11 +18,21 @@ import {
   mediaAccept,
   mediaLimits,
   mediaProblem,
+  QUICK_REACTIONS,
+  ROOM_ACCENTS,
+  ROOM_PHOTO_PRESETS,
+  roomIcons,
+  topics,
+  useChatPreferences,
   type ChatMessage,
   type Profile,
+  type RoomAccent,
+  type RoomIcon,
+  type RoomPatch,
   type RoomSummary,
+  type Topic,
 } from "@/lib/community";
-import { useAvatarSync } from "@/lib/avatar";
+import { cropAvatarFile, getDefaultUserAvatar, useAvatarSync } from "@/lib/avatar";
 import { initials } from "@/lib/format";
 import { clock, longDay, shortDay } from "@/lib/portal-demo";
 
@@ -68,24 +78,97 @@ export function Avatar({
   profile,
   size = "md",
   online,
+  crown,
 }: {
-  profile: Pick<Profile, "user_id" | "display_name"> | undefined;
-  size?: "sm" | "md" | "lg";
+  profile: Pick<Profile, "user_id" | "display_name" | "avatar_url"> | undefined;
+  size?: "xs" | "sm" | "md" | "lg";
   online?: boolean;
+  crown?: boolean;
 }) {
-  const customUrl = useAvatarSync(profile?.user_id, false);
+  const syncedUrl = useAvatarSync(profile?.user_id, false);
+  const resolvedUrl =
+    syncedUrl ??
+    profile?.avatar_url ??
+    (profile ? getDefaultUserAvatar(profile.user_id, profile.display_name) : null);
   const tone = userTone(profile?.user_id);
+
   return (
-    <span className={`cm-avatar cm-avatar-${size}`} data-tone={tone} aria-hidden="true">
-      {customUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- local/custom avatar data URL
-        <img src={customUrl} alt="" className="avatar-img" />
+    <span
+      className={`cm-avatar cm-avatar-${size}`}
+      data-tone={tone}
+      title={profile?.display_name}
+      aria-hidden="true"
+    >
+      {resolvedUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local/custom or SVG portrait data URL
+        <img src={resolvedUrl} alt="" className="avatar-img" />
       ) : profile ? (
         initials(profile.display_name)
       ) : (
         "?"
       )}
       {online && <i className="cm-avatar-dot" />}
+      {crown && (
+        <i className="cm-avatar-crown" title="Chủ nhóm">
+          ★
+        </i>
+      )}
+    </span>
+  );
+}
+
+export function RoomAvatar({
+  room,
+  size = "md",
+  editable = false,
+  onEdit,
+}: {
+  room: Pick<RoomSummary, "name" | "icon" | "avatar_url" | "topic" | "accent">;
+  size?: "sm" | "md" | "lg";
+  editable?: boolean;
+  onEdit?: () => void;
+}) {
+  const slug = topicSlug[room.topic] ?? "study";
+  const content = (
+    <>
+      {room.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- group avatar image or preset
+        <img src={room.avatar_url} alt="" className="cm-room-avatar-img" />
+      ) : (
+        <Icon name={room.icon} />
+      )}
+      {editable && (
+        <span className="cm-room-avatar-edit" title="Đổi ảnh đại diện nhóm">
+          <Icon name="image" />
+        </span>
+      )}
+    </>
+  );
+
+  if (editable && onEdit) {
+    return (
+      <button
+        type="button"
+        className={`cm-glyph cm-glyph-${size} is-editable${room.avatar_url ? " has-img" : ""}`}
+        data-topic={slug}
+        data-accent={room.accent}
+        onClick={onEdit}
+        aria-label={`Đổi ảnh đại diện nhóm ${room.name ?? ""}`}
+        title="Bấm để đổi ảnh đại diện & cài đặt nhóm (Chủ nhóm)"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <span
+      className={`cm-glyph cm-glyph-${size}${room.avatar_url ? " has-img" : ""}`}
+      data-topic={slug}
+      data-accent={room.accent}
+      aria-hidden="true"
+    >
+      {content}
     </span>
   );
 }
@@ -152,11 +235,14 @@ export function ChatRoom({
   onChanged: () => Promise<void>;
   onUnknownAuthor: () => Promise<void>;
 }) {
+  const { prefs, updatePrefs, resetPrefs } = useChatPreferences();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [members, setMembers] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
+  const [editBody, setEditBody] = useState("");
   const [suggest, setSuggest] = useState<{ start: number; query: string; index: number } | null>(null);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
@@ -164,9 +250,15 @@ export function ChatRoom({
   const [urls, setUrls] = useState<Map<string, string>>(new Map());
   const [viewing, setViewing] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<"members" | "customize" | "media">("members");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addingMemberId, setAddingMemberId] = useState("");
+
   const picker = useRef<HTMLInputElement>(null);
+  const quickGroupAvatarInput = useRef<HTMLInputElement>(null);
+  const wallpaperInput = useRef<HTMLInputElement>(null);
   const viewer = useRef<HTMLDialogElement>(null);
-  const [showInfo, setShowInfo] = useState(false);
   const log = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const stick = useRef(true);
@@ -176,6 +268,7 @@ export function ChatRoom({
   const other = room.kind === "dm" ? people.get(room.dm_user ?? "") : undefined;
   const title = room.kind === "dm" ? (other?.display_name ?? "Tin nhắn riêng") : room.name!;
   const roomTone = room.kind === "group" ? (topicSlug[room.topic] ?? "study") : "dm";
+  const effectiveAccent: RoomAccent = prefs.accent === "auto" ? (room.accent ?? "crimson") : prefs.accent;
 
   const load = useCallback(async () => {
     try {
@@ -233,6 +326,31 @@ export function ChatRoom({
     event.preventDefault();
     setDragging(false);
     if (joined) attach([...event.dataTransfer.files]);
+  }
+
+  async function onQuickGroupAvatarPick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !room.is_owner) return;
+    try {
+      const cropped = await cropAvatarFile(file, 256);
+      await community.updateRoom(room.id, { avatar_url: cropped });
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không đổi được ảnh đại diện nhóm");
+    }
+  }
+
+  async function onWallpaperPick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const cropped = await cropAvatarFile(file, 960);
+      updatePrefs({ wallpaper: "custom", customWallpaperUrl: cropped });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được ảnh nền");
+    }
   }
 
   function view(url: string) {
@@ -358,7 +476,7 @@ export function ChatRoom({
       setPicked(new Set());
       setReplyTo(null);
       stick.current = true;
-      await load();
+      await Promise.all([load(), onChanged()]);
     } catch (sendError) {
       await community.removeMedia(media).catch(() => undefined);
       setError(sendError instanceof Error ? sendError.message : "Không gửi được tin nhắn");
@@ -368,11 +486,31 @@ export function ChatRoom({
     }
   }
 
+  async function saveEditMessage(event: FormEvent) {
+    event.preventDefault();
+    if (!editingMsg || !editBody.trim()) return;
+    await community.editMessage(editingMsg.id, editBody.trim());
+    setEditingMsg(null);
+    setEditBody("");
+    await Promise.all([load(), onChanged()]);
+  }
+
+  async function react(messageId: string, emoji: string) {
+    await community.toggleReaction(messageId, me.user_id, emoji);
+    await load();
+  }
+
+  async function togglePinMessage(messageId: string) {
+    const nextPinned = room.pinned_message_id === messageId ? null : messageId;
+    await community.updateRoom(room.id, { pinned_message_id: nextPinned });
+    await onChanged();
+  }
+
   async function remove(message: ChatMessage) {
     if (!window.confirm("Xoá tin nhắn này?")) return;
     try {
       await community.remove(message);
-      await load();
+      await Promise.all([load(), onChanged()]);
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : "Không xoá được tin nhắn");
     }
@@ -396,17 +534,42 @@ export function ChatRoom({
     window.setTimeout(() => target?.classList.remove("is-flash"), 1400);
   }
 
+  function openDrawer(tab: "members" | "customize" | "media") {
+    if (drawerOpen && drawerTab === tab) {
+      setDrawerOpen(false);
+    } else {
+      setDrawerTab(tab);
+      setDrawerOpen(true);
+    }
+  }
+
   const byId = new Map(messages?.map((message) => [message.id, message]));
   const roster = members
     .map((id) => people.get(id))
     .filter((item): item is Profile => Boolean(item))
+    .sort((a, b) => {
+      const aOwner = a.user_id === room.owner_id ? 2 : room.co_owners.includes(a.user_id) ? 1 : 0;
+      const bOwner = b.user_id === room.owner_id ? 2 : room.co_owners.includes(b.user_id) ? 1 : 0;
+      if (aOwner !== bOwner) return bOwner - aOwner;
+      return a.display_name.localeCompare(b.display_name, "vi");
+    });
+  const nonMembers = [...people.values()]
+    .filter((person) => !members.includes(person.user_id))
     .sort((a, b) => a.display_name.localeCompare(b.display_name, "vi"));
   const headcount = members.length || room.member_count;
+  const pinnedMessage = room.pinned_message_id ? byId.get(room.pinned_message_id) : undefined;
+  const sharedMediaMessages = (messages ?? []).filter((m) => m.media.length > 0);
 
   return (
     <div
-      className={`cm-room${showInfo && room.kind === "group" ? " show-info" : ""}${dragging ? " is-dragging" : ""}`}
+      className={`cm-room${drawerOpen ? " show-info" : ""}${dragging ? " is-dragging" : ""}`}
       data-topic={roomTone}
+      data-accent={effectiveAccent}
+      data-wallpaper={prefs.wallpaper}
+      data-bubble={prefs.bubbleStyle}
+      data-density={prefs.density}
+      data-font={prefs.fontSize}
+      data-avatar-shape={prefs.avatarShape}
       onDragOver={(event) => {
         if (!joined || !event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
@@ -417,6 +580,21 @@ export function ChatRoom({
       }}
       onDrop={onDrop}
     >
+      <input
+        ref={quickGroupAvatarInput}
+        type="file"
+        hidden
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        onChange={onQuickGroupAvatarPick}
+      />
+      <input
+        ref={wallpaperInput}
+        type="file"
+        hidden
+        accept="image/png,image/jpeg,image/webp"
+        onChange={onWallpaperPick}
+      />
+
       <header className="cm-room-head">
         <button
           className="cm-btn-icon cm-back"
@@ -426,14 +604,26 @@ export function ChatRoom({
         >
           <Icon name="back" />
         </button>
+
         <div className="cm-room-id">
           {room.kind === "dm" ? (
-            <Avatar profile={other} size="sm" online />
+            <button
+              type="button"
+              className="cm-msg-avatar"
+              onClick={() => other && onProfile(other.user_id)}
+              title={other?.display_name}
+            >
+              <Avatar profile={other} size="md" online />
+            </button>
           ) : (
-            <span className="cm-glyph" data-topic={roomTone} aria-hidden="true">
-              <Icon name={room.icon} />
-            </span>
+            <RoomAvatar
+              room={room}
+              size="md"
+              editable={room.is_owner}
+              onEdit={() => setEditDialogOpen(true)}
+            />
           )}
+
           <div className="cm-room-title-wrap">
             <div className="cm-room-title-line">
               <h2>
@@ -455,46 +645,126 @@ export function ChatRoom({
                   {other.class_name ? ` · ${other.class_name}` : ""}
                 </code>
               )}
-              {room.kind === "group" && (
-                <span className="cm-row-topic">{room.topic}</span>
+              {room.kind === "group" && <span className="cm-row-topic">{room.topic}</span>}
+              {room.kind === "group" && room.is_owner && (
+                <button
+                  type="button"
+                  className="cm-owner-pill"
+                  onClick={() => setEditDialogOpen(true)}
+                  title="Bạn là Chủ nhóm — bấm để đổi ảnh đại diện & cài đặt nhóm"
+                >
+                  <Icon name="pen" /> Chủ nhóm · Sửa ảnh & nhóm
+                </button>
               )}
-              {room.kind === "group" && (
-                <span className="cm-mono-meta">{headcount} thành viên</span>
+            </div>
+            <div className="cm-room-subline">
+              {room.kind === "group" ? (
+                <>
+                  <span className="cm-mono-meta">{headcount} thành viên</span>
+                  {room.about && <span className="cm-room-about-inline">{room.about}</span>}
+                </>
+              ) : (
+                <span className="cm-room-about-inline">
+                  {other?.role_title ?? other?.faculty ?? "Trò chuyện trực tiếp"}
+                </span>
               )}
             </div>
           </div>
         </div>
-        {room.kind === "group" && (
-          <div className="cm-room-head-actions">
-            {roster.length > 0 && (
-              <div className="cm-avatar-stack" title={`${roster.length} thành viên`}>
-                {roster.slice(0, 3).map((person) => (
-                  <button
-                    key={person.user_id}
-                    type="button"
-                    className="cm-stack-item"
-                    onClick={() => onProfile(person.user_id)}
-                    title={person.display_name}
-                  >
-                    <Avatar profile={person} size="sm" />
-                  </button>
-                ))}
-                {roster.length > 3 && <span className="cm-stack-more">+{roster.length - 3}</span>}
-              </div>
-            )}
+
+        <div className="cm-room-head-actions">
+          {room.kind === "group" && roster.length > 0 && (
+            <div className="cm-avatar-stack" title={`${roster.length} thành viên`}>
+              {roster.slice(0, 5).map((person) => (
+                <button
+                  key={person.user_id}
+                  type="button"
+                  className="cm-stack-item"
+                  onClick={() => onProfile(person.user_id)}
+                  title={`${person.display_name}${person.user_id === room.owner_id ? " (Chủ nhóm)" : ""}`}
+                >
+                  <Avatar
+                    profile={person}
+                    size="xs"
+                    crown={person.user_id === room.owner_id}
+                  />
+                </button>
+              ))}
+              {roster.length > 5 && <span className="cm-stack-more">+{roster.length - 5}</span>}
+            </div>
+          )}
+
+          {room.kind === "group" && room.is_owner && (
             <button
               className="cm-btn-icon"
               type="button"
-              onClick={() => setShowInfo((value) => !value)}
-              aria-pressed={showInfo}
-              aria-label="Thông tin kênh và thành viên"
-              title="Danh sách thành viên"
+              onClick={() => setEditDialogOpen(true)}
+              aria-label="Chỉnh sửa ảnh và cài đặt nhóm"
+              title="Chỉnh sửa ảnh & thông tin nhóm (Chủ nhóm)"
             >
-              <Icon name="users" />
+              <Icon name="pen" />
             </button>
-          </div>
-        )}
+          )}
+
+          <button
+            className={`cm-btn-icon${drawerOpen && drawerTab === "customize" ? " is-active" : ""}`}
+            type="button"
+            onClick={() => openDrawer("customize")}
+            aria-pressed={drawerOpen && drawerTab === "customize"}
+            aria-label="Tuỳ biến giao diện chat"
+            title="Tuỳ biến giao diện & chủ đề chat"
+          >
+            <Icon name="sparkle" />
+          </button>
+
+          <button
+            className={`cm-btn-icon${drawerOpen && drawerTab === "members" ? " is-active" : ""}`}
+            type="button"
+            onClick={() => openDrawer("members")}
+            aria-pressed={drawerOpen && drawerTab === "members"}
+            aria-label="Thông tin kênh và thành viên"
+            title="Thành viên & cài đặt kênh"
+          >
+            <Icon name="panel" />
+          </button>
+        </div>
       </header>
+
+      {(room.pinned_note || pinnedMessage) && (
+        <div className="cm-pin-bar">
+          <Icon name="pin" />
+          <div className="cm-pin-content">
+            {pinnedMessage ? (
+              <button
+                type="button"
+                className="cm-pin-jump"
+                onClick={() => jumpTo(pinnedMessage.id)}
+              >
+                <strong>Ghim · {people.get(pinnedMessage.author_id)?.display_name ?? "Thành viên"}:</strong>{" "}
+                <span>{pinnedMessage.body}</span>
+              </button>
+            ) : (
+              <span>
+                <strong>Thông báo nhóm:</strong> {room.pinned_note}
+              </span>
+            )}
+          </div>
+          {room.is_owner && (
+            <button
+              type="button"
+              className="cm-pin-action"
+              onClick={() =>
+                pinnedMessage
+                  ? void togglePinMessage(pinnedMessage.id)
+                  : setEditDialogOpen(true)
+              }
+              title={pinnedMessage ? "Bỏ ghim tin nhắn" : "Sửa thông báo ghim"}
+            >
+              <Icon name={pinnedMessage ? "close" : "pen"} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="cm-room-body">
         <div
@@ -504,6 +774,15 @@ export function ChatRoom({
           role="log"
           aria-live="polite"
           aria-label={`Tin nhắn trong ${title}`}
+          style={
+            prefs.wallpaper === "custom" && prefs.customWallpaperUrl
+              ? {
+                  backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, var(--paper) 82%, transparent), color-mix(in srgb, var(--paper) 88%, transparent)), url(${prefs.customWallpaperUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
         >
           {messages === null ? (
             <div className="cm-log-skeleton" aria-busy="true">
@@ -515,20 +794,28 @@ export function ChatRoom({
             </div>
           ) : messages.length === 0 ? (
             <div className="cm-log-empty">
+              <RoomAvatar room={room} size="lg" editable={room.is_owner} onEdit={() => setEditDialogOpen(true)} />
               <strong>{title}</strong>
-              <p>Chưa có tin nhắn</p>
+              <p>Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện đầu tiên.</p>
             </div>
           ) : (
             <>
               {messages.map((message, index) => {
                 const previous = messages[index - 1];
                 const mine = message.author_id === me.user_id;
-                const author = people.get(message.author_id);
+                const author = mine ? me : people.get(message.author_id);
                 const newDay = !previous || !sameDay(previous.created_at, message.created_at);
                 const first = !continues(previous, message);
                 const last = !continues(message, messages[index + 1]);
                 const parent = message.reply_to ? byId.get(message.reply_to) : undefined;
                 const pingsMe = message.mentions.includes(me.user_id);
+                const isPinned = room.pinned_message_id === message.id;
+                const reactionEntries = Object.entries(message.reactions ?? {}).filter(
+                  ([, userIds]) => userIds.length > 0,
+                );
+                const isAuthorOwner =
+                  room.kind === "group" && message.author_id === room.owner_id;
+
                 return (
                   <div key={message.id}>
                     {newDay && (
@@ -538,9 +825,9 @@ export function ChatRoom({
                     )}
                     <article
                       id={`msg-${message.id}`}
-                      className={`cm-msg${mine ? " is-mine" : ""}${first ? " is-first" : ""}${last ? " is-last" : ""}${pingsMe ? " is-ping" : ""}`}
+                      className={`cm-msg${mine ? " is-mine" : ""}${first ? " is-first" : ""}${last ? " is-last" : ""}${pingsMe ? " is-ping" : ""}${isPinned ? " is-pinned" : ""}`}
                     >
-                      {!mine && (
+                      {(!mine || prefs.showMyAvatar) && (
                         <div className="cm-msg-side">
                           {first && (
                             <button
@@ -549,7 +836,11 @@ export function ChatRoom({
                               onClick={() => onProfile(message.author_id)}
                               aria-label={`Hồ sơ ${author?.display_name ?? ""}`}
                             >
-                              <Avatar profile={author} size="sm" />
+                              <Avatar
+                                profile={author}
+                                size="sm"
+                                crown={isAuthorOwner}
+                              />
                             </button>
                           )}
                         </div>
@@ -557,22 +848,20 @@ export function ChatRoom({
                       <div className="cm-stack">
                         {first && (
                           <p className="cm-msg-meta">
-                            {!mine && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="cm-name"
-                                  onClick={() => onProfile(message.author_id)}
-                                >
-                                  {author?.display_name ?? "Thành viên"}
-                                </button>
-                                {author?.class_name ? (
-                                  <code className="cm-msg-cohort">{author.class_name}</code>
-                                ) : author?.faculty ? (
-                                  <code className="cm-msg-cohort">{author.faculty}</code>
-                                ) : null}
-                              </>
-                            )}
+                            <button
+                              type="button"
+                              className="cm-name"
+                              onClick={() => onProfile(message.author_id)}
+                            >
+                              {author?.display_name ?? "Thành viên"}
+                            </button>
+                            {isAuthorOwner && <span className="cm-role-tag">Chủ nhóm</span>}
+                            {prefs.showCohortBadge &&
+                              (author?.class_name ? (
+                                <code className="cm-msg-cohort">{author.class_name}</code>
+                              ) : author?.faculty ? (
+                                <code className="cm-msg-cohort">{author.faculty}</code>
+                              ) : null)}
                             <time dateTime={message.created_at}>{stamp(message.created_at)}</time>
                           </p>
                         )}
@@ -635,13 +924,50 @@ export function ChatRoom({
                                 })}
                               </div>
                             )}
-                            {message.body.trim() && (
-                              <p className="cm-text">
-                                <Body message={message} people={people} me={me.user_id} onProfile={onProfile} />
-                              </p>
+                            {editingMsg?.id === message.id ? (
+                              <form className="cm-edit-inline" onSubmit={saveEditMessage}>
+                                <input
+                                  value={editBody}
+                                  onChange={(e) => setEditBody(e.target.value)}
+                                  autoFocus
+                                />
+                                <button type="submit" className="button button-primary button-xs">
+                                  Lưu
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button button-quiet button-xs"
+                                  onClick={() => setEditingMsg(null)}
+                                >
+                                  Huỷ
+                                </button>
+                              </form>
+                            ) : (
+                              message.body.trim() && (
+                                <p className="cm-text">
+                                  <Body message={message} people={people} me={me.user_id} onProfile={onProfile} />
+                                  {message.edited_at && <small className="cm-edited"> (đã sửa)</small>}
+                                </p>
+                              )
                             )}
                           </div>
+
                           <div className="cm-tools">
+                            {joined && (
+                              <div className="cm-react-bar" role="group" aria-label="Thả biểu cảm">
+                                {QUICK_REACTIONS.slice(0, 4).map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    className="cm-react-pick"
+                                    onClick={() => void react(message.id, emoji)}
+                                    title={`Thả ${emoji}`}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             {joined && (
                               <button
                                 type="button"
@@ -655,7 +981,30 @@ export function ChatRoom({
                                 <Icon name="reply" />
                               </button>
                             )}
+                            {room.kind === "group" && room.is_owner && (
+                              <button
+                                type="button"
+                                onClick={() => void togglePinMessage(message.id)}
+                                aria-label={isPinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}
+                                title={isPinned ? "Bỏ ghim" : "Ghim tin nhắn"}
+                              >
+                                <Icon name="pin" />
+                              </button>
+                            )}
                             {mine && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMsg(message);
+                                  setEditBody(message.body);
+                                }}
+                                aria-label="Sửa tin nhắn"
+                                title="Sửa tin nhắn"
+                              >
+                                <Icon name="pen" />
+                              </button>
+                            )}
+                            {(mine || room.is_owner) && (
                               <button
                                 type="button"
                                 onClick={() => void remove(message)}
@@ -667,6 +1016,29 @@ export function ChatRoom({
                             )}
                           </div>
                         </div>
+
+                        {reactionEntries.length > 0 && (
+                          <div className="cm-reactions">
+                            {reactionEntries.map(([emoji, userIds]) => {
+                              const active = userIds.includes(me.user_id);
+                              const names = userIds
+                                .map((id) => people.get(id)?.display_name ?? "Thành viên")
+                                .join(", ");
+                              return (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  className={`cm-reaction-chip${active ? " is-active" : ""}`}
+                                  onClick={() => void react(message.id, emoji)}
+                                  title={names}
+                                >
+                                  <span>{emoji}</span>
+                                  <small>{userIds.length}</small>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </article>
                   </div>
@@ -676,51 +1048,434 @@ export function ChatRoom({
           )}
         </div>
 
-        {room.kind === "group" && (
-          <aside className="cm-info" aria-label="Thành viên kênh">
-            <div className="cm-info-top">
-              <strong>Thành viên ({roster.length})</strong>
+        <aside className="cm-info" aria-label="Bảng thông tin và tuỳ biến">
+          <div className="cm-info-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={drawerTab === "members"}
+              className={drawerTab === "members" ? "is-active" : ""}
+              onClick={() => setDrawerTab("members")}
+            >
+              {room.kind === "group" ? `Nhóm (${roster.length})` : "Hồ sơ"}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={drawerTab === "customize"}
+              className={drawerTab === "customize" ? "is-active" : ""}
+              onClick={() => setDrawerTab("customize")}
+            >
+              Tuỳ biến
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={drawerTab === "media"}
+              className={drawerTab === "media" ? "is-active" : ""}
+              onClick={() => setDrawerTab("media")}
+            >
+              Tệp ({sharedMediaMessages.length})
+            </button>
+            <button
+              className="cm-btn-icon cm-info-close"
+              type="button"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Đóng bảng bên"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+
+          {drawerTab === "members" && (
+            <div className="cm-info-pane">
+              {room.kind === "group" ? (
+                <>
+                  <div
+                    className="cm-group-card"
+                    style={
+                      room.banner_url
+                        ? {
+                            backgroundImage: `linear-gradient(to bottom, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.82)), url(${room.banner_url})`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="cm-group-card-top">
+                      <RoomAvatar
+                        room={room}
+                        size="lg"
+                        editable={room.is_owner}
+                        onEdit={() => quickGroupAvatarInput.current?.click()}
+                      />
+                      <div className="cm-group-card-meta">
+                        <strong>{room.name}</strong>
+                        <span>
+                          {room.topic} · {roster.length} thành viên
+                        </span>
+                      </div>
+                    </div>
+                    {room.is_owner && (
+                      <div className="cm-group-owner-bar">
+                        <button
+                          type="button"
+                          className="cm-owner-btn"
+                          onClick={() => quickGroupAvatarInput.current?.click()}
+                        >
+                          <Icon name="image" /> Đổi ảnh nhóm
+                        </button>
+                        <button
+                          type="button"
+                          className="cm-owner-btn"
+                          onClick={() => setEditDialogOpen(true)}
+                        >
+                          <Icon name="pen" /> Cài đặt nhóm
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {room.about && <p className="cm-info-about">{room.about}</p>}
+
+                  {room.is_owner && nonMembers.length > 0 && (
+                    <div className="cm-add-member">
+                      <select
+                        value={addingMemberId}
+                        onChange={(e) => setAddingMemberId(e.target.value)}
+                        aria-label="Chọn thành viên thêm vào nhóm"
+                      >
+                        <option value="">+ Thêm thành viên vào nhóm…</option>
+                        {nonMembers.map((person) => (
+                          <option key={person.user_id} value={person.user_id}>
+                            {person.display_name} ({person.class_name ?? person.faculty ?? "SDU"})
+                          </option>
+                        ))}
+                      </select>
+                      {addingMemberId && (
+                        <button
+                          type="button"
+                          className="button button-primary button-xs"
+                          onClick={async () => {
+                            await community.addMember(room.id, addingMemberId);
+                            setAddingMemberId("");
+                            await Promise.all([load(), onChanged()]);
+                          }}
+                        >
+                          Thêm
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <ul className="cm-roster">
+                    {roster.map((person, idx) => {
+                      const isPrimaryOwner = person.user_id === room.owner_id;
+                      const isCoOwner = !isPrimaryOwner && room.co_owners.includes(person.user_id);
+                      return (
+                        <li key={person.user_id} className="cm-roster-item">
+                          <button type="button" onClick={() => onProfile(person.user_id)}>
+                            <Avatar
+                              profile={person}
+                              size="sm"
+                              online={idx < 5}
+                              crown={isPrimaryOwner}
+                            />
+                            <span className="cm-roster-body">
+                              <strong>
+                                {person.display_name}
+                                {person.user_id === me.user_id && <small> (bạn)</small>}
+                              </strong>
+                              <span className="cm-roster-sub">
+                                {isPrimaryOwner && <span className="cm-role-badge is-owner">Chủ nhóm</span>}
+                                {isCoOwner && <span className="cm-role-badge">Phó nhóm</span>}
+                                {(person.student_code || person.class_name || person.faculty) && (
+                                  <code className="cm-roster-code">
+                                    {[person.student_code, person.class_name ?? person.faculty]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </code>
+                                )}
+                              </span>
+                            </span>
+                          </button>
+                          {room.is_owner && person.user_id !== me.user_id && (
+                            <button
+                              type="button"
+                              className="cm-roster-kick"
+                              title={`Mời ${person.display_name} rời nhóm`}
+                              onClick={async () => {
+                                await community.removeMember(room.id, person.user_id);
+                                await Promise.all([load(), onChanged()]);
+                              }}
+                            >
+                              <Icon name="close" />
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {joined && (
+                    <button
+                      className="button button-outline button-small cm-leave"
+                      type="button"
+                      onClick={() => void membership(false)}
+                    >
+                      <Icon name="logout" /> Rời kênh
+                    </button>
+                  )}
+                </>
+              ) : (
+                other && (
+                  <div className="cm-dm-card">
+                    <Avatar profile={other} size="lg" online />
+                    <strong>{other.display_name}</strong>
+                    {other.class_name && <code className="cm-cohort">{other.class_name}</code>}
+                    <p className="cm-info-about">{other.bio || other.faculty}</p>
+                    <button
+                      type="button"
+                      className="button button-outline button-small"
+                      onClick={() => onProfile(other.user_id)}
+                    >
+                      <Icon name="user" /> Mở hồ sơ chi tiết
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {drawerTab === "customize" && (
+            <div className="cm-info-pane cm-custom-pane">
+              {room.kind === "group" && room.is_owner && (
+                <section className="cm-custom-sec">
+                  <div className="cm-custom-sec-head">
+                    <h4>Ảnh cộng đồng (Chủ nhóm)</h4>
+                    <button
+                      type="button"
+                      className="cm-link-btn"
+                      onClick={() => quickGroupAvatarInput.current?.click()}
+                    >
+                      Tải ảnh lên
+                    </button>
+                  </div>
+                  <div className="cm-photo-grid">
+                    {ROOM_PHOTO_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={`cm-photo-swatch${room.avatar_url === preset.url ? " is-active" : ""}`}
+                        onClick={async () => {
+                          await community.updateRoom(room.id, { avatar_url: preset.url });
+                          await onChanged();
+                        }}
+                        title={preset.label}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- preset campus photo */}
+                        <img src={preset.url} alt={preset.label} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="cm-custom-sec">
+                <div className="cm-custom-sec-head">
+                  <h4>Màu chủ đạo khung chat</h4>
+                </div>
+                <div className="cm-accent-grid">
+                  {ROOM_ACCENTS.map((item) => {
+                    const active = effectiveAccent === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`cm-accent-chip${active ? " is-active" : ""}`}
+                        onClick={async () => {
+                          updatePrefs({ accent: item.id });
+                          if (room.kind === "group" && room.is_owner) {
+                            await community.updateRoom(room.id, { accent: item.id });
+                            await onChanged();
+                          }
+                        }}
+                      >
+                        <i style={{ background: item.color }} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="cm-custom-sec">
+                <div className="cm-custom-sec-head">
+                  <h4>Nền khung chat</h4>
+                  <button
+                    type="button"
+                    className="cm-link-btn"
+                    onClick={() => wallpaperInput.current?.click()}
+                  >
+                    Ảnh riêng
+                  </button>
+                </div>
+                <div className="cm-seg-grid">
+                  {(
+                    [
+                      ["clean", "Giấy phẳng"],
+                      ["grid", "Lưới kỹ thuật"],
+                      ["dots", "Chấm bi"],
+                      ["warm", "Ấm dịu"],
+                      ["campus", "Khuôn viên"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`cm-seg-btn${prefs.wallpaper === id ? " is-active" : ""}`}
+                      onClick={() => updatePrefs({ wallpaper: id })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="cm-custom-sec">
+                <h4>Kiểu bong bóng tin nhắn</h4>
+                <div className="cm-seg-row">
+                  {(
+                    [
+                      ["modern", "Hiện đại"],
+                      ["compact", "Gọn"],
+                      ["minimal", "Tối giản"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`cm-seg-btn${prefs.bubbleStyle === id ? " is-active" : ""}`}
+                      onClick={() => updatePrefs({ bubbleStyle: id })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="cm-custom-sec">
+                <h4>Mật độ & Cỡ chữ</h4>
+                <div className="cm-seg-row">
+                  {(
+                    [
+                      ["compact", "Khít"],
+                      ["cozy", "Vừa"],
+                      ["comfortable", "Thoáng"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`cm-seg-btn${prefs.density === id ? " is-active" : ""}`}
+                      onClick={() => updatePrefs({ density: id })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="cm-seg-row">
+                  {(
+                    [
+                      ["sm", "Chữ nhỏ"],
+                      ["md", "Chữ vừa"],
+                      ["lg", "Chữ lớn"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`cm-seg-btn${prefs.fontSize === id ? " is-active" : ""}`}
+                      onClick={() => updatePrefs({ fontSize: id })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="cm-custom-sec">
+                <h4>Khung Avatar & Nhãn</h4>
+                <div className="cm-seg-row">
+                  <button
+                    type="button"
+                    className={`cm-seg-btn${prefs.avatarShape === "circle" ? " is-active" : ""}`}
+                    onClick={() => updatePrefs({ avatarShape: "circle" })}
+                  >
+                    Avatar tròn
+                  </button>
+                  <button
+                    type="button"
+                    className={`cm-seg-btn${prefs.avatarShape === "squircle" ? " is-active" : ""}`}
+                    onClick={() => updatePrefs({ avatarShape: "squircle" })}
+                  >
+                    Bo góc vuông
+                  </button>
+                </div>
+                <label className="cm-toggle-row">
+                  <span>Hiện avatar của tôi trên tin nhắn</span>
+                  <input
+                    type="checkbox"
+                    checked={prefs.showMyAvatar}
+                    onChange={(e) => updatePrefs({ showMyAvatar: e.target.checked })}
+                  />
+                </label>
+                <label className="cm-toggle-row">
+                  <span>Hiện nhãn lớp niên chế / khoa</span>
+                  <input
+                    type="checkbox"
+                    checked={prefs.showCohortBadge}
+                    onChange={(e) => updatePrefs({ showCohortBadge: e.target.checked })}
+                  />
+                </label>
+              </section>
+
               <button
-                className="cm-btn-icon cm-info-close"
                 type="button"
-                onClick={() => setShowInfo(false)}
-                aria-label="Đóng danh sách thành viên"
+                className="button button-outline button-small"
+                onClick={resetPrefs}
               >
-                <Icon name="close" />
+                Khôi phục giao diện mặc định
               </button>
             </div>
-            {room.about && <p className="cm-info-about">{room.about}</p>}
-            <ul className="cm-roster">
-              {roster.map((person, idx) => (
-                <li key={person.user_id}>
-                  <button type="button" onClick={() => onProfile(person.user_id)}>
-                    <Avatar profile={person} size="sm" online={idx < 4} />
-                    <span className="cm-roster-body">
-                      <strong>
-                        {person.display_name}
-                        {person.user_id === me.user_id && <small> (bạn)</small>}
-                      </strong>
-                      {(person.student_code || person.class_name || person.faculty) && (
-                        <code className="cm-roster-code">
-                          {[person.student_code, person.class_name ?? person.faculty].filter(Boolean).join(" · ")}
-                        </code>
-                      )}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {joined && (
-              <button
-                className="button button-outline button-small cm-leave"
-                type="button"
-                onClick={() => void membership(false)}
-              >
-                <Icon name="logout" /> Rời kênh
-              </button>
-            )}
-          </aside>
-        )}
+          )}
+
+          {drawerTab === "media" && (
+            <div className="cm-info-pane">
+              {sharedMediaMessages.length > 0 ? (
+                <div className="cm-shared-grid">
+                  {sharedMediaMessages.flatMap((m) =>
+                    m.media.map((path) => {
+                      const url = urls.get(path) ?? path;
+                      return (
+                        <button
+                          key={`${m.id}-${path}`}
+                          type="button"
+                          className="cm-shared-thumb"
+                          onClick={() => view(url)}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- shared media thumb */}
+                          <img src={url} alt="" />
+                        </button>
+                      );
+                    }),
+                  )}
+                </div>
+              ) : (
+                <p className="cm-rail-empty">Chưa có ảnh hoặc video nào được chia sẻ trong kênh này.</p>
+              )}
+            </div>
+          )}
+        </aside>
       </div>
 
       {error && (
@@ -809,7 +1564,7 @@ export function ChatRoom({
               onPaste={onPaste}
               rows={1}
               maxLength={maxLength}
-              placeholder={room.kind === "dm" ? `Nhắn cho ${title}` : `Nhắn trong ${title}`}
+              placeholder={room.kind === "dm" ? `Nhắn cho ${title}` : `Nhắn trong ${title} (gõ @ để nhắc tên)`}
               role="combobox"
               aria-autocomplete="list"
               aria-controls="cm-suggest"
@@ -835,9 +1590,20 @@ export function ChatRoom({
             type="button"
             onClick={() => void membership(true)}
           >
-            Tham gia
+            Tham gia nhóm
           </button>
         </div>
+      )}
+
+      {editDialogOpen && room.kind === "group" && (
+        <EditRoomDialog
+          room={room}
+          onClose={() => setEditDialogOpen(false)}
+          onSaved={async () => {
+            setEditDialogOpen(false);
+            await onChanged();
+          }}
+        />
       )}
 
       <dialog
@@ -874,5 +1640,286 @@ export function ChatRoom({
         )}
       </dialog>
     </div>
+  );
+}
+
+function EditRoomDialog({
+  room,
+  onClose,
+  onSaved,
+}: {
+  room: RoomSummary;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const avatarFileInput = useRef<HTMLInputElement>(null);
+  const bannerFileInput = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState<{
+    name: string;
+    about: string;
+    topic: Topic;
+    icon: RoomIcon;
+    avatar_url: string | null;
+    banner_url: string | null;
+    accent: RoomAccent;
+    pinned_note: string;
+  }>({
+    name: room.name ?? "",
+    about: room.about ?? "",
+    topic: room.topic,
+    icon: room.icon,
+    avatar_url: room.avatar_url,
+    banner_url: room.banner_url,
+    accent: room.accent ?? "crimson",
+    pinned_note: room.pinned_note ?? "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!dialog.current?.open) dialog.current?.showModal();
+  }, []);
+
+  async function onUploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await cropAvatarFile(file, 256);
+      setForm((prev) => ({ ...prev, avatar_url: dataUrl }));
+      setErr("");
+    } catch (uploadErr) {
+      setErr(uploadErr instanceof Error ? uploadErr.message : "Không đọc được ảnh");
+    }
+  }
+
+  async function onUploadBanner(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await cropAvatarFile(file, 720);
+      setForm((prev) => ({ ...prev, banner_url: dataUrl }));
+      setErr("");
+    } catch (uploadErr) {
+      setErr(uploadErr instanceof Error ? uploadErr.message : "Không đọc được ảnh bìa");
+    }
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const cleanName = form.name.trim().replace(/\s+/g, " ");
+    if (cleanName.length < 3) {
+      setErr("Tên nhóm cần ít nhất 3 ký tự");
+      return;
+    }
+    setBusy(true);
+    try {
+      const patch: RoomPatch = {
+        name: cleanName,
+        about: form.about.trim(),
+        topic: form.topic,
+        icon: form.icon,
+        avatar_url: form.avatar_url,
+        banner_url: form.banner_url,
+        accent: form.accent,
+        pinned_note: form.pinned_note.trim() || null,
+      };
+      await community.updateRoom(room.id, patch);
+      await onSaved();
+    } catch (saveErr) {
+      setErr(saveErr instanceof Error ? saveErr.message : "Không lưu được cài đặt nhóm");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <dialog ref={dialog} className="cm-dialog cm-edit-room-dialog" onClose={onClose}>
+      <form className="pt-form" onSubmit={submit}>
+        <div className="cm-dialog-head">
+          <div>
+            <h3>Tuỳ chỉnh nhóm & Ảnh cộng đồng</h3>
+            <small className="cm-dialog-sub">Quyền Chủ nhóm · Thay đổi áp dụng ngay cho toàn bộ thành viên</small>
+          </div>
+          <button className="cm-btn-icon" type="button" onClick={onClose} aria-label="Đóng">
+            <Icon name="close" />
+          </button>
+        </div>
+
+        <div className="cm-room-editor-hero">
+          <div className="cm-room-editor-avatar">
+            <RoomAvatar
+              room={{
+                name: form.name,
+                icon: form.icon,
+                avatar_url: form.avatar_url,
+                topic: form.topic,
+                accent: form.accent,
+              }}
+              size="lg"
+            />
+            <div className="cm-room-editor-btns">
+              <input
+                ref={avatarFileInput}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={onUploadAvatar}
+              />
+              <input
+                ref={bannerFileInput}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/webp"
+                onChange={onUploadBanner}
+              />
+              <button
+                type="button"
+                className="button button-primary button-xs"
+                onClick={() => avatarFileInput.current?.click()}
+              >
+                <Icon name="image" /> Tải ảnh đại diện nhóm
+              </button>
+              <button
+                type="button"
+                className="button button-outline button-xs"
+                onClick={() => bannerFileInput.current?.click()}
+              >
+                Đổi ảnh bìa
+              </button>
+              {form.avatar_url && (
+                <button
+                  type="button"
+                  className="button button-quiet button-xs"
+                  onClick={() => setForm({ ...form, avatar_url: null })}
+                >
+                  Dùng biểu tượng
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="cm-preset-strip">
+            <span className="cm-field-label">Hoặc chọn nhanh ảnh cộng đồng mẫu:</span>
+            <div className="cm-photo-grid">
+              {ROOM_PHOTO_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`cm-photo-swatch${form.avatar_url === preset.url ? " is-active" : ""}`}
+                  onClick={() => setForm({ ...form, avatar_url: preset.url })}
+                  title={preset.label}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- preset campus photo */}
+                  <img src={preset.url} alt={preset.label} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="cm-form-grid-2">
+          <label className="field">
+            Tên nhóm cộng đồng
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+              minLength={3}
+              maxLength={60}
+            />
+          </label>
+          <label className="field">
+            Chủ đề
+            <select
+              value={form.topic}
+              onChange={(e) => setForm({ ...form, topic: e.target.value as Topic })}
+            >
+              {topics.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="field">
+          Mô tả nhóm
+          <textarea
+            value={form.about}
+            onChange={(e) => setForm({ ...form, about: e.target.value })}
+            rows={2}
+            maxLength={200}
+            placeholder="Mục tiêu, lịch sinh hoạt hoặc học phần"
+          />
+        </label>
+
+        <label className="field">
+          Thông báo ghim đầu nhóm
+          <input
+            value={form.pinned_note}
+            onChange={(e) => setForm({ ...form, pinned_note: e.target.value })}
+            maxLength={180}
+            placeholder="Ví dụ: Lịch họp nhóm 20:00 tối thứ Năm hàng tuần"
+          />
+        </label>
+
+        <div className="cm-form-grid-2">
+          <fieldset className="cm-icons">
+            <legend>Biểu tượng dự phòng</legend>
+            {(Object.keys(roomIcons) as RoomIcon[])
+              .filter((icon) => icon !== "sparkle")
+              .map((icon) => (
+                <label key={icon} title={roomIcons[icon]}>
+                  <input
+                    type="radio"
+                    name="room-icon"
+                    value={icon}
+                    checked={form.icon === icon}
+                    onChange={() => setForm({ ...form, icon })}
+                  />
+                  <span>
+                    <Icon name={icon} />
+                  </span>
+                </label>
+              ))}
+          </fieldset>
+
+          <fieldset className="cm-icons">
+            <legend>Màu chủ đạo nhóm</legend>
+            <div className="cm-accent-swatches">
+              {ROOM_ACCENTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`cm-color-dot${form.accent === item.id ? " is-active" : ""}`}
+                  style={{ background: item.color }}
+                  onClick={() => setForm({ ...form, accent: item.id })}
+                  title={item.label}
+                />
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        {err && (
+          <p className="pt-warn" role="alert">
+            {err}
+          </p>
+        )}
+
+        <div className="pt-form-actions">
+          <button className="button button-primary button-small" type="submit" disabled={busy}>
+            {busy ? "Đang lưu…" : "Lưu thay đổi nhóm"}
+          </button>
+          <button className="button button-quiet button-small" type="button" onClick={onClose}>
+            Huỷ
+          </button>
+        </div>
+      </form>
+    </dialog>
   );
 }

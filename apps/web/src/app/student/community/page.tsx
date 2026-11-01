@@ -3,14 +3,17 @@
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Avatar, ChatRoom, fold, topicSlug, when } from "@/components/community/ChatRoom";
+import { Avatar, ChatRoom, fold, RoomAvatar, topicSlug, when } from "@/components/community/ChatRoom";
 import { Icon, type IconName } from "@/components/Icon";
-import { cropAvatarFile, persistAvatar } from "@/lib/avatar";
+import { cropAvatarFile, getDefaultUserAvatar, persistAvatar } from "@/lib/avatar";
 import {
   community,
+  ROOM_ACCENTS,
+  ROOM_PHOTO_PRESETS,
   roomIcons,
   topics,
   type Profile,
+  type RoomAccent,
   type RoomIcon,
   type RoomSummary,
   type Topic,
@@ -124,9 +127,10 @@ function Community() {
     );
   }
 
-  const defaultRoom = [...rooms]
-    .filter((item) => item.joined || item.kind === "dm")
-    .sort(byActivity)[0] ?? rooms[0];
+  const defaultRoom =
+    [...rooms]
+      .filter((item) => item.joined || item.kind === "dm")
+      .sort(byActivity)[0] ?? rooms[0];
   const explicitDirectory = selectedId === DIRECTORY_VIEW;
   const room = explicitDirectory
     ? undefined
@@ -249,7 +253,10 @@ function Rail({
     .filter(
       (person) =>
         person.user_id !== me.user_id &&
-        (!q || fold(`${person.display_name} ${person.student_code ?? ""} ${person.class_name ?? ""} ${person.faculty ?? ""}`).includes(q)),
+        (!q ||
+          fold(
+            `${person.display_name} ${person.student_code ?? ""} ${person.class_name ?? ""} ${person.faculty ?? ""}`,
+          ).includes(q)),
     )
     .sort((a, b) => a.display_name.localeCompare(b.display_name, "vi"));
 
@@ -273,13 +280,18 @@ function Rail({
           {room.kind === "dm" ? (
             <Avatar profile={other} size="sm" online />
           ) : (
-            <span className="cm-glyph" data-topic={slug} aria-hidden="true">
-              <Icon name={room.icon} />
-            </span>
+            <RoomAvatar room={room} size="sm" />
           )}
           <span className="cm-row-main">
             <span className="cm-row-top">
-              <strong>{nameOf(room)}</strong>
+              <strong>
+                {nameOf(room)}
+                {room.kind === "group" && room.is_owner && (
+                  <i className="cm-owner-star" title="Bạn là Chủ nhóm">
+                    ★
+                  </i>
+                )}
+              </strong>
               {room.last_at && <time dateTime={room.last_at}>{when(room.last_at)}</time>}
             </span>
             <span className="cm-row-bottom">
@@ -290,9 +302,7 @@ function Rail({
                 </span>
               )}
               {room.unread > 0 && (
-                <span className="cm-badge">
-                  {room.unread > 99 ? "99+" : room.unread}
-                </span>
+                <span className="cm-badge">{room.unread > 99 ? "99+" : room.unread}</span>
               )}
             </span>
           </span>
@@ -331,9 +341,9 @@ function Rail({
           type="button"
           onClick={() => onProfile(me.user_id)}
           aria-label="Hồ sơ của tôi"
-          title="Hồ sơ của tôi"
+          title="Hồ sơ & đổi ảnh đại diện của tôi"
         >
-          <Avatar profile={me} size="sm" />
+          <Avatar profile={me} size="sm" online />
         </button>
       </header>
 
@@ -356,7 +366,7 @@ function Rail({
             className={tab === "channels" ? "is-active" : ""}
             onClick={() => setTab("channels")}
           >
-            Kênh
+            Kênh ({rooms.length})
           </button>
           <button
             type="button"
@@ -365,7 +375,7 @@ function Rail({
             className={tab === "people" ? "is-active" : ""}
             onClick={() => setTab("people")}
           >
-            Danh bạ
+            Danh bạ ({contacts.length})
           </button>
         </div>
       </div>
@@ -435,7 +445,9 @@ function Rail({
                           {person.class_name && <code className="cm-cohort">{person.class_name}</code>}
                         </span>
                         <span className="cm-row-bottom">
-                          <span className="cm-row-preview">{person.faculty ?? person.student_code ?? "Thành viên"}</span>
+                          <span className="cm-row-preview">
+                            {person.faculty ?? person.student_code ?? "Thành viên"}
+                          </span>
                         </span>
                       </span>
                     </button>
@@ -537,12 +549,11 @@ function DirectoryView({
                         data-topic={slug}
                         onClick={() => onOpen(room.id)}
                       >
-                        <span className="cm-glyph" data-topic={slug} aria-hidden="true">
-                          <Icon name={room.icon} />
-                        </span>
+                        <RoomAvatar room={room} size="sm" />
                         <span className="cm-dir-row-main">
                           <span className="cm-dir-row-top">
                             <strong>{room.name}</strong>
+                            {room.is_owner && <span className="cm-role-tag">Chủ nhóm</span>}
                             <span className="cm-row-topic">{room.topic}</span>
                             <span className="cm-member-pill">{room.member_count} TV</span>
                           </span>
@@ -615,10 +626,31 @@ function CreateGroup({
   dialog: React.RefObject<HTMLDialogElement | null>;
   onCreated: (id: string) => Promise<void>;
 }) {
-  const blank = { name: "", about: "", topic: "Học tập" as Topic, icon: "message" as RoomIcon };
+  const fileInput = useRef<HTMLInputElement>(null);
+  const blank = {
+    name: "",
+    about: "",
+    topic: "Học tập" as Topic,
+    icon: "message" as RoomIcon,
+    avatar_url: ROOM_PHOTO_PRESETS[0]!.url as string | null,
+    accent: "crimson" as RoomAccent,
+  };
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function onUploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await cropAvatarFile(file, 256);
+      setForm((prev) => ({ ...prev, avatar_url: dataUrl }));
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không tải được ảnh nhóm");
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -626,7 +658,10 @@ function CreateGroup({
     if (name.length < 3) return setError("Tên nhóm cần ít nhất 3 ký tự");
     setBusy(true);
     try {
-      const id = await community.createRoom(name, form.about.trim(), form.topic, form.icon);
+      const id = await community.createRoom(name, form.about.trim(), form.topic, form.icon, {
+        avatar_url: form.avatar_url,
+        accent: form.accent,
+      });
       dialog.current?.close();
       setForm(blank);
       await onCreated(id);
@@ -641,7 +676,7 @@ function CreateGroup({
     <dialog ref={dialog} className="cm-dialog" aria-labelledby="cm-new-title" onClose={() => setError("")}>
       <form className="pt-form" onSubmit={submit}>
         <div className="cm-dialog-head">
-          <h3 id="cm-new-title">Tạo nhóm mới</h3>
+          <h3 id="cm-new-title">Tạo nhóm cộng đồng mới</h3>
           <button
             className="cm-btn-icon"
             type="button"
@@ -651,48 +686,90 @@ function CreateGroup({
             <Icon name="close" />
           </button>
         </div>
-        <fieldset className="cm-icons">
-          <legend>Biểu tượng</legend>
-          {(Object.keys(roomIcons) as RoomIcon[])
-            .filter((icon) => icon !== "sparkle")
-            .map((icon) => (
-              <label key={icon} title={roomIcons[icon]}>
-                <input
-                  type="radio"
-                  name="icon"
-                  value={icon}
-                  checked={form.icon === icon}
-                  onChange={() => setForm({ ...form, icon })}
-                />
-                <span>
-                  <Icon name={icon} />
-                </span>
-                <span className="sr-only">{roomIcons[icon]}</span>
-              </label>
-            ))}
-        </fieldset>
-        <label className="field">
-          Tên nhóm
-          <input
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-            required
-            minLength={3}
-            maxLength={60}
-            placeholder="Ví dụ: Nhóm ôn Toán rời rạc MI1140"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "cm-new-error" : undefined}
-            autoFocus
-          />
-        </label>
-        <label className="field">
-          Chủ đề
-          <select value={form.topic} onChange={(event) => setForm({ ...form, topic: event.target.value as Topic })}>
-            {topics.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
+
+        <div className="cm-room-editor-hero">
+          <div className="cm-room-editor-avatar">
+            <RoomAvatar
+              room={{
+                name: form.name,
+                icon: form.icon,
+                avatar_url: form.avatar_url,
+                topic: form.topic,
+                accent: form.accent,
+              }}
+              size="lg"
+            />
+            <div className="cm-room-editor-btns">
+              <input
+                ref={fileInput}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={onUploadAvatar}
+              />
+              <button
+                type="button"
+                className="button button-outline button-xs"
+                onClick={() => fileInput.current?.click()}
+              >
+                <Icon name="image" /> Tải ảnh nhóm
+              </button>
+              {form.avatar_url && (
+                <button
+                  type="button"
+                  className="button button-quiet button-xs"
+                  onClick={() => setForm({ ...form, avatar_url: null })}
+                >
+                  Dùng biểu tượng
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="cm-preset-strip">
+            <span className="cm-field-label">Chọn ảnh đại diện mẫu:</span>
+            <div className="cm-photo-grid">
+              {ROOM_PHOTO_PRESETS.slice(0, 6).map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`cm-photo-swatch${form.avatar_url === preset.url ? " is-active" : ""}`}
+                  onClick={() => setForm({ ...form, avatar_url: preset.url })}
+                  title={preset.label}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- preset campus photo */}
+                  <img src={preset.url} alt={preset.label} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="cm-form-grid-2">
+          <label className="field">
+            Tên nhóm
+            <input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              required
+              minLength={3}
+              maxLength={60}
+              placeholder="Ví dụ: Nhóm ôn Toán rời rạc MI1140"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "cm-new-error" : undefined}
+              autoFocus
+            />
+          </label>
+          <label className="field">
+            Chủ đề
+            <select value={form.topic} onChange={(event) => setForm({ ...form, topic: event.target.value as Topic })}>
+              {topics.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         <label className="field">
           Mô tả <small>(tuỳ chọn)</small>
           <textarea
@@ -703,6 +780,44 @@ function CreateGroup({
             placeholder="Học phần, mục tiêu hoặc lịch trao đổi"
           />
         </label>
+
+        <div className="cm-form-grid-2">
+          <fieldset className="cm-icons">
+            <legend>Biểu tượng</legend>
+            {(Object.keys(roomIcons) as RoomIcon[])
+              .filter((icon) => icon !== "sparkle")
+              .map((icon) => (
+                <label key={icon} title={roomIcons[icon]}>
+                  <input
+                    type="radio"
+                    name="icon"
+                    value={icon}
+                    checked={form.icon === icon}
+                    onChange={() => setForm({ ...form, icon })}
+                  />
+                  <span>
+                    <Icon name={icon} />
+                  </span>
+                </label>
+              ))}
+          </fieldset>
+          <fieldset className="cm-icons">
+            <legend>Màu chủ đạo</legend>
+            <div className="cm-accent-swatches">
+              {ROOM_ACCENTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`cm-color-dot${form.accent === item.id ? " is-active" : ""}`}
+                  style={{ background: item.color }}
+                  onClick={() => setForm({ ...form, accent: item.id })}
+                  title={item.label}
+                />
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
         {error && (
           <p className="pt-warn" id="cm-new-error" role="alert">
             {error}
@@ -720,6 +835,15 @@ function CreateGroup({
     </dialog>
   );
 }
+
+const PORTRAIT_PRESET_SEEDS = [
+  "student-default",
+  "user-lan-anh",
+  "user-tuan-kiet",
+  "user-hoang-nam",
+  "user-thu-ha",
+  "user-quoc-bao",
+];
 
 function ProfileDialog({
   profile,
@@ -749,10 +873,19 @@ function ProfileDialog({
     try {
       const cropped = await cropAvatarFile(file);
       await persistAvatar(me.user_id, cropped);
+      await onSaved();
       setStatus("Đã lưu ảnh đại diện");
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Không đổi được ảnh đại diện");
     }
+  }
+
+  async function pickPresetPortrait(seedId: string) {
+    if (!self) return;
+    const svgUrl = getDefaultUserAvatar(seedId, me.display_name);
+    await persistAvatar(me.user_id, svgUrl);
+    await onSaved();
+    setStatus("Đã đổi avatar");
   }
 
   useEffect(() => {
@@ -785,7 +918,7 @@ function ProfileDialog({
         <>
           <header className="cm-profile-head">
             <div className="cm-profile-identity">
-              <Avatar profile={profile} size="lg" />
+              <Avatar profile={profile} size="lg" online />
               <div className="cm-profile-meta">
                 <h3>{profile.display_name}</h3>
                 {cohortTag(profile) && <code className="cm-cohort">{cohortTag(profile)}</code>}
@@ -803,7 +936,7 @@ function ProfileDialog({
                       className="cm-avatar-change"
                       onClick={() => avatarInput.current?.click()}
                     >
-                      <Icon name="image" /> Đổi ảnh
+                      <Icon name="image" /> Tải ảnh từ máy
                     </button>
                   </>
                 )}
@@ -818,6 +951,29 @@ function ProfileDialog({
               <Icon name="close" />
             </button>
           </header>
+
+          {self && (
+            <div className="cm-portrait-picker">
+              <span className="cm-field-label">Hoặc chọn nhanh avatar minh hoạ:</span>
+              <div className="cm-portrait-row">
+                {PORTRAIT_PRESET_SEEDS.map((seed) => {
+                  const url = getDefaultUserAvatar(seed, me.display_name);
+                  return (
+                    <button
+                      key={seed}
+                      type="button"
+                      className="cm-portrait-option"
+                      onClick={() => void pickPresetPortrait(seed)}
+                      title="Chọn avatar này"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- SVG portrait preset */}
+                      <img src={url} alt="" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <dl className="cm-profile-facts">
             {profile.student_code && (
@@ -859,7 +1015,11 @@ function ProfileDialog({
                 />
               </label>
               <div className="pt-form-actions">
-                <button className="button button-primary button-small" type="submit" disabled={bio.trim() === profile.bio}>
+                <button
+                  className="button button-primary button-small"
+                  type="submit"
+                  disabled={bio.trim() === profile.bio}
+                >
                   Lưu
                 </button>
                 {status && (
