@@ -48,6 +48,12 @@ select 'a0000000-0000-0000-0000-000000000001', ('10000000-0000-0000-0000-00000' 
 from seed_student
 on conflict do nothing;
 
+do $community$
+begin
+if to_regclass('public.community_profiles') is null then
+  return;
+end if;
+
 with seed_student(code, name, class_name, faculty, bio) as (
   values
     ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
@@ -156,3 +162,6 @@ order by m.ago desc
 on conflict (id) do update set
   created_at = excluded.created_at,
   mentions = excluded.mentions;
+
+end
+$community$;

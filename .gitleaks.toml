@@ -1,8 +1,11 @@
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Ignore legacy test proxy token in git history"
+[[allowlists]]
+description = "Ignore legacy test proxy token and public Supabase anon role JWT"
+regexTarget = "line"
 regexes = [
   '''zscrq3IrpQSJhYyvORL0dXxbm4sqXZfkHwMpK8CbHRFU1VcQ''',
+  '''eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmeG5mc2pjcXdqb2h3anBuam9iIiwicm9sZSI6ImFub24i''',
+  '''eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24i''',
 ]
