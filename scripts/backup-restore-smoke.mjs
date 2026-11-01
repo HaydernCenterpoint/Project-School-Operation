@@ -36,6 +36,9 @@ function run(command, args, options = {}) {
 function runPnpm(args) {
   const cli = process.env.npm_execpath;
   if (!cli) throw new Error("Run this smoke through pnpm.");
+  if (cli.toLowerCase().endsWith(".exe")) {
+    return run(cli, args);
+  }
   return run(process.execPath, [cli, ...args]);
 }
 
@@ -127,19 +130,23 @@ try {
   }
 
   sql(`
-    truncate table
-      public.audit_logs,
-      public.submissions,
-      public.assignments,
-      public.class_members,
-      public.classes,
-      public.memberships,
-      public.tenants
-    restart identity cascade;
+    do $$
+    declare
+      stmt text;
+    begin
+      select 'truncate table ' || string_agg(format('%I.%I', schemaname, tablename), ', ') || ' restart identity cascade'
+      into stmt
+      from pg_tables
+      where schemaname = 'public';
+      if stmt is not null then
+        execute stmt;
+      end if;
+    end;
+    $$;
     truncate table private.academic_rate_limits;
   `);
   truncated = true;
-  sql("", backup);
+  sql("", `SET session_replication_role = replica;\n${backup}`);
 
   const after = sql(fingerprintSql);
   if (after !== before) {

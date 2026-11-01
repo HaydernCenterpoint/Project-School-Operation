@@ -2,6 +2,12 @@
 -- records for the seeded students. Every person, date and phone number is fictional.
 -- Idempotent, so it can also be applied to a running database without a reset.
 
+do $admin$
+begin
+if to_regclass('public.student_records') is null then
+  return;
+end if;
+
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -44,3 +50,6 @@ select 'a0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-00000000
 from (values ('10000000-0000-0000-0000-000002200301'::uuid), ('10000000-0000-0000-0000-000002200302'::uuid)) as s(id)
 where exists (select 1 from public.memberships m where m.user_id = s.id)
 on conflict do nothing;
+
+end
+$admin$;

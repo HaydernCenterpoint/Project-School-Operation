@@ -140,7 +140,7 @@ export function LoginForm() {
   return (
     <form className="login-form" method="post" onSubmit={signIn}>
         <label className="field">
-          Mã sinh viên, mã giảng viên hoặc email
+          Mã sinh viên hoặc email
           <input
             aria-describedby={describedBy}
             aria-invalid={Boolean(error)}

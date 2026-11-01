@@ -45,6 +45,7 @@ export const studentNav: NavGroup[] = [
       { href: "/student/activities", label: "Hoạt động", icon: "flag", tabs: [{ href: "/student/activities", label: "Kết quả rèn luyện & Sự kiện" }, { href: "/student/clubs", label: "Câu lạc bộ" }] },
       { href: "/student/news", label: "Tin tức", icon: "news" },
       { href: "/student/community", label: "Cộng đồng", icon: "message" },
+      { href: "/student/portfolio" as Route, label: "Hồ sơ của bạn", short: "Hồ sơ", icon: "briefcase" },
       { href: "/student/ai", label: "Trợ lý AI", short: "AI", icon: "sparkle", newTab: true, mobile: true, featured: true },
       { href: "/student/account", label: "Tài khoản", icon: "user", tabs: [{ href: "/student/account", label: "Thông tin sinh viên", exact: true }, { href: "/student/profile-update" as Route, label: "Đề xuất cập nhật thông tin" }, { href: "/student/services", label: "Thủ tục & góp ý" }, { href: "/student/settings" as Route, label: "Cài đặt & Đổi mật khẩu" }] },
     ],
@@ -74,11 +75,13 @@ const studentSearchCatalog: SearchSuggestion[] = [
   { id: "s-news", label: "Tin tức nhà trường", detail: "Bản tin và hoạt động mới nhất của Đại học Sao Đỏ", category: "Tin tức", href: "/student/news" as Route, icon: "news", keywords: "tin tuc su kien truong dai hoc sao do" },
   { id: "s-community", label: "Cộng đồng sinh viên", detail: "Phòng trò chuyện, hỏi đáp và chia sẻ tài liệu", category: "Cộng đồng", href: "/student/community" as Route, icon: "message", keywords: "cong dong chat thao luan nhan tin" },
   { id: "s-ai", label: "Trợ lý AI học tập", detail: "Hỏi bài, giải thích thuật toán, ôn thi cùng AI", category: "Công cụ", href: "/student/ai" as Route, icon: "sparkle", newTab: true, keywords: "tro ly ai hoi bai on thi giai bai tap" },
+  { id: "s-portfolio", label: "Hồ sơ của bạn (Hồ sơ năng lực mẫu)", detail: "Góc nhìn khách quan 360° về năng lực, học thuật, rèn luyện và xuất biểu mẫu chỉnh sửa", category: "Hồ sơ", href: "/student/portfolio" as Route, icon: "briefcase", keywords: "ho so cua ban ho so mau danh gia khach quan cv portfolio xuat form chinh sua" },
   { id: "s-account", label: "Thông tin sinh viên", detail: "Hồ sơ cá nhân, mã sinh viên, lớp niên chế", category: "Tài khoản", href: "/student/account" as Route, icon: "user", keywords: "tai khoan ho so ca nhan thong tin sinh vien" },
   { id: "s-profile-update", label: "Đề xuất cập nhật thông tin", detail: "Đề xuất chỉnh sửa hồ sơ cá nhân, tài khoản ngân hàng và BHYT", category: "Tài khoản", href: "/student/profile-update" as Route, icon: "pen", keywords: "de xuat cap nhat thong tin ngan hang bhyt ho so" },
   { id: "s-services", label: "Thủ tục & Góp ý (Một cửa)", detail: "Xin giấy xác nhận sinh viên, cấp bảng điểm, làm lại thẻ", category: "Tài khoản", href: "/student/services" as Route, icon: "file", keywords: "thu tuc mot cua giay xac nhan bang diem the sinh vien bao luu gop y" },
   { id: "s-settings", label: "Cài đặt giao diện & hệ thống", detail: "Điều chỉnh giao diện Sáng / Tối, đổi mật khẩu và lối tắt Quản lý", category: "Tài khoản", href: "/student/settings" as Route, icon: "sparkle", keywords: "cai dat giao dien sang toi dark mode light mode theme doi mat khau" },
   { id: "s-admin-dash", label: "Dashboard Quản lý tài khoản & phân quyền", detail: "Trang quản lý các loại tài khoản: Giảng viên, Trưởng CLB, Sinh viên thuộc lớp", category: "Quản lý", href: "/quan-tri/tai-khoan" as Route, icon: "shield", keywords: "dashboard quan ly tai khoan phan quyen giao vien truong clb" },
+  { id: "s-teacher-classes", label: "Quản lý lớp học (Giảng viên)", detail: "Quản lý lớp chủ nhiệm, các lớp bộ môn, điểm danh buổi học và bài tập của giáo viên", category: "Giảng viên", href: "/student/teacher-classes" as Route, icon: "class", keywords: "quan ly lop hoc lop bo mon diem danh bai tap giao vien giang vien" },
   { id: "c-it3040", label: "IT3040 · Lập trình hướng đối tượng", detail: "ThS. Trần Minh Đức · 3 tín chỉ · A1-301 / B1-Lab 3", category: "Học phần", href: "/student/schedule" as Route, icon: "code", keywords: "it3040 oop lap trinh huong doi tuong ke thua da hinh" },
   { id: "c-it3090", label: "IT3090 · Cơ sở dữ liệu", detail: "TS. Phạm Thu Hà · 3 tín chỉ · A1-402 / B1-Lab 1", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3090 csdl co so du lieu sql truy van" },
   { id: "c-it3080", label: "IT3080 · Mạng máy tính", detail: "ThS. Lê Quang Vinh · 3 tín chỉ · A1-301 / B1-Lab 2", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3080 mang may tinh network" },
@@ -200,23 +203,32 @@ export function AppShell({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    queueMicrotask(() => {
+    const syncCollapse = () => {
       try {
         setCollapsed(localStorage.getItem(collapseKey) === "1");
       } catch {
         // Preference only.
       }
-    });
+    };
+    queueMicrotask(syncCollapse);
+    window.addEventListener("storage", syncCollapse);
+    window.addEventListener("sao-do:sidebar-sync", syncCollapse);
+    return () => {
+      window.removeEventListener("storage", syncCollapse);
+      window.removeEventListener("sao-do:sidebar-sync", syncCollapse);
+    };
   }, []);
 
   function toggle() {
     setCollapsed((value) => {
+      const next = !value;
       try {
-        localStorage.setItem(collapseKey, value ? "0" : "1");
+        localStorage.setItem(collapseKey, next ? "1" : "0");
+        window.dispatchEvent(new CustomEvent("sao-do:sidebar-sync"));
       } catch {
         // Preference only.
       }
-      return !value;
+      return next;
     });
   }
 
@@ -411,7 +423,7 @@ export function AppShell({
           <Link href="/" className="brand-lockup" aria-label="Đại học Sao Đỏ, trang chủ">
             <Image src="/sao-do-logo.png" alt="" width={36} height={38} priority />
             <span>
-              <strong>Sao Đỏ</strong>
+              <strong>Đại học Sao Đỏ</strong>
               <small>Cổng học tập</small>
             </span>
           </Link>

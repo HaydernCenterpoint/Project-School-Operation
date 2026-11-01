@@ -446,15 +446,20 @@
 }
 
 .nw-cover-seal {
-  padding: 4px 10px;
-  font-family: var(--font-mono), monospace;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--ink);
-  background: var(--paper);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(17, 24, 39, 0.06);
+}
+.nw-cover-seal img {
+  width: 34px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
 }
 
 .nw-cover-fallback small {

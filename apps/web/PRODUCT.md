@@ -19,7 +19,7 @@ Sao Do University Academic Platform (`sao-do-school-ai`) is a tenant-safe academ
 
 ## Positioning
 
-A multi-tenant academic studio purpose-built for Trường Đại học Sao Đỏ where every mutation, community message, and AI study session executes through Bearer-JWT Next.js route handlers backed by atomic PostgreSQL RPCs and Row-Level Security (`tenant_id` isolation), never exposing a service-role bypass to user requests.
+A multi-tenant academic studio purpose-built for Trường Đại học Sao Đỏ where every mutation, community message, and AI study session executes through Bearer-JWT Next.js route handlers backed by atomic PostgreSQL RPCs and Row-Level Security (`tenant_id` isolation), never exposing a privileged admin bypass to user requests.
 
 ## Operating Context
 
@@ -32,7 +32,7 @@ A multi-tenant academic studio purpose-built for Trường Đại học Sao Đ�
 
 - **Web Stack:** Next.js 16.2.12 (App Router, Turbopack), React 19.2.3, TypeScript 5.9.3, GSAP 3.15, `@opennextjs/cloudflare` deployed on Cloudflare Workers, backed by Supabase Auth, PostgreSQL (RLS + pgTAP), and Storage.
 - **Routes:** Public landing (`/`), login (`/login`), clearly labelled read-only guest mode (`/guest`), student studio (`/student`, `/student/classes`, `/student/assignments/[id]`, `/student/community`, `/student/news`, `/student/ai`, `/student/account`), and unified Admin/Teacher management shell (`/portal`).
-- **Security & Quota Boundaries:** Strict Content Security Policy (`next.config.ts`), server-only secrets (`AI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEWS_CRON_SECRET`), database-enforced daily AI quota per student, and idempotency keys on submissions and AI requests.
+- **Security & Quota Boundaries:** Strict Content Security Policy (`next.config.ts`), server-only secrets (`AI_API_KEY`, `NEWS_CRON_SECRET`), database-enforced daily AI quota per student, and idempotency keys on submissions and AI requests.
 - **Pending Official Asset:** The official campus architectural drawing at `apps/web/public/campus-drawing.webp` (or `.jpg`/`.png`) is not yet supplied by the university; until provided, `apps/web/public/campus-sketch.svg` is rendered as a clearly labelled temporary sketch.
 
 ## Brand Commitments

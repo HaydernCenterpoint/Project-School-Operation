@@ -3,6 +3,12 @@
 -- The main site's all-news feed is left out: every item is already in a category feed below.
 -- Idempotent, so it can also be applied to a running database without a reset.
 
+do $news$
+begin
+if to_regclass('public.news_sources') is null then
+  return;
+end if;
+
 insert into public.news_sources (tenant_id, kind, name, url, category)
 values
   ('a0000000-0000-0000-0000-000000000001', 'rss', 'Trường ĐH Sao Đỏ · Tin tức & sự kiện', 'https://saodo.edu.vn/vi/news/rss/tin-tuc-su-kien/', 'Sự kiện'),
@@ -21,3 +27,6 @@ values
   ('a0000000-0000-0000-0000-000000000001', 'rss', 'Khoa Luật & Khoa học cơ bản', 'http://luat.saodo.edu.vn/vi/news/rss/', 'Tin khoa'),
   ('a0000000-0000-0000-0000-000000000001', 'facebook', 'Fanpage Trường ĐH Sao Đỏ', 'TruongDHSaoDo', 'Facebook')
 on conflict (tenant_id, url) do nothing;
+
+end
+$news$;

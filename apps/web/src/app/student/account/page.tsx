@@ -47,10 +47,16 @@ export default function AccountPage() {
   const { data, avatarUrl, setAvatarUrl, account, roster, signOut } = useStudent();
   const [leaving, setLeaving] = useState(false);
   const [reveal, setReveal] = useState(false);
-  const [avatarNotice, setAvatarNotice] = useState("");
-  const [avatarError, setAvatarError] = useState("");
+  const [avatarFeedback, setAvatarFeedback] = useState<{
+    accountId: string;
+    notice: string;
+    error: string;
+  }>({ accountId: account.id, notice: "", error: "" });
   const [savingAvatar, setSavingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarNotice = avatarFeedback.accountId === account.id ? avatarFeedback.notice : "";
+  const avatarError = avatarFeedback.accountId === account.id ? avatarFeedback.error : "";
 
   if (!data) return null;
 
@@ -99,13 +105,21 @@ export default function AccountPage() {
     event.target.value = "";
     if (!file) return;
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       const cropped = await cropAvatarFile(file);
       await setAvatarUrl(cropped);
-      setAvatarNotice("Đã lưu ảnh đại diện — đồng bộ trên toàn cổng");
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã lưu ảnh đại diện riêng cho ${account.displayName}`,
+        error: "",
+      });
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Không thể cập nhật ảnh đại diện");
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: "",
+        error: err instanceof Error ? err.message : "Không thể cập nhật ảnh đại diện",
+      });
     } finally {
       setSavingAvatar(false);
     }
@@ -113,10 +127,14 @@ export default function AccountPage() {
 
   async function selectPresetAvatar(dataUrl: string, label: string) {
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       await setAvatarUrl(dataUrl);
-      setAvatarNotice(`Đã chọn mẫu "${label}" — đồng bộ trên toàn cổng`);
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã chọn mẫu "${label}" cho ${account.displayName}`,
+        error: "",
+      });
     } finally {
       setSavingAvatar(false);
     }
@@ -124,10 +142,14 @@ export default function AccountPage() {
 
   async function clearCustomAvatar() {
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       await setAvatarUrl(null);
-      setAvatarNotice("Đã khôi phục chữ cái viết tắt mặc định");
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã đặt lại ảnh mặc định cho ${account.displayName}`,
+        error: "",
+      });
     } finally {
       setSavingAvatar(false);
     }
@@ -165,7 +187,9 @@ export default function AccountPage() {
         <article className="acc-id-card" aria-label="Thẻ định danh điện tử">
           <header className="acc-id-head">
             <div className="acc-id-school">
-              <span className="acc-id-seal" aria-hidden="true">SDU</span>
+              <span className="acc-id-seal" aria-hidden="true">
+                <img src="/sao-do-logo.png" alt="" width={28} height={30} />
+              </span>
               <div>
                 <strong>Trường Đại học Sao Đỏ</strong>
                 <span>
@@ -329,6 +353,10 @@ export default function AccountPage() {
 
           <div className="acc-summary-actions">
             {revealButton}
+            <Link href={"/student/portfolio" as import("next").Route} className="acc-edit-link">
+              <Icon name="briefcase" />
+              <span>Hồ sơ của bạn (Mẫu khách quan)</span>
+            </Link>
             <Link href={"/student/profile-update" as import("next").Route} className="acc-reveal-btn">
               <Icon name="pen" />
               <span>Đề xuất cập nhật thông tin</span>
@@ -337,7 +365,7 @@ export default function AccountPage() {
               <Icon name="shield" />
               <span>Đổi mật khẩu</span>
             </Link>
-            <Link href={"/student/settings" as import("next").Route} className="acc-edit-link">
+            <Link href={"/student/settings" as import("next").Route} className="acc-reveal-btn">
               <Icon name="sparkle" />
               <span>Cài đặt giao diện</span>
             </Link>

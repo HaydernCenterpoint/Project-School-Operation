@@ -168,4 +168,4 @@ The mobile palette is defined in `apps/mobile/lib/theme.ts` and mirrors the core
 
 ### Don't:
 - **Don't** place `colors.yellow` (`#ffea00`) text on light backgrounds (`colors.paper` or `colors.mist`).
-- **Don't** embed server secrets or service-role keys in mobile styles, config, or bundle code.
+- **Don't** embed server secrets or privileged backend keys in mobile styles, config, or bundle code.

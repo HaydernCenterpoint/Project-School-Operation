@@ -898,7 +898,9 @@ function ProfileDialog({
         <>
           <header className="cm-profile-head">
             <div className="cm-profile-school">
-              <span className="cm-profile-seal">SDU</span>
+              <span className="cm-profile-seal" aria-hidden="true">
+                <img src="/sao-do-logo.png" alt="" width={28} height={30} />
+              </span>
               <div>
                 <strong>Hồ sơ thành viên</strong>
                 <span>Trường Đại học Sao Đỏ</span>

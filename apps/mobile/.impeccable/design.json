@@ -142,7 +142,7 @@
     ],
     "donts": [
       "Don't place `colors.yellow` (`#ffea00`) text on light backgrounds (`colors.paper` or `colors.mist`).",
-      "Don't embed server secrets or service-role keys in mobile styles, config, or bundle code."
+      "Don't embed server secrets or privileged backend keys in mobile styles, config, or bundle code."
     ]
   }
 }

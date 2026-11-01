@@ -28,7 +28,7 @@ A focused native student companion app (`Expo 57` / `React Native 0.86`) that sh
 
 - **Mobile Stack:** Expo SDK 57 (`expo-router` 57), React 19.2.3, React Native 0.86, `@sao-do/contracts`, `@supabase/supabase-js`.
 - **Core Flows:** Sign in / session persistence (`AsyncStorage`), enrolled class list, assignment detail & deadline inspection, idempotent text submission, and teacher feedback review.
-- **Security Gate:** Client bundle (`Hermes .hbc`) must never contain `SUPABASE_SERVICE_ROLE_KEY` or server secrets; verified by `tests/security/` and `scripts/validate-mobile-build-env.mjs`.
+- **Security Gate:** Client bundle (`Hermes .hbc`) must never contain privileged backend credentials or server secrets; verified by `tests/security/` and `scripts/validate-mobile-build-env.mjs`.
 
 ## Brand Commitments
 

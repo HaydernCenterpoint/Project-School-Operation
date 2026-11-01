@@ -1869,17 +1869,21 @@
   gap: 12px;
 }
 .cm-profile-seal {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   color: var(--red);
-  font-family: var(--font-mono), monospace;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--mist);
+  background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.cm-profile-seal img {
+  width: 28px;
+  height: 30px;
+  object-fit: contain;
+  display: block;
 }
 .cm-profile-school div {
   display: grid;

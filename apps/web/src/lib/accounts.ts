@@ -2,6 +2,7 @@
 
 import type { AcademicSession, ApiClass, Assignment, Submission } from "@sao-do/contracts";
 import { useCallback, useEffect, useState } from "react";
+import { getSupabaseBrowserClient, hasSupabaseEnvironment } from "./supabase-browser";
 
 export type AccountRole = "teacher" | "club_leader" | "class_student";
 
@@ -45,7 +46,14 @@ export type ClassStudentRosterItem = {
   email: string;
   phone: string;
   cohortClass: string;
-  roleInClass: "Lớp trưởng" | "Bí thư Chi đoàn" | "Trưởng CLB Tin học" | "Thành viên lớp";
+  roleInClass:
+    | "Lớp trưởng"
+    | "Lớp phó học tập"
+    | "Bí thư Chi đoàn"
+    | "Phó bí thư Chi đoàn"
+    | "Ủy viên BCH lớp"
+    | "Trưởng CLB Tin học"
+    | "Thành viên lớp";
   attendancePct: number;
   gpa: number;
   status: "active" | "warning";
@@ -100,9 +108,40 @@ export type ClubEventRecord = {
   createdAt: string;
 };
 
+export type AttendanceMarkStatus = "present" | "excused" | "unexcused";
+
+export type TeacherSubjectClass = {
+  id: string;
+  classCode: string;
+  courseCode: string;
+  name: string;
+  credits: number;
+  cohortClass: string;
+  schedule: string;
+  room: string;
+  semester: string;
+  totalPeriods: number;
+  completedPeriods: number;
+  teacherId: string;
+  teacherName: string;
+};
+
+export type TeacherAttendanceSessionRecord = {
+  id: string;
+  subjectClassId: string;
+  date: string;
+  periods: string;
+  topic: string;
+  marks: Record<string, AttendanceMarkStatus>;
+  notes: Record<string, string>;
+  createdAt: string;
+};
+
 export type SharedPortalState = {
   activeAccountId: string;
   roster: ClassStudentRosterItem[];
+  subjectClasses: TeacherSubjectClass[];
+  attendanceSessions: TeacherAttendanceSessionRecord[];
   customAssignments: Assignment[];
   submissions: SharedSubmissionRecord[];
   classAnnouncements: ClassAnnouncement[];
@@ -405,6 +444,58 @@ const INITIAL_ROSTER: ClassStudentRosterItem[] = [
     status: "active",
     teacherNote: "Hoàn thành sớm các bài tập truy vấn SQL và tích cực đặt câu hỏi trên lớp.",
   },
+  {
+    accountId: "acc-student-anh",
+    studentCode: "2200292",
+    fullName: "Đỗ Thị Ngọc Ánh",
+    email: "2200292@sv.saodo.edu.vn",
+    phone: "0973519284",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Lớp phó học tập",
+    attendancePct: 99,
+    gpa: 3.61,
+    status: "active",
+    teacherNote: "Phụ trách nhóm ôn tập Toán rời rạc và Cơ sở dữ liệu của lớp DK13-CNTT1; đặc tả lược đồ 3NF rất chặt chẽ.",
+  },
+  {
+    accountId: "acc-student-manh",
+    studentCode: "2200293",
+    fullName: "Vũ Đức Mạnh",
+    email: "2200293@sv.saodo.edu.vn",
+    phone: "0918472630",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Thành viên lớp",
+    attendancePct: 91,
+    gpa: 3.04,
+    status: "active",
+    teacherNote: "Kỹ năng cấu hình mạng và quản trị hệ thống Linux tốt, thực hành bấm cáp và định tuyến đạt điểm tối đa.",
+  },
+  {
+    accountId: "acc-student-thao",
+    studentCode: "2200294",
+    fullName: "Bùi Phương Thảo",
+    email: "2200294@sv.saodo.edu.vn",
+    phone: "0989304172",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Phó bí thư Chi đoàn",
+    attendancePct: 98,
+    gpa: 3.52,
+    status: "active",
+    teacherNote: "Tích cực trong phong trào Sinh viên 5 Tốt, bài tập lớn môn OOP và Kiểm thử phần mềm hoàn thành vượt yêu cầu.",
+  },
+  {
+    accountId: "acc-student-tung",
+    studentCode: "2200295",
+    fullName: "Ngô Thanh Tùng",
+    email: "2200295@sv.saodo.edu.vn",
+    phone: "0945718293",
+    cohortClass: "DK13-CNTT1",
+    roleInClass: "Ủy viên BCH lớp",
+    attendancePct: 94,
+    gpa: 3.24,
+    status: "active",
+    teacherNote: "Thành viên Ban chuyên môn CLB Tin học Sao Đỏ, phụ trách kỹ thuật giao diện Web và kiểm thử tự động.",
+  },
 ];
 
 const INITIAL_SUBMISSIONS: SharedSubmissionRecord[] = [
@@ -573,6 +664,115 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
   },
 ];
 
+const INITIAL_SUBJECT_CLASSES: TeacherSubjectClass[] = [
+  {
+    id: "11111111-1111-4111-8111-111111111101",
+    classCode: "010110210101",
+    courseCode: "IT3040",
+    name: "Lập trình hướng đối tượng (IT3040)",
+    credits: 3,
+    cohortClass: "DK13-CNTT1",
+    schedule: "Thứ 2 (Tiết 1–3) · Thứ 4 (Tiết 6–9)",
+    room: "A1-301 / B1-Lab 3",
+    semester: "HK1 2026-2027",
+    totalPeriods: 60,
+    completedPeriods: 36,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111104",
+    classCode: "010110230201",
+    courseCode: "IT3160",
+    name: "Kiểm thử và đảm bảo chất lượng phần mềm (IT3160)",
+    credits: 3,
+    cohortClass: "DK13-CNTT1",
+    schedule: "Thứ 5 (Tiết 6–8) · Thứ 6 (Tiết 1–3)",
+    room: "B1-Lab 2",
+    semester: "HK1 2026-2027",
+    totalPeriods: 45,
+    completedPeriods: 27,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111105",
+    classCode: "010110210102",
+    courseCode: "IT3040",
+    name: "Lập trình hướng đối tượng · Nhóm 2 (IT3040)",
+    credits: 3,
+    cohortClass: "DK13-CNTT2",
+    schedule: "Thứ 3 (Tiết 1–3) · Thứ 6 (Tiết 6–9)",
+    room: "A1-302 / B1-Lab 3",
+    semester: "HK1 2026-2027",
+    totalPeriods: 60,
+    completedPeriods: 32,
+    teacherId: "acc-teacher-duc",
+    teacherName: "ThS. Trần Minh Đức",
+  },
+];
+
+const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
+  {
+    id: "att-it3040-w9",
+    subjectClassId: "11111111-1111-4111-8111-111111111101",
+    date: "28/10/2026",
+    periods: "Tiết 6 - 9 (Thực hành Lab 3)",
+    topic: "Thực hành đa hình động, bảng phương thức ảo (vtable) & con trỏ thông minh",
+    marks: {
+      "2200286": "present",
+      "2200287": "present",
+      "2200288": "present",
+      "2200289": "present",
+      "2200290": "unexcused",
+      "2200291": "present",
+    },
+    notes: {
+      "2200290": "Vắng buổi thực hành Lab 3 không báo trước",
+    },
+    createdAt: daysFromNow(-3, 16, 30),
+  },
+  {
+    id: "att-it3040-w8",
+    subjectClassId: "11111111-1111-4111-8111-111111111101",
+    date: "21/10/2026",
+    periods: "Tiết 1 - 3 (Lý thuyết A1-301)",
+    topic: "Kế thừa đơn, kế thừa bội và lớp cơ sở trừu tượng trong C++/Java",
+    marks: {
+      "2200286": "excused",
+      "2200287": "present",
+      "2200288": "present",
+      "2200289": "present",
+      "2200290": "unexcused",
+      "2200291": "present",
+    },
+    notes: {
+      "2200286": "Có giấy triệu tập đội tuyển Olympic Tin học cấp trường",
+      "2200290": "Nghỉ không phép",
+    },
+    createdAt: daysFromNow(-10, 10, 0),
+  },
+  {
+    id: "att-it3160-w9",
+    subjectClassId: "11111111-1111-4111-8111-111111111104",
+    date: "29/10/2026",
+    periods: "Tiết 6 - 8 (Thực hành B1-Lab 2)",
+    topic: "Thiết kế ca kiểm thử hộp đen (Phân vùng tương đương & Giá trị biên)",
+    marks: {
+      "2200286": "present",
+      "2200287": "present",
+      "2200288": "excused",
+      "2200289": "present",
+      "2200290": "present",
+      "2200291": "present",
+    },
+    notes: {
+      "2200288": "Xin phép khám sức khỏe định kỳ (có đơn)",
+    },
+    createdAt: daysFromNow(-2, 17, 0),
+  },
+];
+
 const STORAGE_KEY = "sao-do:multi-account-state:v1";
 const SYNC_EVENT = "sao-do:accounts-sync";
 
@@ -580,6 +780,8 @@ function buildDefaultState(): SharedPortalState {
   return {
     activeAccountId: "acc-leader-minh",
     roster: INITIAL_ROSTER,
+    subjectClasses: INITIAL_SUBJECT_CLASSES,
+    attendanceSessions: INITIAL_ATTENDANCE_SESSIONS,
     customAssignments: [],
     submissions: INITIAL_SUBMISSIONS,
     classAnnouncements: INITIAL_CLASS_ANNOUNCEMENTS,
@@ -600,6 +802,14 @@ export function readSharedPortalState(): SharedPortalState {
         ? parsed.activeAccountId!
         : defaults.activeAccountId,
       roster: Array.isArray(parsed.roster) && parsed.roster.length > 0 ? parsed.roster : defaults.roster,
+      subjectClasses:
+        Array.isArray(parsed.subjectClasses) && parsed.subjectClasses.length > 0
+          ? parsed.subjectClasses
+          : defaults.subjectClasses,
+      attendanceSessions:
+        Array.isArray(parsed.attendanceSessions) && parsed.attendanceSessions.length > 0
+          ? parsed.attendanceSessions
+          : defaults.attendanceSessions,
       customAssignments: Array.isArray(parsed.customAssignments)
         ? parsed.customAssignments
         : defaults.customAssignments,
@@ -675,7 +885,13 @@ export function buildSessionForAccount(
 } {
   const account = getAccountById(state.activeAccountId);
   const seenClassIds = new Set<string>();
-  const classes = [...DEFAULT_CLASSES, ...(remote?.session?.classes ?? [])].filter((item) => {
+  const subjectApiClasses: ApiClass[] = (state.subjectClasses ?? INITIAL_SUBJECT_CLASSES).map((sc) => ({
+    id: sc.id,
+    name: sc.name,
+    teacherId: sc.teacherId,
+    createdAt: "2026-09-01T08:00:00.000Z",
+  }));
+  const classes = [...subjectApiClasses, ...DEFAULT_CLASSES, ...(remote?.session?.classes ?? [])].filter((item) => {
     if (seenClassIds.has(item.id)) return false;
     seenClassIds.add(item.id);
     return true;
@@ -736,26 +952,251 @@ export function buildSessionForAccount(
     })),
   };
 
+  const seenSubmissionKeys = new Set<string>();
+  const submissions: Submission[] = [];
+  for (const item of [...(remote?.submissions ?? []), ...mappedShared]) {
+    const key = `${item.assignmentId}:${item.studentId}`;
+    if (seenSubmissionKeys.has(item.id) || seenSubmissionKeys.has(key)) continue;
+    seenSubmissionKeys.add(item.id);
+    seenSubmissionKeys.add(key);
+    submissions.push(item);
+  }
+
   return {
     session,
     assignments,
-    submissions: mappedShared,
+    submissions,
   };
 }
 
 export function usePortalAccounts() {
   const [state, setState] = useState<SharedPortalState>(buildDefaultState);
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
+
+  const pullFromSupabase = useCallback(async () => {
+    if (!hasSupabaseEnvironment) return;
+    try {
+      const sb = getSupabaseBrowserClient();
+      const [
+        rosterRes,
+        subjectsRes,
+        attendanceRes,
+        customAsgRes,
+        submissionsRes,
+        announcementsRes,
+        clubMembersRes,
+        clubEventsRes,
+      ] = await Promise.all([
+        sb.from("teacher_class_roster").select("*").order("student_code", { ascending: true }),
+        sb.from("teacher_subject_classes").select("*").order("created_at", { ascending: true }),
+        sb.from("teacher_attendance_sessions").select("*").order("created_at", { ascending: false }),
+        sb.from("portal_custom_assignments").select("*").order("created_at", { ascending: false }),
+        sb.from("portal_submissions").select("*").order("submitted_at", { ascending: false }),
+        sb.from("class_announcements").select("*").order("created_at", { ascending: false }),
+        sb.from("club_members").select("*").order("joined_at", { ascending: true }),
+        sb.from("club_events").select("*").order("created_at", { ascending: false }),
+      ]);
+
+      if (rosterRes.error && subjectsRes.error) return;
+      setSupabaseConnected(true);
+
+      writeSharedPortalState((prev) => {
+        const nextRoster: ClassStudentRosterItem[] =
+          rosterRes.data && rosterRes.data.length > 0
+            ? rosterRes.data.map((r) => ({
+                accountId: String(r.account_id),
+                studentCode: String(r.student_code),
+                fullName: String(r.full_name),
+                email: String(r.email),
+                phone: String(r.phone),
+                cohortClass: String(r.cohort_class),
+                roleInClass: r.role_in_class as ClassStudentRosterItem["roleInClass"],
+                attendancePct: Number(r.attendance_pct),
+                gpa: Number(r.gpa),
+                status: (r.status === "warning" ? "warning" : "active") as "active" | "warning",
+                teacherNote: String(r.teacher_note ?? ""),
+              }))
+            : prev.roster;
+
+        const nextSubjects: TeacherSubjectClass[] =
+          subjectsRes.data && subjectsRes.data.length > 0
+            ? subjectsRes.data.map((s) => ({
+                id: String(s.id),
+                classCode: String(s.class_code),
+                courseCode: String(s.course_code),
+                name: String(s.name),
+                credits: Number(s.credits),
+                cohortClass: String(s.cohort_class),
+                schedule: String(s.schedule),
+                room: String(s.room),
+                semester: String(s.semester),
+                totalPeriods: Number(s.total_periods),
+                completedPeriods: Number(s.completed_periods),
+                teacherId: String(s.teacher_id),
+                teacherName: String(s.teacher_name),
+              }))
+            : prev.subjectClasses;
+
+        const nextAttendance: TeacherAttendanceSessionRecord[] =
+          attendanceRes.data && attendanceRes.data.length > 0
+            ? attendanceRes.data.map((a) => ({
+                id: String(a.id),
+                subjectClassId: String(a.subject_class_id),
+                date: String(a.date),
+                periods: String(a.periods),
+                topic: String(a.topic),
+                marks: (a.marks ?? {}) as Record<string, AttendanceMarkStatus>,
+                notes: (a.notes ?? {}) as Record<string, string>,
+                createdAt: String(a.created_at),
+              }))
+            : prev.attendanceSessions;
+
+        const nextCustomAssignments: Assignment[] =
+          customAsgRes.data && customAsgRes.data.length > 0
+            ? customAsgRes.data.map((asg) => ({
+                id: String(asg.id),
+                tenantId: String(asg.tenant_id),
+                classId: String(asg.class_id),
+                createdBy: String(asg.created_by),
+                title: String(asg.title),
+                instructions: String(asg.instructions),
+                status: "published" as const,
+                dueAt: asg.due_at ? String(asg.due_at) : null,
+                createdAt: String(asg.created_at),
+              }))
+            : prev.customAssignments;
+
+        const nextSubmissions: SharedSubmissionRecord[] =
+          submissionsRes.data && submissionsRes.data.length > 0
+            ? submissionsRes.data.map((sub) => ({
+                id: String(sub.id),
+                assignmentId: String(sub.assignment_id),
+                studentAccountId: String(sub.student_account_id),
+                studentCode: String(sub.student_code),
+                studentName: String(sub.student_name),
+                content: String(sub.content),
+                submittedAt: String(sub.submitted_at),
+                status: (sub.status === "reviewed" ? "reviewed" : "submitted") as "submitted" | "reviewed",
+                score: sub.score !== null && sub.score !== undefined ? Number(sub.score) : null,
+                feedback: sub.feedback ? String(sub.feedback) : null,
+                feedbackAt: sub.feedback_at ? String(sub.feedback_at) : null,
+                gradedBy: sub.graded_by ? String(sub.graded_by) : null,
+              }))
+            : prev.submissions;
+
+        const nextAnnouncements: ClassAnnouncement[] =
+          announcementsRes.data && announcementsRes.data.length > 0
+            ? announcementsRes.data.map((ann) => ({
+                id: String(ann.id),
+                classId: String(ann.class_id),
+                title: String(ann.title),
+                body: String(ann.body),
+                authorName: String(ann.author_name),
+                pinned: Boolean(ann.pinned),
+                createdAt: String(ann.created_at),
+              }))
+            : prev.classAnnouncements;
+
+        const nextClubMembers: ClubMemberRecord[] =
+          clubMembersRes.data && clubMembersRes.data.length > 0
+            ? clubMembersRes.data.map((cm) => ({
+                id: String(cm.id),
+                clubId: String(cm.club_id),
+                studentCode: String(cm.student_code),
+                fullName: String(cm.full_name),
+                cohortClass: String(cm.cohort_class),
+                memberRole: cm.member_role as ClubMemberRecord["memberRole"],
+                status: (cm.status === "active" ? "active" : "pending") as "active" | "pending",
+                joinedAt: String(cm.joined_at),
+                note: cm.note ? String(cm.note) : undefined,
+              }))
+            : prev.clubMembers;
+
+        const nextClubEvents: ClubEventRecord[] =
+          clubEventsRes.data && clubEventsRes.data.length > 0
+            ? clubEventsRes.data.map((ce) => ({
+                id: String(ce.id),
+                clubId: String(ce.club_id),
+                title: String(ce.title),
+                time: String(ce.time),
+                place: String(ce.place),
+                summary: String(ce.summary),
+                createdBy: String(ce.created_by),
+                createdAt: String(ce.created_at),
+              }))
+            : prev.clubEvents;
+
+        return {
+          ...prev,
+          roster: nextRoster,
+          subjectClasses: nextSubjects,
+          attendanceSessions: nextAttendance,
+          customAssignments: nextCustomAssignments,
+          submissions: nextSubmissions,
+          classAnnouncements: nextAnnouncements,
+          clubMembers: nextClubMembers,
+          clubEvents: nextClubEvents,
+        };
+      });
+    } catch {
+      // Keep local state if offline
+    }
+  }, []);
 
   useEffect(() => {
     const sync = () => setState(readSharedPortalState());
-    queueMicrotask(sync);
+    queueMicrotask(() => {
+      sync();
+      void pullFromSupabase();
+    });
     window.addEventListener(SYNC_EVENT, sync);
     window.addEventListener("storage", sync);
+
+    let cleanupRealtime: (() => void) | undefined;
+    if (hasSupabaseEnvironment) {
+      try {
+        const sb = getSupabaseBrowserClient();
+        const channel = sb
+          .channel("sdu-portal-realtime-sync")
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_class_roster" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_subject_classes" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "teacher_attendance_sessions" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "portal_custom_assignments" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "portal_submissions" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "class_announcements" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "club_members" }, () => {
+            void pullFromSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "club_events" }, () => {
+            void pullFromSupabase();
+          })
+          .subscribe();
+        cleanupRealtime = () => {
+          void sb.removeChannel(channel);
+        };
+      } catch {
+        // Ignore realtime errors if WebSocket is blocked
+      }
+    }
+
     return () => {
       window.removeEventListener(SYNC_EVENT, sync);
       window.removeEventListener("storage", sync);
+      cleanupRealtime?.();
     };
-  }, []);
+  }, [pullFromSupabase]);
 
   const activeAccount = getAccountById(state.activeAccountId);
 
@@ -774,6 +1215,17 @@ export function usePortalAccounts() {
           student.studentCode === studentCode ? { ...student, ...patch } : student,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        const dbPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (patch.teacherNote !== undefined) dbPatch.teacher_note = patch.teacherNote;
+        if (patch.attendancePct !== undefined) dbPatch.attendance_pct = patch.attendancePct;
+        if (patch.gpa !== undefined) dbPatch.gpa = patch.gpa;
+        if (patch.status !== undefined) dbPatch.status = patch.status;
+        void getSupabaseBrowserClient()
+          .from("teacher_class_roster")
+          .update(dbPatch)
+          .eq("student_code", studentCode);
+      }
     },
     [],
   );
@@ -788,26 +1240,41 @@ export function usePortalAccounts() {
       const code = input.studentCode.trim();
       const name = input.fullName.trim();
       if (!code || !name) return;
+      const nextItem: ClassStudentRosterItem = {
+        accountId: `acc-student-${code}`,
+        studentCode: code,
+        fullName: name,
+        email: `${code}@sv.saodo.edu.vn`,
+        phone: input.phone.trim() || "0980000000",
+        cohortClass: "DK13-CNTT1",
+        roleInClass: input.roleInClass,
+        attendancePct: 100,
+        gpa: 3.2,
+        status: "active",
+        teacherNote: "Sinh viên mới bổ sung vào danh sách lớp DK13-CNTT1.",
+      };
       writeSharedPortalState((prev) => {
         if (prev.roster.some((item) => item.studentCode === code)) return prev;
-        const nextItem: ClassStudentRosterItem = {
-          accountId: `acc-student-${code}`,
-          studentCode: code,
-          fullName: name,
-          email: `${code}@sv.saodo.edu.vn`,
-          phone: input.phone.trim() || "0980000000",
-          cohortClass: "DK13-CNTT1",
-          roleInClass: input.roleInClass,
-          attendancePct: 100,
-          gpa: 3.2,
-          status: "active",
-          teacherNote: "Sinh viên mới bổ sung vào danh sách lớp DK13-CNTT1.",
-        };
         return {
           ...prev,
           roster: [...prev.roster, nextItem],
         };
       });
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("teacher_class_roster").upsert({
+          student_code: nextItem.studentCode,
+          account_id: nextItem.accountId,
+          full_name: nextItem.fullName,
+          email: nextItem.email,
+          phone: nextItem.phone,
+          cohort_class: nextItem.cohortClass,
+          role_in_class: nextItem.roleInClass,
+          attendance_pct: nextItem.attendancePct,
+          gpa: nextItem.gpa,
+          status: nextItem.status,
+          teacher_note: nextItem.teacherNote,
+        });
+      }
     },
     [],
   );
@@ -829,6 +1296,19 @@ export function usePortalAccounts() {
         ...prev,
         customAssignments: [newAssignment, ...prev.customAssignments],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("portal_custom_assignments").upsert({
+          id: newAssignment.id,
+          tenant_id: newAssignment.tenantId,
+          class_id: newAssignment.classId,
+          created_by: newAssignment.createdBy,
+          title: newAssignment.title,
+          instructions: newAssignment.instructions,
+          status: newAssignment.status,
+          due_at: newAssignment.dueAt,
+          created_at: newAssignment.createdAt,
+        });
+      }
       return newAssignment;
     },
     [activeAccount.id],
@@ -837,6 +1317,7 @@ export function usePortalAccounts() {
   const submitStudentWork = useCallback(
     (input: { assignmentId: string; content: string; account?: PortalAccount }) => {
       const actor = input.account ?? activeAccount;
+      let savedRecord: SharedSubmissionRecord | null = null;
       writeSharedPortalState((prev) => {
         const existingIndex = prev.submissions.findIndex(
           (item) => item.assignmentId === input.assignmentId && item.studentCode === actor.code,
@@ -855,6 +1336,7 @@ export function usePortalAccounts() {
           feedbackAt: existingIndex >= 0 ? prev.submissions[existingIndex]!.feedbackAt : null,
           gradedBy: existingIndex >= 0 ? prev.submissions[existingIndex]!.gradedBy : null,
         };
+        savedRecord = record;
         const nextSubmissions =
           existingIndex >= 0
             ? prev.submissions.map((item, idx) => (idx === existingIndex ? record : item))
@@ -864,6 +1346,23 @@ export function usePortalAccounts() {
           submissions: nextSubmissions,
         };
       });
+      if (hasSupabaseEnvironment && savedRecord) {
+        const rec = savedRecord as SharedSubmissionRecord;
+        void getSupabaseBrowserClient().from("portal_submissions").upsert({
+          id: rec.id,
+          assignment_id: rec.assignmentId,
+          student_account_id: rec.studentAccountId,
+          student_code: rec.studentCode,
+          student_name: rec.studentName,
+          content: rec.content,
+          submitted_at: rec.submittedAt,
+          status: rec.status,
+          score: rec.score,
+          feedback: rec.feedback,
+          feedback_at: rec.feedbackAt,
+          graded_by: rec.gradedBy,
+        });
+      }
     },
     [activeAccount],
   );
@@ -872,6 +1371,11 @@ export function usePortalAccounts() {
     (input: { submissionId: string; score: number; feedback: string; gradedBy?: string }) => {
       const normalizedScore = Math.max(0, Math.min(10, Math.round(input.score * 10) / 10));
       const cleanFeedback = input.feedback.trim();
+      const formattedFeedback = cleanFeedback.startsWith("Điểm ")
+        ? cleanFeedback
+        : `Điểm ${normalizedScore}/10 · ${cleanFeedback}`;
+      const nowIso = new Date().toISOString();
+      const grader = input.gradedBy ?? activeAccount.displayName;
       writeSharedPortalState((prev) => ({
         ...prev,
         submissions: prev.submissions.map((item) =>
@@ -880,15 +1384,25 @@ export function usePortalAccounts() {
                 ...item,
                 status: "reviewed",
                 score: normalizedScore,
-                feedback: cleanFeedback.startsWith("Điểm ")
-                  ? cleanFeedback
-                  : `Điểm ${normalizedScore}/10 · ${cleanFeedback}`,
-                feedbackAt: new Date().toISOString(),
-                gradedBy: input.gradedBy ?? activeAccount.displayName,
+                feedback: formattedFeedback,
+                feedbackAt: nowIso,
+                gradedBy: grader,
               }
             : item,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient()
+          .from("portal_submissions")
+          .update({
+            status: "reviewed",
+            score: normalizedScore,
+            feedback: formattedFeedback,
+            feedback_at: nowIso,
+            graded_by: grader,
+          })
+          .eq("id", input.submissionId);
+      }
     },
     [activeAccount.displayName],
   );
@@ -908,12 +1422,24 @@ export function usePortalAccounts() {
         ...prev,
         classAnnouncements: [item, ...prev.classAnnouncements],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("class_announcements").upsert({
+          id: item.id,
+          class_id: item.classId,
+          title: item.title,
+          body: item.body,
+          author_name: item.authorName,
+          pinned: Boolean(item.pinned),
+          created_at: item.createdAt,
+        });
+      }
     },
     [activeAccount.displayName],
   );
 
   const requestJoinClub = useCallback(
     (clubId: string, note?: string) => {
+      let createdMember: ClubMemberRecord | null = null;
       writeSharedPortalState((prev) => {
         const exists = prev.clubMembers.find(
           (item) => item.clubId === clubId && item.studentCode === activeAccount.code,
@@ -933,11 +1459,26 @@ export function usePortalAccounts() {
           joinedAt: new Date().toISOString().slice(0, 10),
           note: note?.trim() || `Sinh viên lớp ${activeAccount.cohortClass} đăng ký tham gia câu lạc bộ.`,
         };
+        createdMember = nextMember;
         return {
           ...prev,
           clubMembers: [...prev.clubMembers, nextMember],
         };
       });
+      if (hasSupabaseEnvironment && createdMember) {
+        const cm = createdMember as ClubMemberRecord;
+        void getSupabaseBrowserClient().from("club_members").upsert({
+          id: cm.id,
+          club_id: cm.clubId,
+          student_code: cm.studentCode,
+          full_name: cm.fullName,
+          cohort_class: cm.cohortClass,
+          member_role: cm.memberRole,
+          status: cm.status,
+          joined_at: cm.joinedAt,
+          note: cm.note ?? null,
+        });
+      }
     },
     [activeAccount],
   );
@@ -949,6 +1490,12 @@ export function usePortalAccounts() {
         item.id === memberId ? { ...item, status: "active" } : item,
       ),
     }));
+    if (hasSupabaseEnvironment) {
+      void getSupabaseBrowserClient()
+        .from("club_members")
+        .update({ status: "active" })
+        .eq("id", memberId);
+    }
   }, []);
 
   const updateClubMemberRole = useCallback(
@@ -959,6 +1506,12 @@ export function usePortalAccounts() {
           item.id === memberId ? { ...item, memberRole } : item,
         ),
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient()
+          .from("club_members")
+          .update({ member_role: memberRole })
+          .eq("id", memberId);
+      }
     },
     [],
   );
@@ -968,6 +1521,12 @@ export function usePortalAccounts() {
       ...prev,
       clubMembers: prev.clubMembers.filter((item) => item.id !== memberId),
     }));
+    if (hasSupabaseEnvironment) {
+      void getSupabaseBrowserClient()
+        .from("club_members")
+        .delete()
+        .eq("id", memberId);
+    }
   }, []);
 
   const createClubEvent = useCallback(
@@ -986,16 +1545,231 @@ export function usePortalAccounts() {
         ...prev,
         clubEvents: [event, ...prev.clubEvents],
       }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("club_events").upsert({
+          id: event.id,
+          club_id: event.clubId,
+          title: event.title,
+          time: event.time,
+          place: event.place,
+          summary: event.summary,
+          created_by: event.createdBy,
+          created_at: event.createdAt,
+        });
+      }
     },
     [activeAccount],
   );
 
+  const addSubjectClass = useCallback(
+    (input: {
+      classCode: string;
+      courseCode: string;
+      name: string;
+      credits: number;
+      cohortClass: string;
+      schedule: string;
+      room: string;
+      totalPeriods: number;
+    }) => {
+      const created: TeacherSubjectClass = {
+        id: `cls-subj-${Date.now()}`,
+        classCode: input.classCode.trim() || `010110${String(Date.now()).slice(-6)}`,
+        courseCode: input.courseCode.trim().toUpperCase() || "IT3040",
+        name: input.name.trim(),
+        credits: Math.max(1, Math.min(10, Number(input.credits) || 3)),
+        cohortClass: input.cohortClass.trim() || "DK13-CNTT1",
+        schedule: input.schedule.trim() || "Thứ 2 (Tiết 1–3)",
+        room: input.room.trim() || "A1-301",
+        semester: "HK1 2026-2027",
+        totalPeriods: Math.max(15, Number(input.totalPeriods) || 45),
+        completedPeriods: 0,
+        teacherId: activeAccount.id,
+        teacherName: activeAccount.displayName,
+      };
+      writeSharedPortalState((prev) => ({
+        ...prev,
+        subjectClasses: [created, ...prev.subjectClasses],
+      }));
+      if (hasSupabaseEnvironment) {
+        void getSupabaseBrowserClient().from("teacher_subject_classes").upsert({
+          id: created.id,
+          class_code: created.classCode,
+          course_code: created.courseCode,
+          name: created.name,
+          credits: created.credits,
+          cohort_class: created.cohortClass,
+          schedule: created.schedule,
+          room: created.room,
+          semester: created.semester,
+          total_periods: created.totalPeriods,
+          completed_periods: created.completedPeriods,
+          teacher_id: created.teacherId,
+          teacher_name: created.teacherName,
+        });
+      }
+      return created;
+    },
+    [activeAccount.displayName, activeAccount.id],
+  );
+
+  const createAttendanceSession = useCallback(
+    (input: {
+      subjectClassId: string;
+      date: string;
+      periods: string;
+      topic: string;
+      marks: Record<string, AttendanceMarkStatus>;
+      notes?: Record<string, string>;
+    }) => {
+      const sessionRecord: TeacherAttendanceSessionRecord = {
+        id: `att-${Date.now()}`,
+        subjectClassId: input.subjectClassId,
+        date: input.date.trim(),
+        periods: input.periods.trim(),
+        topic: input.topic.trim(),
+        marks: input.marks,
+        notes: input.notes ?? {},
+        createdAt: new Date().toISOString(),
+      };
+      let updatedRoster: ClassStudentRosterItem[] = [];
+      writeSharedPortalState((prev) => {
+        const nextSessions = [sessionRecord, ...prev.attendanceSessions];
+        // Recompute student attendance percentages based on recorded sessions
+        const nextRoster = prev.roster.map((student) => {
+          const totalTracked = nextSessions.length;
+          if (!totalTracked) return student;
+          const missedUnexcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "unexcused",
+          ).length;
+          const missedExcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "excused",
+          ).length;
+          const computedPct = Math.max(
+            50,
+            Math.min(100, 100 - missedUnexcused * 6 - missedExcused * 2),
+          );
+          return {
+            ...student,
+            attendancePct: computedPct,
+            status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
+          };
+        });
+        updatedRoster = nextRoster;
+        return {
+          ...prev,
+          attendanceSessions: nextSessions,
+          roster: nextRoster,
+        };
+      });
+      if (hasSupabaseEnvironment) {
+        const sb = getSupabaseBrowserClient();
+        void sb.from("teacher_attendance_sessions").upsert({
+          id: sessionRecord.id,
+          subject_class_id: sessionRecord.subjectClassId,
+          date: sessionRecord.date,
+          periods: sessionRecord.periods,
+          topic: sessionRecord.topic,
+          marks: sessionRecord.marks,
+          notes: sessionRecord.notes,
+          created_at: sessionRecord.createdAt,
+        });
+        for (const st of updatedRoster) {
+          void sb
+            .from("teacher_class_roster")
+            .update({ attendance_pct: st.attendancePct, status: st.status })
+            .eq("student_code", st.studentCode);
+        }
+      }
+      return sessionRecord;
+    },
+    [],
+  );
+
+  const updateAttendanceSessionMark = useCallback(
+    (
+      sessionId: string,
+      studentCode: string,
+      mark: AttendanceMarkStatus,
+      note?: string,
+    ) => {
+      let updatedSession: TeacherAttendanceSessionRecord | null = null;
+      let updatedStudent: ClassStudentRosterItem | null = null;
+      writeSharedPortalState((prev) => {
+        const nextSessions = prev.attendanceSessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          const nextNotes = { ...session.notes };
+          if (note !== undefined) {
+            if (note.trim()) nextNotes[studentCode] = note.trim();
+            else delete nextNotes[studentCode];
+          }
+          const next = {
+            ...session,
+            marks: {
+              ...session.marks,
+              [studentCode]: mark,
+            },
+            notes: nextNotes,
+          };
+          updatedSession = next;
+          return next;
+        });
+        const nextRoster = prev.roster.map((student) => {
+          if (student.studentCode !== studentCode) return student;
+          const missedUnexcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "unexcused",
+          ).length;
+          const missedExcused = nextSessions.filter(
+            (s) => s.marks[student.studentCode] === "excused",
+          ).length;
+          const computedPct = Math.max(
+            50,
+            Math.min(100, 100 - missedUnexcused * 6 - missedExcused * 2),
+          );
+          const nextSt = {
+            ...student,
+            attendancePct: computedPct,
+            status: (computedPct < 85 ? "warning" : "active") as "active" | "warning",
+          };
+          updatedStudent = nextSt;
+          return nextSt;
+        });
+        return {
+          ...prev,
+          attendanceSessions: nextSessions,
+          roster: nextRoster,
+        };
+      });
+      if (hasSupabaseEnvironment) {
+        const sb = getSupabaseBrowserClient();
+        if (updatedSession) {
+          const sess = updatedSession as TeacherAttendanceSessionRecord;
+          void sb
+            .from("teacher_attendance_sessions")
+            .update({ marks: sess.marks, notes: sess.notes })
+            .eq("id", sess.id);
+        }
+        if (updatedStudent) {
+          const st = updatedStudent as ClassStudentRosterItem;
+          void sb
+            .from("teacher_class_roster")
+            .update({ attendance_pct: st.attendancePct, status: st.status })
+            .eq("student_code", st.studentCode);
+        }
+      }
+    },
+    [],
+  );
+
   return {
     state,
+    supabaseConnected,
     accounts: PORTAL_ACCOUNTS,
     activeAccount,
     setActiveAccount,
     roster: state.roster,
+    subjectClasses: state.subjectClasses,
+    attendanceSessions: state.attendanceSessions,
     customAssignments: state.customAssignments,
     submissions: state.submissions,
     classAnnouncements: state.classAnnouncements,
@@ -1003,6 +1777,9 @@ export function usePortalAccounts() {
     clubEvents: state.clubEvents,
     updateStudentNote,
     addClassStudent,
+    addSubjectClass,
+    createAttendanceSession,
+    updateAttendanceSessionMark,
     createAssignment,
     submitStudentWork,
     gradeSubmission,

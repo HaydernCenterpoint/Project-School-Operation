@@ -11,10 +11,17 @@ import { useAiIntro } from "@/components/AiIntro";
 import { SceneCurtain } from "@/components/landing/SceneTransition";
 import { Icon, type IconName } from "@/components/Icon";
 import { phuongFonts } from "@/components/landing/fonts";
-import { PhuongFlower } from "@/components/landing/Phuong";
 import { Markdown } from "@/components/Markdown";
+import { ensureVisualBlocksInAnswer } from "@/lib/ai-cad-chart-engine";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
 import { addFiles, filesFromDrop, formatSize, type Attachment } from "@/lib/ai-files";
+import {
+  autoLearnFromUserMessage,
+  buildComprehensiveStudentMemoryContext,
+  extractAndSaveAiMemoryTags,
+  readStudentMemories,
+  subscribeStudentMemories,
+} from "@/lib/ai-student-memory";
 import { greeting, initials } from "@/lib/format";
 import {
   courseByCode,
@@ -170,7 +177,20 @@ type Message = AiMessage & {
 };
 
 export default function AiWorkspace() {
-  const { data, account, roster, error: loadError, avatarUrl, refresh } = useStudent();
+  const {
+    data,
+    account,
+    roster,
+    subjectClasses,
+    attendanceSessions,
+    allSubmissions,
+    classAnnouncements,
+    clubMembers,
+    clubEvents,
+    error: loadError,
+    avatarUrl,
+    refresh,
+  } = useStudent();
   const { theme, toggleTheme } = usePhuongTheme();
   const token = data?.token || "local-multi-role-session";
   const [now] = useState(Date.now);
@@ -191,6 +211,7 @@ export default function AiWorkspace() {
   const [status, setStatus] = useState("");
   const [loadingThread, setLoadingThread] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<AiConversation | null>(null);
+  const [memoryTick, setMemoryTick] = useState(0);
   const controller = useRef<AbortController | null>(null);
   const thread = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -201,8 +222,13 @@ export default function AiWorkspace() {
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
 
-  // Build real portal data context so the AI knows the user's real profile, schedule, exams, grades, assignments, and tuition.
+  useEffect(() => {
+    return subscribeStudentMemories(() => setMemoryTick((t) => t + 1));
+  }, []);
+
+  // Build real portal data + background student memory context so Model SDU 1.3 knows all student profiles silently.
   const studentContext = useMemo(() => {
+    void memoryTick;
     if (!data) return "";
     const allGradeRows = terms.flatMap((term) => term.rows);
     const cumulativeGpa = gpa(allGradeRows);
@@ -248,6 +274,20 @@ export default function AiWorkspace() {
       .map((acc) => `${acc.fullName} (${acc.studentCode} · GPA ${acc.gpa})`)
       .join(", ");
 
+    const memoryKnowledgeBase = buildComprehensiveStudentMemoryContext({
+      account,
+      roster,
+      subjectClasses,
+      attendanceSessions,
+      allSubmissions,
+      classAnnouncements,
+      clubMembers,
+      clubEvents,
+      assignments: data.assignments,
+      memories: readStudentMemories(),
+      now,
+    });
+
     return [
       `Hồ sơ người dùng đang đăng nhập: ${account.displayName} (Mã: ${account.code})`,
       `Vai trò: ${account.roleTitle} · Lớp hành chính: ${account.cohortClass} · Khoa: ${account.department} · Email: ${account.email} · Cố vấn học tập: ${account.advisorName}`,
@@ -260,8 +300,21 @@ export default function AiWorkspace() {
       `Bài tập & Đồ án trên hệ thống:\n${assignmentLines.join("\n")}`,
       `Bảng điểm các học kỳ trước:\n${gradeLines.join("\n")}`,
       `Danh sách thành viên lớp ${account.cohortClass}: ${rosterSummary}`,
+      memoryKnowledgeBase,
     ].join("\n\n");
-  }, [account, data, now, roster]);
+  }, [
+    account,
+    allSubmissions,
+    attendanceSessions,
+    classAnnouncements,
+    clubEvents,
+    clubMembers,
+    data,
+    memoryTick,
+    now,
+    roster,
+    subjectClasses,
+  ]);
 
   const loadMeta = useCallback(async () => {
     try {
@@ -325,7 +378,7 @@ export default function AiWorkspace() {
     conversations.find((item) => item.id === activeId)?.title ??
     (messages.length ? "Cuộc trò chuyện" : "Cuộc trò chuyện mới");
   useEffect(() => {
-    document.title = `${title} | Trợ lý AI Sao Đỏ`;
+    document.title = `${title} | Đại học Sao Đỏ`;
   }, [title]);
 
   const newConversation = useCallback(() => {
@@ -417,6 +470,14 @@ export default function AiWorkspace() {
     if (composer.current) composer.current.style.height = "auto";
     setStatus("Trợ lý đang soạn câu trả lời…");
 
+    // Background student memory learning from user message
+    const fallbackStudentCode =
+      roster.find((r) => r.studentCode === account.code)?.studentCode ??
+      roster[0]?.studentCode ??
+      "2200286";
+    autoLearnFromUserMessage(text, fallbackStudentCode, roster);
+    const latestContext = studentContext;
+
     const priorHistory = messages
       .filter(
         (m): m is Message & { role: "user" | "assistant" } =>
@@ -456,7 +517,7 @@ export default function AiWorkspace() {
           content: text,
           assignmentId: assignmentId || null,
           history: priorHistory,
-          studentContext,
+          studentContext: latestContext,
         },
         requestId,
         (event: AiStreamEvent) => {
@@ -465,9 +526,13 @@ export default function AiWorkspace() {
             setActiveId(event.conversationId);
           } else if (event.type === "delta") {
             streamedText += event.text;
-            patch((item) => ({ ...item, content: item.content + event.text }));
+            const cleanedPreview = streamedText.replace(/\[\[MEMORY_ADD:[\s\S]*?\]\]/g, "").trimEnd();
+            patch((item) => ({ ...item, content: cleanedPreview }));
           } else if (event.type === "complete") {
-            patch((item) => ({ ...item, status: "complete" }));
+            const { cleanedText } = extractAndSaveAiMemoryTags(streamedText, account.code);
+            const enrichedText = ensureVisualBlocksInAnswer(text, cleanedText);
+            streamedText = enrichedText;
+            patch((item) => ({ ...item, content: enrichedText, status: "complete" }));
           } else if (event.type === "error") {
             patch((item) => ({
               ...item,
@@ -639,7 +704,7 @@ export default function AiWorkspace() {
   if (!data || consent === null) {
     return root(
       <div className="aw-center" aria-busy="true">
-        <PhuongFlower size={56} className="aw-loading-flower" />
+        <img src="/sao-do-logo.png" alt="" width={56} height={56} className="aw-loading-logo" />
         <p className="aw-loading-text">Đang mở trợ lý học tập…</p>
       </div>,
     );
@@ -649,7 +714,7 @@ export default function AiWorkspace() {
     return root(
       <div className="aw-center">
         <div className="aw-consent">
-          <PhuongFlower size={44} />
+          <img src="/sao-do-logo.png" alt="Đại học Sao Đỏ" width={48} height={48} />
           <h1>Trước khi dùng trợ lý AI</h1>
           <ul>
             <li>Nội dung bạn nhập (và bài tập bạn chọn đính kèm) được gửi tới nhà cung cấp AI của nhà trường để tạo câu trả lời.</li>
@@ -796,7 +861,7 @@ export default function AiWorkspace() {
           <Link href="/student" className="aw-brand" aria-label="Về cổng học tập">
             <img src="/sao-do-logo.png" alt="" width={30} height={32} />
             <span>
-              <strong>Trợ lý Sao Đỏ</strong>
+              <strong>Đại học Sao Đỏ</strong>
               <small>Học cùng AI</small>
             </span>
           </Link>
@@ -910,7 +975,7 @@ export default function AiWorkspace() {
         {empty ? (
           <div className="aw-welcome">
             <h2>
-              <PhuongFlower size={34} /> {greeting(new Date(now))}, {name}
+              {greeting(new Date(now))}, {name}
             </h2>
             <p>
               {enabled
@@ -976,7 +1041,9 @@ export default function AiWorkspace() {
                       </div>
                     ) : (
                       <div key={message.id} className="aw-msg assistant">
-                        <span className="aw-avatar" aria-hidden="true"><PhuongFlower size={20} /></span>
+                        <span className="aw-avatar" aria-hidden="true">
+                          <img src="/sao-do-logo.png" alt="" width={22} height={22} />
+                        </span>
                         <div className="aw-answer">
                           {message.status === "pending" && !message.content ? (
                             <span className="typing" aria-label="Đang soạn"><i /><i /><i /></span>

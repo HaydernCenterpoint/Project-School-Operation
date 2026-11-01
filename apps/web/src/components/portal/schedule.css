@@ -4,8 +4,224 @@
    monospace period/room codes. */
 
 .sch {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(16px, 2vw, 24px);
   container: sch / inline-size;
   --sch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--red) 24%, var(--border));
+  background:
+    radial-gradient(720px 420px at 0% 0%, rgba(214, 40, 57, 0.22), transparent 66%),
+    radial-gradient(620px 380px at 100% 4%, rgba(235, 142, 22, 0.20), transparent 64%),
+    radial-gradient(720px 480px at 96% 96%, rgba(74, 111, 209, 0.24), transparent 68%),
+    radial-gradient(560px 400px at 8% 92%, rgba(224, 92, 148, 0.16), transparent 68%),
+    linear-gradient(135deg, #ffe9de 0%, #fff4eb 36%, #f5eeff 72%, #e4ecff 100%);
+  box-shadow:
+    0 24px 56px -28px rgba(184, 31, 47, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.sd-app[data-theme="dark"] .sch {
+  border-color: color-mix(in srgb, var(--red) 34%, var(--border));
+  background:
+    radial-gradient(720px 420px at 0% 0%, rgba(255, 107, 94, 0.22), transparent 66%),
+    radial-gradient(620px 380px at 100% 4%, rgba(245, 181, 74, 0.16), transparent 64%),
+    radial-gradient(720px 480px at 96% 96%, rgba(114, 146, 255, 0.22), transparent 68%),
+    linear-gradient(135deg, #271519 0%, #1f1724 50%, #171d30 100%);
+  box-shadow: 0 24px 52px -28px rgba(0, 0, 0, 0.65);
+}
+
+.sch-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.sch-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(42px);
+  opacity: 0.55;
+}
+.sch-orb--warm {
+  top: -72px;
+  left: -48px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(214, 40, 57, 0.28) 0%, rgba(255, 128, 92, 0.08) 70%, transparent 100%);
+}
+.sch-orb--gold {
+  top: 28%;
+  right: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(217, 138, 0, 0.22) 0%, rgba(255, 196, 112, 0.06) 72%, transparent 100%);
+}
+.sch-orb--indigo {
+  bottom: -80px;
+  right: 12%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(74, 111, 209, 0.22) 0%, rgba(138, 166, 255, 0.06) 72%, transparent 100%);
+}
+
+/* ---------- Colorful Calendar Cover Banner (.sch-cover) ---------- */
+.sch-cover {
+  position: relative;
+  margin-bottom: 16px;
+  padding: clamp(20px, 2.6vw, 28px);
+  overflow: hidden;
+  border-radius: var(--r-card);
+  border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
+  background:
+    radial-gradient(480px 240px at 14% -10%, rgba(255, 255, 255, 0.65), transparent 70%),
+    radial-gradient(420px 260px at 88% 15%, rgba(214, 40, 57, 0.22), transparent 72%),
+    linear-gradient(120deg, #fff5ec 0%, #ffe6d4 44%, #ffd8cb 76%, #e8edff 100%);
+  box-shadow: 0 16px 36px -22px rgba(184, 31, 47, 0.28);
+}
+
+.sd-app[data-theme="dark"] .sch-cover {
+  border-color: color-mix(in srgb, var(--red) 40%, var(--border));
+  background:
+    radial-gradient(460px 240px at 86% 18%, rgba(255, 107, 94, 0.24), transparent 72%),
+    linear-gradient(120deg, #2b1619 0%, #3b1b1f 48%, #341d29 78%, #1f243b 100%);
+  box-shadow: 0 20px 44px -24px rgba(0, 0, 0, 0.7);
+}
+
+.sch-cover__art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sch-cover__sun {
+  position: absolute;
+  right: 168px;
+  top: -42px;
+  width: 164px;
+  height: 164px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 184, 77, 0.42) 0%, rgba(214, 40, 57, 0.14) 58%, transparent 74%);
+}
+
+.sch-cover__wave {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: -48px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(214, 40, 57, 0.08), rgba(217, 138, 0, 0.1), rgba(74, 111, 209, 0.12));
+}
+
+.sch-cover__tree {
+  position: absolute;
+  right: clamp(-28px, -1vw, 8px);
+  top: -22px;
+  width: clamp(210px, 24vw, 310px);
+  height: auto;
+  opacity: 0.95;
+  filter: drop-shadow(0 12px 24px rgba(158, 20, 28, 0.16));
+}
+
+.sch-cover__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: clamp(0px, 16vw, 200px);
+}
+
+.sch-cover__main {
+  display: grid;
+  gap: 6px;
+}
+
+.sch-cover__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sch-cover__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid color-mix(in srgb, var(--red) 26%, var(--border));
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.sd-app[data-theme="dark"] .sch-cover__kicker {
+  color: #ff9488;
+  background: rgba(28, 18, 20, 0.78);
+}
+
+.sch-cover__sem {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.sd-app[data-theme="dark"] .sch-cover__sem {
+  background: rgba(28, 22, 26, 0.68);
+}
+
+.sch-cover__title {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.75rem, 2.6vw, 2.35rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.sch-cover__title small {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52em;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.sch-cover__lead {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.sch-cover__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Signature 6px category status dot */
@@ -172,10 +388,20 @@
   font-weight: 400;
 }
 .sch-strip strong {
-  font-size: 18px;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 17px;
+  font-weight: 600;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+}
+.sch-strip strong small {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color 150ms var(--sch-ease);
 }
 .sch-strip em {
   height: 8px;
@@ -192,14 +418,19 @@
 .sch-strip .is-today {
   border-color: color-mix(in srgb, var(--red) 45%, var(--border));
 }
-.sch-strip .is-today strong {
+.sch-strip .is-today strong,
+.sch-strip .is-today strong small {
   color: var(--red);
 }
 .sch-strip button[aria-selected="true"] {
   color: #fff;
 }
+.sch-strip:not(:has(.sch-pill.is-ready)) button[aria-selected="true"] {
+  background: var(--red);
+}
 .sch-strip button[aria-selected="true"] span,
-.sch-strip button[aria-selected="true"] strong {
+.sch-strip button[aria-selected="true"] strong,
+.sch-strip button[aria-selected="true"] strong small {
   color: #fff;
 }
 .sch-strip button[aria-selected="true"] em i {
@@ -219,30 +450,78 @@
 .sd-stack,
 .sd-next,
 .sd-heat {
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--paper) 92%, rgba(255, 255, 255, 0.6));
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--red) 14%, var(--border));
   border-radius: var(--r-card);
+  box-shadow: 0 12px 28px -18px rgba(45, 24, 32, 0.12);
 }
 .sd-day {
   min-width: 0;
 }
 .sd-day-head {
   margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--red) 8%, var(--paper)), color-mix(in srgb, var(--k-club) 7%, var(--paper)));
+  border: 1px solid color-mix(in srgb, var(--red) 18%, var(--border));
+  border-radius: 12px;
+}
+.sd-day-badge {
+  min-width: 68px;
+  padding: 8px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--red), #e04f3e);
+  border-radius: 10px;
+  box-shadow: 0 8px 18px -10px rgba(214, 40, 57, 0.55);
+}
+.sd-day-badge span {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+.sd-day-badge strong {
+  font-family: var(--font-mono), monospace;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.sd-day-title {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 .sd-day-head h2 {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: 24px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 600;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .sd-day-head h2::first-letter {
   text-transform: uppercase;
 }
+.sd-day-head h2 span {
+  color: var(--red);
+}
+.sd-day-head h2 small {
+  font-family: var(--font-mono), monospace;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
 .sd-day-head p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -696,12 +975,14 @@
   font-weight: 400;
 }
 .sch-head strong {
-  width: 32px;
-  height: 32px;
-  display: grid;
+  min-width: 48px;
+  height: 30px;
+  padding: 0 8px;
+  display: inline-grid;
   place-items: center;
-  font-size: 15px;
-  font-weight: 500;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   border-radius: 8px;
 }
@@ -952,6 +1233,20 @@
 }
 
 @media (max-width: 760px) {
+  .sch {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .sch-cover {
+    padding: 16px;
+  }
+  .sch-cover__content {
+    padding-right: 0;
+  }
+  .sch-cover__tree {
+    width: 170px;
+    opacity: 0.32;
+  }
   .sch-board {
     display: none;
   }
@@ -973,7 +1268,10 @@
     gap: 4px;
   }
   .sch-strip strong {
-    font-size: 15px;
+    font-size: 13px;
+  }
+  .sch-strip strong small {
+    font-size: 10px;
   }
   .sd-stack {
     padding: 16px;

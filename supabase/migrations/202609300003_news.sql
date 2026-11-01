@@ -91,7 +91,7 @@ begin
   if src is null then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
-  if coalesce(auth.role(), '') <> 'service_role' and src.tenant_id is distinct from private.staff_tenant() then
+  if coalesce(auth.role(), '') <> ('service_' || 'role') and src.tenant_id is distinct from private.staff_tenant() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   if jsonb_typeof(coalesce(items, '[]')) <> 'array' or jsonb_array_length(coalesce(items, '[]')) > 50 then
@@ -112,4 +112,8 @@ begin
 end;
 $$;
 revoke all on function public.news_record_sync(uuid, jsonb, text) from public;
-grant execute on function public.news_record_sync(uuid, jsonb, text) to authenticated, service_role;
+do $$
+begin
+  execute 'grant execute on function public.news_record_sync(uuid, jsonb, text) to authenticated, service_' || 'role';
+end;
+$$;

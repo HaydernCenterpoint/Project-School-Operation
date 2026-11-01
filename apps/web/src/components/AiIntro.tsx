@@ -1,7 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- small static logo */
 import { useEffect, useState } from "react";
-import { PhuongFlower } from "./landing/Phuong";
 
 const seenKey = "sao-do:ai-intro";
 
@@ -52,9 +52,9 @@ export function useAiIntro(ready: boolean) {
           if (event.animationName === "aw-splash-out") finish();
         }}
       >
-        <span className="aw-splash-mark"><PhuongFlower size={58} /></span>
-        <strong>Trợ lý Sao Đỏ</strong>
-        <span>Học cùng AI</span>
+        <span className="aw-splash-mark"><img src="/sao-do-logo.png" alt="" width={62} height={66} /></span>
+        <strong>Đại học Sao Đỏ</strong>
+        <span>Model SDU 1.3 · Huấn luyện từ Qwen 3.8</span>
       </div>
     ) : null;
 

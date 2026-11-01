@@ -181,13 +181,15 @@ export function ChatRoom({
   const roomTone = room.kind === "group" ? (topicSlug[room.topic] ?? "study") : "dm";
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`sao-do:cm-reactions:${room.id}`);
-      if (raw) setReactions(JSON.parse(raw));
-      else setReactions({});
-    } catch {
-      setReactions({});
-    }
+    queueMicrotask(() => {
+      try {
+        const raw = localStorage.getItem(`sao-do:cm-reactions:${room.id}`);
+        if (raw) setReactions(JSON.parse(raw));
+        else setReactions({});
+      } catch {
+        setReactions({});
+      }
+    });
   }, [room.id]);
 
   function toggleReaction(messageId: string, emoji: string) {
