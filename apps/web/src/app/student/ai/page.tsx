@@ -977,7 +977,7 @@ export default function AiWorkspace() {
           <div className="aw-welcome">
             <h2>
               <img src="/sao-do-logo.png" alt="Đại học Sao Đỏ" width={36} height={36} className="aw-welcome-logo" />{" "}
-              {greeting(new Date(now))}, Đại học Sao Đỏ
+              {greeting(new Date(now))}, {name}
             </h2>
             <p>
               {enabled
