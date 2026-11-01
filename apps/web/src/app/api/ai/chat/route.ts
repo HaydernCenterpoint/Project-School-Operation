@@ -29,18 +29,22 @@ import { DEFAULT_ASSIGNMENTS } from "@/lib/accounts";
 
 const maxHistoryChars = 60_000;
 const generationTimeoutMs = 120_000;
+const maxChatJsonBytes = 2 * 1024 * 1024;
 const maxMultipartBytes = attachmentLimits.maxUploadBytes + 1024 * 1024;
 
 async function readChatBody(
   request: Request,
 ): Promise<{ value: Record<string, unknown>; files: File[] } | { response: Response }> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
-    const body = await readJsonObject(request);
+    const body = await readJsonObject(request, maxChatJsonBytes);
     return body.response ? { response: body.response } : { value: body.value, files: [] };
   }
-  const declared = Number(request.headers.get("content-length") ?? "NaN");
-  if (!Number.isFinite(declared) || declared > maxMultipartBytes) {
-    return { response: apiError(413, "payload_too_large", "Attachments are too large.") };
+  const rawLength = request.headers.get("content-length");
+  if (rawLength !== null) {
+    const declared = Number(rawLength);
+    if (!Number.isFinite(declared) || declared > maxMultipartBytes) {
+      return { response: apiError(413, "payload_too_large", "Attachments are too large.") };
+    }
   }
   try {
     const form = await request.formData();
@@ -267,7 +271,7 @@ export async function POST(request: Request) {
             mode,
             source,
             attached.names.length > 0,
-            typeof studentContext === "string" ? studentContext.slice(0, 32000) : undefined,
+            typeof studentContext === "string" ? studentContext.slice(0, 64_000) : undefined,
           ),
           withAttachments(toTurns(historyRows), attached.blocks),
           (delta) => {

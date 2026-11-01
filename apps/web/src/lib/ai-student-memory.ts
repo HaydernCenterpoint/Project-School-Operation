@@ -712,7 +712,8 @@ export function buildComprehensiveStudentMemoryContext(params: {
 
     const subLines = stuSubmissions.map((sub) => {
       const asg = assignments.find((a) => a.id === sub.assignmentId);
-      return `  + Bài nộp "${asg?.title ?? sub.assignmentId}": Trạng thái ${sub.status === "reviewed" ? `Đã chấm (${sub.score ?? "?"}/10 - Nhận xét: ${sub.feedback ?? ""})` : "Đã nộp, chờ chấm"} · Nội dung: ${sub.content}`;
+      const snippet = sub.content.length > 400 ? `${sub.content.slice(0, 400)}…` : sub.content;
+      return `  + Bài nộp "${asg?.title ?? sub.assignmentId}": Trạng thái ${sub.status === "reviewed" ? `Đã chấm (${sub.score ?? "?"}/10 - Nhận xét: ${sub.feedback ?? ""})` : "Đã nộp, chờ chấm"} · Nội dung: ${snippet}`;
     });
 
     return [

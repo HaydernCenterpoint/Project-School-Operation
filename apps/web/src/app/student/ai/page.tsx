@@ -23,23 +23,6 @@ import {
   subscribeStudentMemories,
 } from "@/lib/ai-student-memory";
 import { greeting, initials } from "@/lib/format";
-import {
-  courseByCode,
-  courses,
-  exams,
-  gpa,
-  invoices,
-  letter,
-  longDay,
-  money,
-  semester,
-  sessions,
-  sessionTime,
-  standing,
-  terms,
-  total,
-  weekdays,
-} from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
@@ -230,51 +213,7 @@ export default function AiWorkspace() {
   const studentContext = useMemo(() => {
     void memoryTick;
     if (!data) return "";
-    const allGradeRows = terms.flatMap((term) => term.rows);
-    const cumulativeGpa = gpa(allGradeRows);
-    const currentInvoices = invoices(now);
-    const activeInvoice = currentInvoices[0];
-    const invoiceTotal = activeInvoice
-      ? activeInvoice.items.reduce((sum, item) => sum + item.amount, 0)
-      : 0;
-    const invoiceRemaining = activeInvoice ? Math.max(0, invoiceTotal - activeInvoice.paid) : 0;
-
-    const scheduleLines = sessions.map((s) => {
-      const c = courseByCode.get(s.course);
-      return `- ${weekdays[s.day]}: ${s.course} (${c?.name ?? s.course}) · Tiết ${s.from}-${s.to} (${sessionTime(s)}) · Phòng ${s.room} · ${s.kind} · GV: ${c?.lecturer ?? ""}`;
-    });
-
-    const examLines = exams(now).map((ex) => {
-      const c = courseByCode.get(ex.course);
-      return `- ${ex.round} ${ex.course} (${c?.name ?? ex.course}): ${longDay(ex.at)} lúc ${new Date(ex.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} · Phòng ${ex.room} · ${ex.seat} · ${ex.form} (${ex.minutes} phút)`;
-    });
-
-    const gradeLines = terms.map((term) => {
-      const termGpa = gpa(term.rows);
-      const rowDetails = term.rows
-        .map((r) => {
-          const score = total(r);
-          const l = letter(score);
-          return `${r.code} ${r.name} (${r.credits} TC): Điểm TK ${score} (${l.grade})`;
-        })
-        .join("; ");
-      return `- ${term.name} (GPA ${termGpa.value}/4.0): ${rowDetails}`;
-    });
-
-    const assignmentLines = data.assignments.map((a) => {
-      const sub = data.submissions.find((s) => s.assignmentId === a.id);
-      const dueStr = a.dueAt ? new Date(a.dueAt).toLocaleDateString("vi-VN") : "Không giới hạn";
-      const subStr = sub
-        ? `Đã nộp (${sub.status === "reviewed" ? `Đã chấm${sub.feedback ? ` - Nhận xét: ${sub.feedback}` : ""}` : "Đang chờ chấm"})`
-        : "Chưa nộp";
-      return `- [${a.id}] ${a.title} (Hạn: ${dueStr}) · Trạng thái: ${subStr} · Yêu cầu: ${a.instructions}`;
-    });
-
-    const rosterSummary = roster
-      .map((acc) => `${acc.fullName} (${acc.studentCode} · GPA ${acc.gpa})`)
-      .join(", ");
-
-    const memoryKnowledgeBase = buildComprehensiveStudentMemoryContext({
+    return buildComprehensiveStudentMemoryContext({
       account,
       roster,
       subjectClasses,
@@ -287,21 +226,6 @@ export default function AiWorkspace() {
       memories: readStudentMemories(),
       now,
     });
-
-    return [
-      `Hồ sơ người dùng đang đăng nhập: ${account.displayName} (Mã: ${account.code})`,
-      `Vai trò: ${account.roleTitle} · Lớp hành chính: ${account.cohortClass} · Khoa: ${account.department} · Email: ${account.email} · Cố vấn học tập: ${account.advisorName}`,
-      `Học kỳ hiện tại: ${semester.name} (${semester.short})`,
-      `Tổng kết học tập tích lũy: GPA ${cumulativeGpa.value}/4.0 (${standing(cumulativeGpa.value)}) · Đã tích lũy ${cumulativeGpa.credits}/150 tín chỉ`,
-      `Học phí kỳ ${semester.short}: Tổng ${money(invoiceTotal)}, đã đóng ${money(activeInvoice?.paid ?? 0)}, còn cần đóng ${money(invoiceRemaining)} (Hạn: ${activeInvoice ? new Date(activeInvoice.due).toLocaleDateString("vi-VN") : "N/A"})`,
-      `Các học phần đang học kỳ này (${courses.reduce((s, c) => s + c.credits, 0)} tín chỉ):\n${courses.map((c) => `- ${c.code}: ${c.name} (${c.credits} tín chỉ) · Giảng viên: ${c.lecturer}`).join("\n")}`,
-      `Thời khóa biểu trong tuần:\n${scheduleLines.join("\n")}`,
-      `Lịch thi sắp tới:\n${examLines.join("\n")}`,
-      `Bài tập & Đồ án trên hệ thống:\n${assignmentLines.join("\n")}`,
-      `Bảng điểm các học kỳ trước:\n${gradeLines.join("\n")}`,
-      `Danh sách thành viên lớp ${account.cohortClass}: ${rosterSummary}`,
-      memoryKnowledgeBase,
-    ].join("\n\n");
   }, [
     account,
     allSubmissions,
