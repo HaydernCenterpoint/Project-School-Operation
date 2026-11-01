@@ -1514,7 +1514,159 @@
   gap: 12px;
 }
 
-/* ---------- SDU Academic Dashboard Blocks (Thông tin SV, 7 lối tắt, Tiến độ & Lớp HP) ---------- */
+/* ---------- SDU Academic Dashboard Blocks (Unified Hoa Phượng Hero: Chào buổi sáng + Thông tin SV + 3 thống kê tuần) ---------- */
+.sdu-hero-unified {
+  position: relative;
+  margin-bottom: 16px;
+  padding: clamp(20px, 2.5vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  background: linear-gradient(125deg, #fffcf8 0%, #fff2e6 52%, #ffe4d4 100%);
+  border: 1px solid color-mix(in srgb, var(--red) 22%, var(--border));
+  border-radius: var(--r-card);
+  box-shadow: 0 18px 40px -26px rgba(184, 31, 47, 0.24);
+}
+[data-theme="dark"] .sdu-hero-unified {
+  background: linear-gradient(125deg, #271517 0%, #34191c 55%, #441f21 100%);
+  border-color: color-mix(in srgb, var(--red) 35%, var(--border));
+  box-shadow: 0 22px 48px -28px rgba(0, 0, 0, 0.65);
+}
+.sdu-hero-unified__glow {
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 35, 46, 0.14) 0%, rgba(242, 72, 39, 0.06) 45%, transparent 72%);
+  pointer-events: none;
+  z-index: 0;
+}
+.sdu-hero-unified__tree {
+  position: absolute;
+  right: clamp(-36px, -1.5vw, 4px);
+  top: -18px;
+  width: clamp(240px, 27vw, 350px);
+  height: auto;
+  opacity: 0.94;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 12px 24px rgba(158, 20, 28, 0.14));
+}
+.sdu-hero-unified__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-right: clamp(0px, 18vw, 220px);
+}
+.sdu-hero-unified__greeting {
+  max-width: 640px;
+}
+.sdu-hero-unified__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--red);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid color-mix(in srgb, var(--red) 24%, var(--border));
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+[data-theme="dark"] .sdu-hero-unified__kicker {
+  background: rgba(31, 21, 23, 0.78);
+  color: #ff9488;
+}
+.sdu-hero-unified__greeting h2 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.55rem, 2.3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.sdu-hero-unified__greeting .sun {
+  color: #d98200;
+  vertical-align: -0.1em;
+}
+[data-theme="dark"] .sdu-hero-unified__greeting .sun {
+  color: #ffc34d;
+}
+.sdu-hero-unified__greeting p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.sdu-hero-unified__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sdu-hero-unified__divider {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sdu-hero-unified__divider > span {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 28%, var(--border)), rgba(234, 216, 204, 0.35));
+}
+.sdu-hero-unified__main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.sdu-hero-unified__profile {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid color-mix(in srgb, var(--red) 16%, var(--border));
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+[data-theme="dark"] .sdu-hero-unified__profile {
+  background: rgba(31, 21, 23, 0.82);
+}
+.sdu-hero-unified__subhead h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.sdu-hero-unified__counters .sdu-counter-card {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(8px);
+}
+[data-theme="dark"] .sdu-hero-unified__counters .sdu-counter-card {
+  background: rgba(31, 21, 23, 0.84);
+}
+.sdu-hero-unified__counters .sdu-counter-card.is-notice {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 234, 230, 0.88));
+  border-color: color-mix(in srgb, var(--red) 28%, var(--border));
+}
+[data-theme="dark"] .sdu-hero-unified__counters .sdu-counter-card.is-notice {
+  background: linear-gradient(135deg, rgba(45, 25, 28, 0.92), rgba(68, 28, 32, 0.88));
+}
+
 .sdu-dash-top {
   margin-bottom: 14px;
   display: grid;
@@ -1857,6 +2009,10 @@
 }
 
 @media (max-width: 1024px) {
+  .sdu-hero-unified__top {
+    padding-right: 0;
+  }
+  .sdu-hero-unified__main,
   .sdu-dash-top,
   .sdu-academic-triad {
     grid-template-columns: 1fr;
@@ -1866,6 +2022,10 @@
   }
 }
 @media (max-width: 640px) {
+  .sdu-hero-unified__tree {
+    opacity: 0.28;
+    right: -60px;
+  }
   .sdu-profile-body,
   .sdu-profile-grid,
   .sdu-counter-split {

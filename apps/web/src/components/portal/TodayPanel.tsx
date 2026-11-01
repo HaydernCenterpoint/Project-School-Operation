@@ -3,9 +3,10 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
-import { Icon, type IconName } from "@/components/Icon";
+import { Icon } from "@/components/Icon";
+import { PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
 import { countdown, daysUntil } from "@/components/portal/Parts";
-import { initials } from "@/lib/format";
+import { greeting, initials } from "@/lib/format";
 import {
   courseByCode,
   courses,
@@ -26,16 +27,6 @@ import {
   useDemoState,
 } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
-
-const quickActions: { href: Route; label: string; icon: IconName }[] = [
-  { href: "/student/grades", label: "Kết quả học tập", icon: "award" },
-  { href: "/student/activities", label: "Kết quả rèn luyện", icon: "flag" },
-  { href: "/student/schedule", label: "Lịch theo tuần", icon: "calendar" },
-  { href: "/student/schedule-progress" as Route, label: "Lịch theo tiến độ", icon: "clock" },
-  { href: "/student/tuition", label: "Tra cứu công nợ", icon: "wallet" },
-  { href: "/student/tuition#thanh-toan" as Route, label: "Thanh toán trực tuyến", icon: "checkCircle" },
-  { href: "/student/receipts" as Route, label: "Phiếu thu trực tuyến", icon: "file" },
-];
 
 /** Dashboard hub: what matters today across the portal modules (sample data for now). */
 export function TodayPanel({ now }: { now: number }) {
@@ -69,109 +60,130 @@ export function TodayPanel({ now }: { now: number }) {
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringOffset = ringCircumference * (1 - creditPct / 100);
 
+  const weekExamsCount = exams(now).filter((e) => daysUntil(e.at, now) >= 0 && daysUntil(e.at, now) <= 7).length;
+
   return (
     <>
-      <section className="sdu-dash-top" aria-label="Thông tin sinh viên và nhắc nhở trong tuần">
-        <article className="sdu-profile-box">
-          <header className="sdu-box-head">
-            <h3>Thông tin sinh viên</h3>
-            <Link href="/student/account" className="sdu-more-link">
-              Xem chi tiết <Icon name="arrow" />
-            </Link>
-          </header>
-          <div className="sdu-profile-body">
-            <Link href="/student/account" className="sdu-profile-avatar" title="Xem hồ sơ sinh viên">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" />
-              ) : (
-                <span>{initials(account.displayName)}</span>
-              )}
-            </Link>
-            <dl className="sdu-profile-grid">
-              <div>
-                <dt>MSSV:</dt>
-                <dd>{account.code}</dd>
-              </div>
-              <div>
-                <dt>Lớp học:</dt>
-                <dd>{account.cohortClass}</dd>
-              </div>
-              <div>
-                <dt>Họ tên:</dt>
-                <dd>{account.displayName}</dd>
-              </div>
-              <div>
-                <dt>Khóa học:</dt>
-                <dd>2022</dd>
-              </div>
-              <div>
-                <dt>Giới tính:</dt>
-                <dd>{pickPersonal("Giới tính")}</dd>
-              </div>
-              <div>
-                <dt>Bậc đào tạo:</dt>
-                <dd>Đại học</dd>
-              </div>
-              <div>
-                <dt>Ngày sinh:</dt>
-                <dd>{pickPersonal("Ngày sinh")}</dd>
-              </div>
-              <div>
-                <dt>Loại hình đào tạo:</dt>
-                <dd>Chính quy</dd>
-              </div>
-              <div>
-                <dt>Nơi sinh:</dt>
-                <dd>{pickPersonal("Nơi sinh")}</dd>
-              </div>
-              <div>
-                <dt>Ngành:</dt>
-                <dd>{pickEdu("Ngành đào tạo")}</dd>
-              </div>
-            </dl>
-          </div>
-        </article>
+      <section className="sdu-hero-unified" aria-label="Chào mừng, thông tin sinh viên và nhắc nhở trong tuần">
+        <div className="sdu-hero-unified__glow" aria-hidden="true" />
+        <PhuongTree className="sdu-hero-unified__tree" id="phuong-student-unified" />
 
-        <div className="sdu-week-counters">
-          <Link href="/student/notices" className="sdu-counter-card is-notice">
-            <div>
-              <span className="sdu-counter-label">Nhắc nhở mới, chưa xem</span>
-              <strong className="sdu-counter-num">{unread}</strong>
-              <span className="sdu-counter-sub">Xem chi tiết</span>
+        <div className="sdu-hero-unified__top">
+          <div className="sdu-hero-unified__greeting">
+            <span className="sdu-hero-unified__kicker">
+              <PhuongFlower size={16} /> Cổng thông tin Sinh viên · Đại học Sao Đỏ
+            </span>
+            <h2>
+              {greeting(new Date(now))}, {account.displayName}{" "}
+              <span className="sun" aria-hidden="true">
+                <Icon name="sun" />
+              </span>
+            </h2>
+            <p>Theo dõi việc học, hồ sơ học vụ và lịch trình trong tuần của bạn dưới tán phượng đỏ Sao Đỏ</p>
+          </div>
+        </div>
+
+        <div className="sdu-hero-unified__divider" aria-hidden="true">
+          <span />
+          <PhuongFlower size={15} />
+          <PhuongFlower size={20} />
+          <PhuongFlower size={15} />
+          <span />
+        </div>
+
+        <div className="sdu-hero-unified__main">
+          <div className="sdu-hero-unified__profile">
+            <div className="sdu-box-head sdu-hero-unified__subhead">
+              <h3>
+                <PhuongFlower size={16} /> Thông tin sinh viên
+              </h3>
+              <Link href="/student/account" className="sdu-more-link">
+                Xem chi tiết <Icon name="arrow" />
+              </Link>
             </div>
-            <span className="sdu-counter-icon"><Icon name="bell" /></span>
-          </Link>
-          <div className="sdu-counter-split">
-            <Link href="/student/schedule" className="sdu-counter-card is-class">
+            <div className="sdu-profile-body">
+              <Link href="/student/account" className="sdu-profile-avatar" title="Xem hồ sơ sinh viên">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  <span>{initials(account.displayName)}</span>
+                )}
+              </Link>
+              <dl className="sdu-profile-grid">
+                <div>
+                  <dt>MSSV:</dt>
+                  <dd>{account.code}</dd>
+                </div>
+                <div>
+                  <dt>Lớp học:</dt>
+                  <dd>{account.cohortClass}</dd>
+                </div>
+                <div>
+                  <dt>Họ tên:</dt>
+                  <dd>{account.displayName}</dd>
+                </div>
+                <div>
+                  <dt>Khóa học:</dt>
+                  <dd>2022</dd>
+                </div>
+                <div>
+                  <dt>Giới tính:</dt>
+                  <dd>{pickPersonal("Giới tính")}</dd>
+                </div>
+                <div>
+                  <dt>Bậc đào tạo:</dt>
+                  <dd>Đại học</dd>
+                </div>
+                <div>
+                  <dt>Ngày sinh:</dt>
+                  <dd>{pickPersonal("Ngày sinh")}</dd>
+                </div>
+                <div>
+                  <dt>Loại hình đào tạo:</dt>
+                  <dd>Chính quy</dd>
+                </div>
+                <div>
+                  <dt>Nơi sinh:</dt>
+                  <dd>{pickPersonal("Nơi sinh")}</dd>
+                </div>
+                <div>
+                  <dt>Ngành:</dt>
+                  <dd>{pickEdu("Ngành đào tạo")}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <div className="sdu-week-counters sdu-hero-unified__counters">
+            <Link href="/student/notices" className="sdu-counter-card is-notice">
               <div>
-                <span className="sdu-counter-label">Lịch học trong tuần</span>
-                <strong className="sdu-counter-num">{sessions.length}</strong>
+                <span className="sdu-counter-label">Nhắc nhở mới, chưa xem</span>
+                <strong className="sdu-counter-num">{unread}</strong>
                 <span className="sdu-counter-sub">Xem chi tiết</span>
               </div>
-              <span className="sdu-counter-icon"><Icon name="calendar" /></span>
+              <span className="sdu-counter-icon"><Icon name="bell" /></span>
             </Link>
-            <Link href="/student/exams" className="sdu-counter-card is-exam">
-              <div>
-                <span className="sdu-counter-label">Lịch thi trong tuần</span>
-                <strong className="sdu-counter-num">
-                  {exams(now).filter((e) => daysUntil(e.at, now) >= 0 && daysUntil(e.at, now) <= 7).length}
-                </strong>
-                <span className="sdu-counter-sub">Xem chi tiết</span>
-              </div>
-              <span className="sdu-counter-icon"><Icon name="clock" /></span>
-            </Link>
+            <div className="sdu-counter-split">
+              <Link href="/student/schedule" className="sdu-counter-card is-class">
+                <div>
+                  <span className="sdu-counter-label">Lịch học trong tuần</span>
+                  <strong className="sdu-counter-num">{sessions.length}</strong>
+                  <span className="sdu-counter-sub">Xem chi tiết</span>
+                </div>
+                <span className="sdu-counter-icon"><Icon name="calendar" /></span>
+              </Link>
+              <Link href="/student/exams" className="sdu-counter-card is-exam">
+                <div>
+                  <span className="sdu-counter-label">Lịch thi trong tuần</span>
+                  <strong className="sdu-counter-num">{weekExamsCount}</strong>
+                  <span className="sdu-counter-sub">Xem chi tiết</span>
+                </div>
+                <span className="sdu-counter-icon"><Icon name="clock" /></span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-
-      <nav className="sdu-quick-tiles" aria-label="Truy cập nhanh phân hệ học vụ">
-        {quickActions.map((item) => (
-          <Link key={`${item.href}-${item.label}`} href={item.href} className="sdu-quick-tile">
-            <span className="sdu-quick-icon"><Icon name={item.icon} /></span>
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
 
       <section className="sdu-academic-triad" aria-label="Kết quả học tập, Tiến độ tín chỉ và Lớp học phần theo đợt">
         <article className="sdu-triad-card">

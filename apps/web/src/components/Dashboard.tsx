@@ -168,6 +168,7 @@ export function Dashboard({
   links,
   now,
   actions,
+  hideHeader,
   children,
 }: {
   name: string;
@@ -178,6 +179,7 @@ export function Dashboard({
   links: DashboardLinks;
   now: number;
   actions?: React.ReactNode;
+  hideHeader?: boolean;
   /** Optional panels between the greeting and the progress frame (the student "Hôm nay" hub). */
   children?: React.ReactNode;
 }) {
@@ -215,16 +217,18 @@ export function Dashboard({
 
   return (
     <>
-      <div className="dash-header">
-        <div>
-          <h2>
-            {greeting(new Date(now))}, {name} <span className="sun" aria-hidden="true"><Icon name="sun" /></span>
-          </h2>
-          <p>Theo dõi việc học của bạn hôm nay</p>
+      {!hideHeader && (
+        <div className="dash-header">
+          <div>
+            <h2>
+              {greeting(new Date(now))}, {name} <span className="sun" aria-hidden="true"><Icon name="sun" /></span>
+            </h2>
+            <p>Theo dõi việc học của bạn hôm nay</p>
+          </div>
+          {actions && <div className="dash-actions">{actions}</div>}
+          <PhuongTree className="dash-tree" id="phuong-dash" />
         </div>
-        {actions && <div className="dash-actions">{actions}</div>}
-        <PhuongTree className="dash-tree" id="phuong-dash" />
-      </div>
+      )}
 
       {children}
       <div className="dash-frame">
