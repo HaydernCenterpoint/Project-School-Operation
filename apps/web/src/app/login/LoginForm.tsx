@@ -1,15 +1,22 @@
 "use client";
 
+// Motion Prompt #085 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#085
+// Motion Prompt #154 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#154
+// Motion Prompt #158 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#158
+// Motion Prompt #159 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#159
+// Motion Prompt #160 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#160
+
 import type { AcademicSession } from "@sao-do/contracts";
 import type { Session } from "@supabase/supabase-js";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { centerOf, closeCurtain } from "@/components/landing/SceneTransition";
 import { academicRequest } from "@/lib/academic-client";
 import {
   findAccountByLoginInput,
+  PORTAL_ACCOUNTS,
   switchActiveAccount,
   type PortalAccount,
 } from "@/lib/accounts";
@@ -41,13 +48,54 @@ async function destination({ access_token, user }: Session) {
   return (user.app_metadata.must_change_password ? `/doi-mat-khau?next=${encodeURIComponent(target)}` : target) as Route;
 }
 
+type ValidationState =
+  | { status: "idle" }
+  | { status: "valid-student"; resolvedEmail: string; matchedAccount: PortalAccount | null }
+  | { status: "valid-email"; resolvedEmail: string; matchedAccount: PortalAccount | null }
+  | { status: "invalid"; hint: string };
+
+function evaluateIdentityInput(raw: string): ValidationState {
+  const clean = raw.trim();
+  if (!clean) return { status: "idle" };
+
+  const matchedAccount = findAccountByLoginInput(clean);
+  if (/^\d{5,12}$/.test(clean)) {
+    return {
+      status: "valid-student",
+      resolvedEmail: `${clean}@${STUDENT_EMAIL_DOMAIN}`,
+      matchedAccount,
+    };
+  }
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+    return {
+      status: "valid-email",
+      resolvedEmail: clean.toLowerCase(),
+      matchedAccount,
+    };
+  }
+
+  if (clean.length >= 2) {
+    return {
+      status: "invalid",
+      hint: "Nhập mã SV (7 chữ số) hoặc email trường (@saodo.edu.vn)",
+    };
+  }
+
+  return { status: "idle" };
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitDone, setSubmitDone] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const submitBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!hasSupabaseEnvironment) return;
@@ -63,10 +111,44 @@ export function LoginForm() {
       });
   }, [router]);
 
+  const validation = useMemo(() => evaluateIdentityInput(emailInput), [emailInput]);
+
+  // Motion Prompt #085: Spawn ink ripple from exact click coordinates
+  function spawnButtonRipple(event: ReactMouseEvent<HTMLButtonElement>) {
+    const button = event.currentTarget;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rect = button.getBoundingClientRect();
+    const x = event.clientX ? event.clientX - rect.left : rect.width / 2;
+    const y = event.clientY ? event.clientY - rect.top : rect.height / 2;
+    const maxRadius = Math.max(
+      Math.hypot(x, y),
+      Math.hypot(rect.width - x, y),
+      Math.hypot(x, rect.height - y),
+      Math.hypot(rect.width - x, rect.height - y),
+    );
+    const ripple = document.createElement("span");
+    ripple.className = "mp-ripple";
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    ripple.style.width = `${maxRadius * 2}px`;
+    ripple.style.height = `${maxRadius * 2}px`;
+    button.appendChild(ripple);
+    window.setTimeout(() => ripple.remove(), 820);
+  }
+
+  // Motion Prompt #154: Track cursor coordinates inside role cards for spotlight hover
+  function handleRolePointerMove(event: ReactMouseEvent<HTMLButtonElement>) {
+    const card = event.currentTarget;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+    card.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+  }
+
   async function enterWithRoleAccount(account: PortalAccount, originEl: HTMLElement) {
     setLoading(true);
     setError("");
     switchActiveAccount(account.id);
+    setSubmitDone(true);
     const origin = centerOf(originEl);
     const curtain = closeCurtain(
       origin.x,
@@ -96,7 +178,7 @@ export function LoginForm() {
     }
 
     if (!hasSupabaseEnvironment) {
-      setError("Nhập mã tài khoản hợp lệ (2200286, 2200287, 2200288, ductm@saodo.edu.vn).");
+      setError("Mã tài khoản chưa được đăng ký trên máy chủ thử nghiệm (dùng 2200286, 2200287, 2200288 hoặc ductm@saodo.edu.vn)");
       return;
     }
 
@@ -112,16 +194,18 @@ export function LoginForm() {
 
     if (authError || !data.session) {
       setLoading(false);
+      setSubmitDone(false);
       setError(
         authError?.status === 429
-          ? "Bạn đã thử quá nhiều lần. Vui lòng đợi một lát rồi thử lại."
+          ? "Bạn đã thử quá nhiều lần, vui lòng đợi một lát rồi thử lại"
           : authError?.status && authError.status < 500
-            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng."
-            : "Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.",
+            ? "Mã sinh viên, email hoặc mật khẩu chưa đúng"
+            : "Không thể kết nối tới máy chủ, vui lòng kiểm tra mạng và thử lại",
       );
       return;
     }
 
+    setSubmitDone(true);
     const curtain = closeCurtain(origin.x, origin.y, "Đang vào cổng học tập…");
     try {
       const [target] = await Promise.all([destination(data.session), curtain?.closed]);
@@ -129,36 +213,89 @@ export function LoginForm() {
     } catch (requestError) {
       curtain?.cancel();
       setLoading(false);
+      setSubmitDone(false);
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Không thể mở cổng học tập. Vui lòng thử lại.",
+          : "Không thể mở cổng học tập, vui lòng thử lại",
       );
     }
   }
 
+  function handleSelectDemoAccount(account: PortalAccount) {
+    setEmailInput(account.role === "teacher" ? account.email : account.code);
+    setPasswordInput("saodo2026");
+    setError("");
+  }
+
   const describedBy = error ? "login-error" : undefined;
+  const isValidIdentity =
+    validation.status === "valid-student" || validation.status === "valid-email";
+  const isInvalidIdentity = !emailFocused && validation.status === "invalid";
+
   return (
-    <form className="login-form" method="post" onSubmit={signIn}>
-        <label className="field">
-          Mã sinh viên hoặc email
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={Boolean(error)}
-            name="email"
-            type="text"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            autoComplete="username"
-            placeholder="2200286, 2200287, ductm@saodo.edu.vn…"
-            required
-          />
+    <div className="auth-form-stack">
+      <form className="login-form" method="post" onSubmit={signIn}>
+        <label
+          className={`field auth-field${emailFocused ? " is-focused" : ""}${emailInput ? " is-filled" : ""}${isValidIdentity ? " is-valid" : ""}${isInvalidIdentity ? " is-invalid" : ""}`}
+        >
+          <span className="auth-field-head">
+            <span>Mã sinh viên hoặc email</span>
+            {validation.status === "valid-student" && (
+              <span className="auth-field-resolved" aria-hidden="true">
+                {validation.resolvedEmail}
+              </span>
+            )}
+          </span>
+          <div className="auth-input-wrap">
+            <input
+              aria-describedby={describedBy}
+              aria-invalid={Boolean(error) || isInvalidIdentity}
+              name="email"
+              type="text"
+              value={emailInput}
+              onChange={(e) => {
+                setEmailInput(e.target.value);
+                if (error) setError("");
+              }}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoComplete="username"
+              placeholder="2200286 hoặc ten@saodo.edu.vn"
+              required
+            />
+            {isValidIdentity && (
+              <span className="mp-valid-badge" aria-hidden="true">
+                <Icon name="check" />
+              </span>
+            )}
+          </div>
+          {"matchedAccount" in validation && validation.matchedAccount && (
+            <span className="mp-inline-feedback is-ok" aria-live="polite">
+              <span className="mp-feedback-dot" aria-hidden="true" />
+              <span>
+                {validation.matchedAccount.displayName} · {validation.matchedAccount.roleTitle}
+              </span>
+            </span>
+          )}
+          {validation.status === "invalid" && (
+            <span className="mp-inline-feedback is-err">
+              <span className="mp-feedback-bang" aria-hidden="true">!</span>
+              <span>{validation.hint}</span>
+            </span>
+          )}
         </label>
-        <div className="field">
-          <label htmlFor="login-password">Mật khẩu</label>
+
+        <div
+          className={`field auth-field${passwordFocused ? " is-focused" : ""}${passwordInput ? " is-filled" : ""}`}
+        >
+          <div className="auth-field-head">
+            <label htmlFor="login-password">Mật khẩu</label>
+            <span className="auth-field-meta">Tối thiểu 8 ký tự</span>
+          </div>
           <div className="password-wrap">
             <input
               id="login-password"
@@ -167,9 +304,14 @@ export function LoginForm() {
               name="password"
               type={showPassword ? "text" : "password"}
               value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                if (error) setError("");
+              }}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               autoComplete="current-password"
-              placeholder="Nhập mật khẩu…"
+              placeholder="Nhập mật khẩu"
               required
             />
             <button
@@ -183,21 +325,81 @@ export function LoginForm() {
             </button>
           </div>
         </div>
+
         <div aria-live="polite">
           {error && (
-            <p className="form-error" id="login-error" role="alert">
-              {error}
+            <p className="form-error auth-error-banner" id="login-error" role="alert">
+              <Icon name="alert" />
+              <span>{error}</span>
             </p>
           )}
         </div>
+
         <button
-          className="button button-primary button-block"
+          ref={submitBtnRef}
+          className={`button button-primary button-block mp-loading-btn${loading ? " is-loading" : ""}${submitDone ? " is-done" : ""}`}
           aria-busy={loading}
           disabled={loading}
           type="submit"
+          onClick={spawnButtonRipple}
         >
-          {loading ? "Đang đăng nhập…" : "Đăng nhập"}
+          <span className="mp-btn-content">
+            {loading && !submitDone && (
+              <span className="mp-btn-spinner" aria-hidden="true" />
+            )}
+            {submitDone && (
+              <span className="mp-btn-check" aria-hidden="true">
+                <Icon name="check" />
+              </span>
+            )}
+            <span>
+              {submitDone
+                ? "Đã xác thực · Đang mở cổng"
+                : loading
+                  ? "Đang đăng nhập…"
+                  : "Đăng nhập"}
+            </span>
+          </span>
         </button>
       </form>
+
+      <section className="auth-role-section" aria-label="Tài khoản mẫu theo phân quyền">
+        <div className="auth-role-head">
+          <strong>Điền nhanh tài khoản phân quyền</strong>
+          <span>Chạm để điền tự động</span>
+        </div>
+        <div className="auth-role-grid">
+          {PORTAL_ACCOUNTS.slice(0, 3).map((account) => {
+            const loginKey = account.role === "teacher" ? account.email : account.code;
+            const shortRole =
+              account.role === "teacher"
+                ? "Cố vấn học tập"
+                : account.role === "club_leader"
+                  ? "Trưởng CLB"
+                  : "Lớp trưởng";
+            const isSelected =
+              emailInput.trim().toLowerCase() === loginKey.toLowerCase() ||
+              emailInput.trim().toLowerCase() === account.email.toLowerCase();
+            return (
+              <button
+                key={account.id}
+                type="button"
+                className={`auth-role-card is-${account.role}${isSelected ? " is-selected" : ""}`}
+                onClick={() => handleSelectDemoAccount(account)}
+                onMouseMove={handleRolePointerMove}
+                aria-label={`Điền tài khoản ${account.roleTitle} ${account.displayName} (${loginKey})`}
+              >
+                <span className="role-badge">{account.roleBadge}</span>
+                <span className="auth-role-body">
+                  <strong>{account.displayName}</strong>
+                  <span>{shortRole}</span>
+                </span>
+                <code className="auth-role-code">{loginKey}</code>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
