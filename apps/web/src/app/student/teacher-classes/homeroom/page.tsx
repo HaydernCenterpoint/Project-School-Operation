@@ -11,7 +11,6 @@ export default function TeacherHomeroomPage() {
   const {
     data,
     account,
-    accounts,
     roster,
     allSubmissions,
     classAnnouncements,
@@ -19,7 +18,6 @@ export default function TeacherHomeroomPage() {
     updateStudentNote,
     addClassStudent,
     postClassAnnouncement,
-    switchAccount,
   } = useStudent();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -358,7 +356,6 @@ export default function TeacherHomeroomPage() {
             <tbody>
               {filteredRoster.map((student) => {
                 const subCount = allSubmissions.filter((s) => s.studentCode === student.studentCode).length;
-                const switchableAcc = accounts.find((a) => a.code === student.studentCode);
                 const isEditing = editingStudentCode === student.studentCode;
 
                 return (
@@ -455,15 +452,6 @@ export default function TeacherHomeroomPage() {
                             onClick={() => startEditStudent(student)}
                           >
                             <Icon name="pen" /> Sửa sổ cố vấn
-                          </button>
-                        )}
-                        {switchableAcc && (
-                          <button
-                            type="button"
-                            className="button button-quiet button-xs"
-                            onClick={() => switchAccount(switchableAcc.id)}
-                          >
-                            Xem góc nhìn SV
                           </button>
                         )}
                       </div>

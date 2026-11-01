@@ -132,7 +132,15 @@ export function LoginForm() {
     );
     await curtain?.closed;
     const nextParam = new URLSearchParams(location.search).get("next");
-    const target = nextParam && nextParam.startsWith("/student") ? nextParam : "/student";
+    const defaultHome = account.role === "teacher" ? "/student/teacher-classes" : "/student";
+    const target =
+      account.role === "teacher"
+        ? nextParam && nextParam.startsWith("/student/teacher-classes")
+          ? nextParam
+          : defaultHome
+        : nextParam && nextParam.startsWith("/student") && !nextParam.startsWith("/student/teacher-classes")
+          ? nextParam
+          : defaultHome;
     router.push(target as Route);
   }
 

@@ -38,8 +38,6 @@ export default function AssignmentDetailPage() {
   const {
     data,
     account,
-    accounts,
-    switchAccount,
     roster,
     allSubmissions,
     submitStudentWork,
@@ -229,7 +227,6 @@ export default function AssignmentDetailPage() {
           <div className="teacher-grade-list">
             {roster.map((student) => {
               const stuSub = classSubmissions.find((item) => item.studentCode === student.studentCode);
-              const switchableAcc = accounts.find((a) => a.code === student.studentCode);
               const isGradingThis = gradingId === stuSub?.id;
 
               return (
@@ -249,15 +246,6 @@ export default function AssignmentDetailPage() {
                         </span>
                       ) : (
                         <span className="chip warning">Chưa nộp bài</span>
-                      )}
-                      {switchableAcc && (
-                        <button
-                          type="button"
-                          className="button button-quiet button-xs"
-                          onClick={() => switchAccount(switchableAcc.id)}
-                        >
-                          Chuyển sang TK {student.fullName}
-                        </button>
                       )}
                     </div>
                   </div>
@@ -367,16 +355,7 @@ export default function AssignmentDetailPage() {
                   <div>
                     <strong>Đang chờ giảng viên nhận xét ({account.advisorName})</strong>
                     <p>
-                      Bài đã được ghi nhận. Bạn có thể chuyển sang tài khoản{" "}
-                      <button
-                        type="button"
-                        className="button button-outline button-xs"
-                        style={{ marginLeft: 4 }}
-                        onClick={() => switchAccount("acc-teacher-duc")}
-                      >
-                        Giảng viên ThS. Trần Minh Đức
-                      </button>{" "}
-                      để chấm điểm và phản hồi ngay cho bài này.
+                      Bài làm đã được ghi nhận trên hệ thống và gửi tới giảng viên phụ trách để chấm điểm, phản hồi.
                     </p>
                   </div>
                 </div>

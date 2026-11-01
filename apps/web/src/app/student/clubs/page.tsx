@@ -11,7 +11,6 @@ import { useStudent } from "@/lib/student-context";
 export default function ClubsPage() {
   const {
     account,
-    switchAccount,
     clubMembers,
     clubEvents,
     requestJoinClub,
@@ -76,7 +75,7 @@ export default function ClubsPage() {
     setStatusMessage(
       isClubLeader && clubId === managedClubId
         ? `Đã tham gia ${clubName}.`
-        : `Đã gửi đơn đăng ký vào ${clubName}. Chuyển sang tài khoản Trưởng CLB (Nguyễn Văn Minh) để duyệt đơn ngay!`,
+        : `Đã gửi đơn đăng ký vào ${clubName}. Đơn đang chờ Ban chủ nhiệm CLB phê duyệt.`,
     );
   }
 
@@ -91,8 +90,8 @@ export default function ClubsPage() {
             : "Tham gia câu lạc bộ để học thuật, kết nối và cộng điểm rèn luyện. Đơn đăng ký được Trưởng CLB phê duyệt trực tiếp."
         }
       >
-        <div className="role-action-bar">
-          {isClubLeader ? (
+        {isClubLeader && (
+          <div className="role-action-bar">
             <button
               type="button"
               className="button button-primary button-small"
@@ -100,16 +99,8 @@ export default function ClubsPage() {
             >
               <Icon name="plus" /> Lên lịch sinh hoạt CLB
             </button>
-          ) : (
-            <button
-              type="button"
-              className="button button-outline button-small"
-              onClick={() => switchAccount("acc-leader-minh")}
-            >
-              <Icon name="shield" /> Chuyển sang tài khoản Trưởng CLB (Nguyễn Văn Minh)
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </PageTitle>
 
       {statusMessage && (
@@ -390,7 +381,7 @@ export default function ClubsPage() {
               <div className="pt-club-mark" aria-hidden="true">{club.name.replace("CLB ", "").slice(0, 1)}</div>
               <p className="pt-code">
                 {club.category}
-                {club.id === "club-it" ? " · Chủ nhiệm: Nguyễn Văn Minh (DK13-CNTT1)" : ""}
+                {club.id === "club-it" ? " · Chủ nhiệm: Nguyễn Văn Đạt (DK13-CNTT1)" : ""}
               </p>
               <h4>{club.name}</h4>
               <p>{club.about}</p>
