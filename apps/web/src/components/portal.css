@@ -1518,6 +1518,16 @@
 .stg-page {
   --stg-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
+.stg-page .button-primary {
+  color: #ffffff;
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: none;
+}
+.stg-page .button-primary:hover {
+  background: #a81523;
+  border-color: #a81523;
+}
 .stg-toast {
   margin-bottom: 16px;
   padding: 12px 16px;
@@ -2147,8 +2157,13 @@
   border-color: var(--border);
 }
 
+@media (max-width: 1120px) {
+  .stg-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
-  .stg-overview,
   .settings-theme-grid {
     grid-template-columns: 1fr;
   }
