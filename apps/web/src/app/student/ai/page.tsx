@@ -11,7 +11,6 @@ import { useAiIntro } from "@/components/AiIntro";
 import { SceneCurtain } from "@/components/landing/SceneTransition";
 import { Icon, type IconName } from "@/components/Icon";
 import { phuongFonts } from "@/components/landing/fonts";
-import { PhuongFlower } from "@/components/landing/Phuong";
 import { Markdown } from "@/components/Markdown";
 import { ensureVisualBlocksInAnswer } from "@/lib/ai-cad-chart-engine";
 import { aiErrorMessage, aiRequest, AiRequestError, streamChat } from "@/lib/ai-client";
@@ -976,7 +975,6 @@ export default function AiWorkspace() {
         {empty ? (
           <div className="aw-welcome">
             <h2>
-              <img src="/sao-do-logo.png" alt="Đại học Sao Đỏ" width={36} height={36} className="aw-welcome-logo" />{" "}
               {greeting(new Date(now))}, {name}
             </h2>
             <p>
@@ -1043,7 +1041,9 @@ export default function AiWorkspace() {
                       </div>
                     ) : (
                       <div key={message.id} className="aw-msg assistant">
-                        <span className="aw-avatar" aria-hidden="true"><PhuongFlower size={20} /></span>
+                        <span className="aw-avatar" aria-hidden="true">
+                          <img src="/sao-do-logo.png" alt="" width={22} height={22} />
+                        </span>
                         <div className="aw-answer">
                           {message.status === "pending" && !message.content ? (
                             <span className="typing" aria-label="Đang soạn"><i /><i /><i /></span>
