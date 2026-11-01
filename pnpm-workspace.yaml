@@ -2,8 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true
+  workerd: true
 overrides:
   "@react-native/metro-config": "0.86.0"
   react-dom: "19.2.3"

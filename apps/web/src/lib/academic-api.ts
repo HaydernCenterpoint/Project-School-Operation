@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { clientIp, rateLimit } from "./rate-limit";
 import {
   isRole,
   type ApiClass,
@@ -176,6 +177,10 @@ function serverEnvironment() {
 async function getAuthenticatedContext(
   request: Request,
 ): Promise<ContextResult> {
+  // Per IP before any work, so a flood of bad tokens never reaches Supabase Auth.
+  const ipLimited = await rateLimit("ip", clientIp(request));
+  if (ipLimited) return { response: ipLimited };
+
   const authorization = request.headers.get("authorization");
   const match = authorization?.match(/^Bearer ([^\s]+)$/i);
   if (!match) {
@@ -210,6 +215,8 @@ async function getAuthenticatedContext(
       response: apiError(401, "unauthorized", "A valid Bearer token is required."),
     };
   }
+  const userLimited = await rateLimit("user", user.id);
+  if (userLimited) return { response: userLimited };
 
   const { data, error } = await supabase
     .from("memberships")

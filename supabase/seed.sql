@@ -25,7 +25,9 @@ values
   ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'admin.b@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Admin B"}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'teacher.b@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Teacher B"}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'student.b@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Student B"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000009', 'authenticated', 'authenticated', 'moderator.b@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Moderator B"}', now(), now(), '', '', '', '');
+  ('00000000-0000-0000-0000-000000000000', '20000000-0000-0000-0000-000000000009', 'authenticated', 'authenticated', 'moderator.b@saodo.test', crypt('Password123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Moderator B"}', now(), now(), '', '', '', ''),
+  -- Local demo student who signs in with a student code: the form maps 2200286 to this address.
+  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000002200286', 'authenticated', 'authenticated', '2200286@sv.saodo.edu.vn', crypt('1111', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name":"Sinh viên 2200286"}', now(), now(), '', '', '', '');
 
 insert into public.tenants (id, name)
 values
@@ -41,7 +43,8 @@ values
   ('b0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'admin', 'Admin B', 'admin.b@saodo.test'),
   ('b0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'teacher', 'Teacher B', 'teacher.b@saodo.test'),
   ('b0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'student', 'Student B', 'student.b@saodo.test'),
-  ('b0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000009', 'moderator', 'Moderator B', 'moderator.b@saodo.test');
+  ('b0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000009', 'moderator', 'Moderator B', 'moderator.b@saodo.test'),
+  ('a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000002200286', 'student', 'Sinh viên 2200286', '2200286@sv.saodo.edu.vn');
 
 insert into public.classes (id, tenant_id, teacher_id, name)
 values
@@ -51,7 +54,8 @@ values
 insert into public.class_members (tenant_id, class_id, student_id)
 values
   ('a0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003'),
-  ('b0000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003');
+  ('b0000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003'),
+  ('a0000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000002200286');
 
 insert into public.assignments (
   id, tenant_id, class_id, created_by, title, instructions, status, due_at

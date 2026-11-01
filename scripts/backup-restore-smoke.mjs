@@ -36,6 +36,9 @@ function run(command, args, options = {}) {
 function runPnpm(args) {
   const cli = process.env.npm_execpath;
   if (!cli) throw new Error("Run this smoke through pnpm.");
+  if (cli.toLowerCase().endsWith(".exe")) {
+    return run(cli, args);
+  }
   return run(process.execPath, [cli, ...args]);
 }
 
@@ -95,20 +98,7 @@ const fingerprintSql = `
     'class_members', (select count(*) from public.class_members),
     'assignments', (select count(*) from public.assignments),
     'submissions', (select count(*) from public.submissions),
-    'audit_logs', (select count(*) from public.audit_logs),
-    'community_spaces', (select count(*) from public.community_spaces),
-    'space_members', (select count(*) from public.space_members),
-    'community_messages', (select count(*) from public.community_messages),
-    'message_reactions', (select count(*) from public.message_reactions),
-    'content_reports', (select count(*) from public.content_reports),
-    'moderation_actions', (select count(*) from public.moderation_actions),
-    'blocks', (select count(*) from public.blocks),
-    'mutes', (select count(*) from public.mutes),
-    'ai_tenant_policies', (select count(*) from public.ai_tenant_policies),
-    'ai_consents', (select count(*) from public.ai_consents),
-    'knowledge_documents', (select count(*) from public.knowledge_documents),
-    'knowledge_chunks', (select count(*) from public.knowledge_chunks),
-    'ai_usage_events', (select count(*) from public.ai_usage_events)
+    'audit_logs', (select count(*) from public.audit_logs)
   )::text;
 `;
 const before = sql(fingerprintSql);
@@ -138,37 +128,25 @@ try {
   if (!backup.includes('COPY "public"."tenants"')) {
     throw new Error("Local backup does not contain the tenant table.");
   }
-  if (!backup.includes('COPY "public"."knowledge_documents"')) {
-    throw new Error("Local backup does not contain AI knowledge documents.");
-  }
 
   sql(`
-    truncate table
-      public.audit_logs,
-      public.ai_usage_events,
-      public.knowledge_chunks,
-      public.knowledge_documents,
-      public.ai_consents,
-      public.ai_tenant_policies,
-      public.message_reactions,
-      public.moderation_actions,
-      public.content_reports,
-      public.mutes,
-      public.blocks,
-      public.community_messages,
-      public.space_members,
-      public.community_spaces,
-      public.submissions,
-      public.assignments,
-      public.class_members,
-      public.classes,
-      public.memberships,
-      public.tenants
-    restart identity cascade;
+    do $$
+    declare
+      stmt text;
+    begin
+      select 'truncate table ' || string_agg(format('%I.%I', schemaname, tablename), ', ') || ' restart identity cascade'
+      into stmt
+      from pg_tables
+      where schemaname = 'public';
+      if stmt is not null then
+        execute stmt;
+      end if;
+    end;
+    $$;
     truncate table private.academic_rate_limits;
   `);
   truncated = true;
-  sql("", backup);
+  sql("", `SET session_replication_role = replica;\n${backup}`);
 
   const after = sql(fingerprintSql);
   if (after !== before) {

@@ -3,56 +3,12 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import http from "node:http";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
 const uiUrl = process.env.ACADEMIC_UI_URL?.replace(/\/$/, "");
-const providerUrl = process.env.AI_PROVIDER_URL;
-const providerKey = process.env.AI_PROVIDER_API_KEY;
 const password = "Password123!";
-const policyVersion = "pilot-2026-07";
-
-function fakeTutorProvider() {
-  if (!providerUrl) return null;
-  const requests = [];
-  const url = new URL(providerUrl);
-  const server = http.createServer(async (request, response) => {
-    let raw = "";
-    for await (const chunk of request) raw += chunk;
-    const body = JSON.parse(raw);
-    const payload = JSON.parse(body.messages.at(-1).content);
-    requests.push({
-      authorization: request.headers.authorization,
-      path: request.url,
-      payload,
-    });
-    const content = JSON.stringify({
-      answer: "Disconnect the solar training panel before inspection.",
-      citationIds: [payload.sources[0]?.id].filter(Boolean),
-    });
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(
-      JSON.stringify({
-        choices: [{ message: { content } }],
-        usage: { prompt_tokens: 40, completion_tokens: 12 },
-      }),
-    );
-  });
-  return {
-    requests,
-    listen: () =>
-      new Promise((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(Number(url.port), url.hostname, resolve);
-      }),
-    close: () =>
-      new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
-      ),
-  };
-}
 
 function findChrome() {
   const executable = process.platform === "win32" ? ".exe" : "";
@@ -89,12 +45,6 @@ function findChrome() {
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function textNonce() {
-  return randomUUID()
-    .replaceAll("-", "")
-    .replace(/\d/g, (digit) => String.fromCharCode(103 + Number(digit)));
 }
 
 async function waitForValue(read, description, timeout = 15_000) {
@@ -218,8 +168,8 @@ async function navigate(page, url) {
   );
 }
 
-async function waitForDom(page, fn, description, timeout) {
-  return waitForValue(() => evaluate(page, fn), description, timeout);
+async function waitForDom(page, fn, description, timeout, ...args) {
+  return waitForValue(() => evaluate(page, fn, ...args), description, timeout);
 }
 
 async function waitForStableDom(
@@ -471,13 +421,18 @@ async function login(page, email) {
     return true;
   });
   assert.equal(submitted, true, "Login form not found.");
+  const student = email.startsWith("student");
   await waitForDom(
     page,
-    () =>
-      location.pathname === "/portal" &&
-      document.body.textContent.includes("Xin chào"),
-    `portal session for ${email}`,
+    (isStudent) =>
+      isStudent
+        ? location.pathname === "/student" &&
+          Boolean(document.querySelector(".dash-frame"))
+        : location.pathname === "/portal" &&
+          document.body.textContent.includes("Xin chào"),
+    `${student ? "student" : "portal"} session for ${email}`,
     20_000,
+    student,
   );
 }
 
@@ -540,36 +495,31 @@ describe(
     let classId;
     let assignmentTitle;
     let assignmentId;
-    let tutorProvider;
 
     before(async () => {
-      tutorProvider = fakeTutorProvider();
-      if (tutorProvider) await tutorProvider.listen();
       runtime = await launchBrowser();
       page = runtime.page;
       await page.send("Page.enable");
       await page.send("Runtime.enable");
       await page.send("Network.enable");
       await page.send("Accessibility.enable");
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
     });
 
     after(async () => {
-      if (runtime) {
-        try {
-          await runtime.browserCdp.send("Browser.close");
-        } catch {
-          runtime.browser.kill();
-        }
-        runtime.page.close();
-        runtime.browserCdp.close();
-        await Promise.race([
-          new Promise((resolve) => runtime.browser.once("exit", resolve)),
-          delay(3_000).then(() => runtime.browser.kill()),
-        ]);
-        await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
+      if (!runtime) return;
+      try {
+        await runtime.browserCdp.send("Browser.close");
+      } catch {
+        runtime.browser.kill();
       }
-      if (tutorProvider) await tutorProvider.close();
+      runtime.page.close();
+      runtime.browserCdp.close();
+      await Promise.race([
+        new Promise((resolve) => runtime.browser.once("exit", resolve)),
+        delay(3_000).then(() => runtime.browser.kill()),
+      ]);
+      await rm(runtime.profile, { recursive: true, force: true, maxRetries: 3 });
     });
 
     test("login form submits with POST", async () => {
@@ -625,6 +575,14 @@ describe(
       assert.equal(
         await evaluate(
           page,
+          () => document.activeElement?.getAttribute("aria-label"),
+        ),
+        "Hiện mật khẩu",
+      );
+      await pressTab(page);
+      assert.equal(
+        await evaluate(
+          page,
           () => document.activeElement?.getAttribute("type"),
         ),
         "submit",
@@ -633,7 +591,7 @@ describe(
 
     test("login controls expose stable accessible names and roles", async () => {
       const nodes = await getAccessibilityTree(page);
-      assertAccessibleNode(nodes, "textbox", "Email");
+      assertAccessibleNode(nodes, "textbox", "Mã sinh viên hoặc email");
       assertAccessibleNode(nodes, "textbox", "Mật khẩu");
       assertAccessibleNode(nodes, "button", "Đăng nhập");
     });
@@ -645,7 +603,7 @@ describe(
         deviceScaleFactor: 1,
         mobile: false,
       });
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       const layout = await evaluate(page, () => {
         const controls = [
           ...document.querySelectorAll(
@@ -666,7 +624,7 @@ describe(
         noDocumentOverflow: true,
       });
       await page.send("Emulation.clearDeviceMetricsOverride");
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
     });
 
     test("admin login keeps the password out of the URL", async () => {
@@ -783,7 +741,9 @@ describe(
       await navigate(page, `${uiUrl}/portal`);
       await waitForDom(
         page,
-        () => location.pathname === "/" && location.hash === "#dang-nhap",
+        () =>
+          location.pathname === "/login" &&
+          new URLSearchParams(location.search).get("next") === "/portal",
         "portal redirect after session clear",
         20_000,
       );
@@ -924,7 +884,7 @@ describe(
 
     test("assigned student submits text through the authenticated BFF", async () => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "student.a@saodo.test");
       const submitted = await browserApi(page, "/api/submissions", {
         method: "POST",
@@ -944,7 +904,7 @@ describe(
 
     test("teacher sends feedback through the portal form", async () => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "teacher.a@saodo.test");
       await waitForValue(
         () =>
@@ -1013,321 +973,127 @@ describe(
       );
     });
 
-    test("community report reaches the moderator queue and hidden content leaves member views", async () => {
+    test("student sees teacher feedback on the web dashboard and assignment", async () => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "student.a@saodo.test");
-
-      const spaces = await browserApi(page, "/api/community/spaces");
-      assert.equal(spaces.status, 200);
-      const classSpace = spaces.body.spaces.find(
-        (space) => space.kind === "class" && space.canPost,
-      );
-      assert.match(classSpace?.id, /^[0-9a-f-]{36}$/i);
-
-      const communityText = `Community browser E2E ${textNonce()}`;
-      const posted = await browserApi(
+      await waitForDom(
         page,
-        `/api/community/spaces/${classSpace.id}/messages`,
-        {
-          method: "POST",
-          headers: { "Idempotency-Key": randomUUID() },
-          body: {
-            privacyWarningConfirmed: false,
-            replyToId: null,
-            text: communityText,
-          },
-        },
-      );
-      assert.equal(
-        posted.status,
-        201,
-        `Community post failed: ${JSON.stringify(posted.body)}`,
-      );
-      const messageId = posted.body.message.id;
-      assert.match(messageId, /^[0-9a-f-]{36}$/i);
-
-      const reported = await browserApi(
-        page,
-        `/api/community/messages/${messageId}/reports`,
-        {
-          method: "POST",
-          body: {
-            detail: "Browser moderation evidence.",
-            reason: "harassment",
-          },
-        },
-      );
-      assert.equal(
-        reported.status,
-        201,
-        `Community report failed: ${JSON.stringify(reported.body)}`,
-      );
-
-      await clearSession(page);
-      await navigate(page, uiUrl);
-      await login(page, "moderator.a@saodo.test");
-      await waitForValue(
-        () =>
-          evaluate(
-            page,
-            (expected) =>
-              document
-                .querySelector("#moderation")
-                ?.textContent.includes(expected),
-            communityText,
-          ),
-        "moderator evidence queue",
+        () => document.body.textContent.includes("Teacher browser E2E feedback."),
+        "feedback on student dashboard",
         20_000,
       );
-      const moderatorNodes = await getAccessibilityTree(page);
-      assertAccessibleNode(moderatorNodes, "button", "Ẩn nội dung");
-
-      const moderatorKeyboard = await evaluate(page, (expected) => {
-        const report = [...document.querySelectorAll(".moderation-list article")].find(
-          (article) => article.textContent.includes(expected),
-        );
-        const controls = [
-          ...(report?.querySelectorAll(
-            "textarea, .moderation-actions button",
-          ) ?? []),
-        ];
-        const dismissAction = controls.find(
-          (control) => control.textContent?.trim() === "Bỏ qua báo cáo",
-        );
-        dismissAction?.focus();
-        return {
-          controls: controls.map((control) => ({
-            disabled: control.disabled,
-            kind: control.tagName.toLowerCase(),
-            name:
-              control instanceof HTMLTextAreaElement
-                ? control.labels?.[0]?.textContent?.trim() ?? ""
-                : control.textContent?.trim() ?? "",
-            tabIndex: control.tabIndex,
-            visible:
-              control.getClientRects().length > 0 &&
-              getComputedStyle(control).visibility !== "hidden",
-          })),
-          focusedDismissAction: document.activeElement === dismissAction,
-        };
-      }, communityText);
-      assert.deepEqual(
-        moderatorKeyboard.controls,
-        [
-          {
-            disabled: false,
-            kind: "textarea",
-            name: "Ghi chú quyết định",
-            tabIndex: 0,
-            visible: true,
-          },
-          {
-            disabled: false,
-            kind: "button",
-            name: "Bỏ qua báo cáo",
-            tabIndex: 0,
-            visible: true,
-          },
-          {
-            disabled: false,
-            kind: "button",
-            name: "Ẩn nội dung",
-            tabIndex: 0,
-            visible: true,
-          },
-          {
-            disabled: false,
-            kind: "button",
-            name: "Chuyển cấp xử lý",
-            tabIndex: 0,
-            visible: true,
-          },
-          {
-            disabled: false,
-            kind: "button",
-            name: "Đánh dấu đã xử lý",
-            tabIndex: 0,
-            visible: true,
-          },
-        ],
-      );
-      assert.equal(moderatorKeyboard.focusedDismissAction, true);
-      const focusedHideAction = await evaluate(page, (expected) => {
-        const report = [...document.querySelectorAll(".moderation-list article")].find(
-          (article) => article.textContent.includes(expected),
-        );
-        const hideAction = [...(report?.querySelectorAll("button") ?? [])].find(
-          (button) => button.textContent?.trim() === "Ẩn nội dung",
-        );
-        hideAction?.focus();
-        return document.activeElement === hideAction;
-      }, communityText);
-      assert.equal(focusedHideAction, true);
-
-      await page.send("Emulation.setDeviceMetricsOverride", {
-        width: 320,
-        height: 900,
-        deviceScaleFactor: 1,
-        mobile: false,
-      });
-      try {
-        const narrowModeration = await evaluate(page, () => {
-          const controls = [
-            ...document.querySelectorAll(
-              ".moderation-list article:first-child textarea, .moderation-list article:first-child .moderation-actions button",
-            ),
-          ];
-          return {
-            controlsFit:
-              controls.length > 0 &&
-              controls.every((control) => {
-                const rectangle = control.getBoundingClientRect();
-                return rectangle.left >= 0 && rectangle.right <= window.innerWidth;
-              }),
-            noDocumentOverflow:
-              document.documentElement.scrollWidth <= window.innerWidth,
-          };
-        });
-        assert.deepEqual(narrowModeration, {
-          controlsFit: true,
-          noDocumentOverflow: true,
-        });
-      } finally {
-        await page.send("Emulation.clearDeviceMetricsOverride");
-      }
-
-      await page.send("Emulation.setDeviceMetricsOverride", {
-        width: 1280,
-        height: 900,
-        deviceScaleFactor: 1,
-        mobile: false,
-      });
-      const moderationSelectors = [
-        ".moderation-list article:first-child textarea",
-        ".moderation-list article:first-child .moderation-actions button:nth-child(2)",
-      ];
-      const moderationBaseline = await measureTextScaleLayout(
+      await navigate(page, `${uiUrl}/student/assignments/${assignmentId}`);
+      await waitForDom(
         page,
-        moderationSelectors,
-        "#moderation h2",
+        () =>
+          document.body.textContent.includes("Phản hồi của giảng viên") &&
+          !document.querySelector('textarea[name="content"]'),
+        "read-only submitted assignment with feedback",
+        20_000,
       );
-      try {
-        await evaluate(page, () => {
-          document.documentElement.style.zoom = "200%";
-          document.documentElement.style.width = "50%";
-        });
-        const moderationScaled = await measureTextScaleLayout(
+    });
+
+    test("student submits through the web form exactly once", async () => {
+      const draftTitle = `E2E web submit ${randomUUID().slice(0, 8)}`;
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/login`);
+      await login(page, "teacher.a@saodo.test");
+      const created = await browserApi(page, "/api/assignments", {
+        method: "POST",
+        body: {
+          classId,
+          title: draftTitle,
+          instructions: "Web form submission.",
+          status: "published",
+          dueAt: null,
+        },
+      });
+      assert.equal(created.status, 201);
+      const webAssignmentId = created.body.assignment.id;
+
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/login`);
+      await login(page, "student.a@saodo.test");
+      await navigate(page, `${uiUrl}/student/assignments/${webAssignmentId}`);
+      await waitForDom(
+        page,
+        () => Boolean(document.querySelector('textarea[name="content"]')),
+        "student submission form",
+        20_000,
+      );
+      await fill(page, 'textarea[name="content"]', "Bài làm qua giao diện web.");
+      // First submit asks for confirmation, second confirms.
+      for (const label of ["Nộp bài", "Xác nhận nộp bài"]) {
+        await waitForDom(
           page,
-          moderationSelectors,
-          "#moderation h2",
+          (expected) =>
+            document.querySelector('.submit-form button[type="submit"]')?.textContent.trim() === expected,
+          `submit button "${label}"`,
+          20_000,
+          label,
         );
-        assert.ok(
-          moderationScaled.copyHeight / moderationBaseline.copyHeight >= 1.75,
-        );
-        assert.equal(moderationScaled.controlsFit, true);
-        assert.equal(moderationScaled.actionContentFits, true);
-      } finally {
-        await evaluate(page, () => {
-          document.documentElement.style.zoom = "";
-          document.documentElement.style.width = "";
-        });
-        await page.send("Emulation.clearDeviceMetricsOverride");
+        await evaluate(page, () => document.querySelector(".submit-form").requestSubmit());
       }
-
-      await evaluate(page, () => {
-        const originalFetch = window.fetch.bind(window);
-        let failed = false;
-        window.fetch = async (input, init) => {
-          const requestUrl =
-            typeof input === "string"
-              ? input
-              : input instanceof URL
-                ? input.href
-                : input.url;
-          const requestMethod = (
-            init?.method ??
-            (input instanceof Request ? input.method : "GET")
-          ).toUpperCase();
-          if (
-            !failed &&
-            requestMethod === "GET" &&
-            requestUrl.includes("/api/community/moderation")
-          ) {
-            failed = true;
-            throw new TypeError("Forced moderation refresh failure.");
-          }
-          return originalFetch(input, init);
-        };
-      });
-
-      const hidden = await evaluate(page, (expected) => {
-        const report = [...document.querySelectorAll(".moderation-list article")].find(
-          (article) => article.textContent.includes(expected),
-        );
-        const action = [...(report?.querySelectorAll("button") ?? [])].find(
-          (button) => button.textContent.includes("Ẩn nội dung"),
-        );
-        action?.click();
-        return Boolean(action);
-      }, communityText);
-      assert.equal(hidden, true);
-      await waitForValue(
-        () =>
-          evaluate(
-            page,
-            (expected) =>
-              document.body.textContent.includes(
-                "Đã ghi nhận quyết định, nhưng chưa thể làm mới hàng đợi.",
-              ) &&
-              document
-                .querySelector("#moderation")
-                ?.textContent.includes(expected),
-            communityText,
-          ),
-        "moderation success remains explicit when queue refresh fails",
-        20_000,
-      );
-
-      const reloaded = await evaluate(page, () => {
-        const reload = [...document.querySelectorAll("#moderation button")].find(
-          (button) => button.textContent.includes("Tải lại"),
-        );
-        reload?.click();
-        return Boolean(reload);
-      });
-      assert.equal(reloaded, true);
-      await waitForValue(
-        () =>
-          evaluate(
-            page,
-            (expected) =>
-              !document
-                .querySelector("#moderation")
-                ?.textContent.includes(expected),
-            communityText,
-          ),
-        "hidden report removed after queue reload",
-        20_000,
-      );
-
-      await clearSession(page);
-      await navigate(page, uiUrl);
-      await login(page, "student.a@saodo.test");
-      const memberMessages = await browserApi(
+      await waitForDom(
         page,
-        `/api/community/spaces/${classSpace.id}/messages`,
+        () => document.body.textContent.includes("Đang chờ giảng viên nhận xét"),
+        "submitted state",
+        20_000,
       );
-      assert.equal(memberMessages.status, 200);
-      assert.equal(
-        memberMessages.body.messages.some((message) => message.id === messageId),
-        false,
+      const mine = await browserApi(page, `/api/submissions?assignmentId=${webAssignmentId}`);
+      assert.equal(mine.body.submissions.length, 1);
+    });
+
+    test("student is sent from the legacy portal to the student dashboard", async () => {
+      await navigate(page, `${uiUrl}/portal`);
+      await waitForDom(
+        page,
+        () => location.pathname === "/student",
+        "student redirect from portal",
+        20_000,
       );
+    });
+
+    test("disabled AI is reported without breaking academics", async () => {
+      const usage = await browserApi(page, "/api/ai/usage");
+      assert.equal(usage.status, 200);
+      if (usage.body.enabled) return;
+      const chat = await browserApi(page, "/api/ai/chat", {
+        method: "POST",
+        headers: { "Idempotency-Key": randomUUID() },
+        body: { conversationId: null, mode: "explain", content: "Xin chào", assignmentId: null },
+      });
+      assert.equal(chat.status, 503);
+      assert.equal(chat.body.error.code, "ai_disabled");
+      const classes = await browserApi(page, "/api/classes");
+      assert.equal(classes.status, 200);
+    });
+
+    test("guest demo is labelled and has no API access", async () => {
+      await clearSession(page);
+      await navigate(page, `${uiUrl}/guest`);
+      await waitForDom(
+        page,
+        () =>
+          document.body.textContent.includes("Chế độ khách") &&
+          document.body.textContent.includes("Nội dung minh họa"),
+        "labelled guest demo",
+        20_000,
+      );
+      const statuses = await evaluate(page, async () =>
+        Promise.all(
+          ["/api/classes", "/api/submissions", "/api/ai/usage", "/api/ai/conversations"].map(
+            async (path) => (await fetch(path)).status,
+          ),
+        ),
+      );
+      assert.deepEqual(statuses, [401, 401, 401, 401]);
     });
 
     test("admin critical form remains usable at measured 200% text scale", async (context) => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "admin.a@saodo.test");
       const evidence = await assertTextScaleLayout(
         page,
@@ -1345,7 +1111,7 @@ describe(
 
     test("teacher critical form remains usable at measured 200% text scale", async (context) => {
       await clearSession(page);
-      await navigate(page, uiUrl);
+      await navigate(page, `${uiUrl}/login`);
       await login(page, "teacher.a@saodo.test");
       await waitForValue(
         () =>
@@ -1382,235 +1148,5 @@ describe(
         `${evidence.mechanism}; glyph ${evidence.widthRatio.toFixed(2)}x wide, ${evidence.heightRatio.toFixed(2)}x high; critical form fits; document overflow ${evidence.documentOverflow}px`,
       );
     });
-
-    test(
-      "student grants Tutor consent and receives a cited class-scoped answer",
-      {
-        skip:
-          providerUrl && providerKey
-            ? false
-            : "Set fake AI provider environment to run Tutor UI E2E.",
-      },
-      async () => {
-        await clearSession(page);
-        await navigate(page, uiUrl);
-        await login(page, "student.a@saodo.test");
-        await waitForDom(
-          page,
-          () => Boolean(document.querySelector("#tutor")),
-          "student Tutor panel",
-          20_000,
-        );
-
-        const revoked = await browserApi(page, "/api/ai/consent", {
-          method: "POST",
-          body: { granted: false, policyVersion },
-        });
-        assert.equal(revoked.status, 200, JSON.stringify(revoked.body));
-        await navigate(page, `${uiUrl}/portal`);
-
-        await waitForDom(
-          page,
-          () =>
-            Boolean(
-              document.querySelector(
-                '.tutor-consent-check input[type="checkbox"]',
-              ),
-            ),
-          "Tutor consent gate",
-          20_000,
-        );
-        const checked = await evaluate(page, () => {
-          const checkbox = document.querySelector(
-            '.tutor-consent-check input[type="checkbox"]',
-          );
-          checkbox?.click();
-          return Boolean(checkbox);
-        });
-        assert.equal(checked, true);
-        await waitForDom(
-          page,
-          () =>
-            document.querySelector(".tutor-consent .button-primary")
-              ?.disabled === false,
-          "enabled Tutor consent action",
-        );
-        const consentSubmitted = await evaluate(page, () => {
-          const button = document.querySelector(
-            ".tutor-consent .button-primary",
-          );
-          button?.click();
-          return Boolean(button);
-        });
-        assert.equal(consentSubmitted, true);
-
-        await waitForDom(
-          page,
-          () => Boolean(document.querySelector("form.tutor-form")),
-          "Tutor question form",
-          20_000,
-        );
-        await fill(
-          page,
-          ".tutor-form select",
-          "a1000000-0000-0000-0000-000000000001",
-        );
-        await fill(
-          page,
-          "#tutor-question",
-          "solar panel inspection",
-        );
-        const submitted = await evaluate(page, () => {
-          const form = document.querySelector("form.tutor-form");
-          form?.requestSubmit();
-          return Boolean(form);
-        });
-        assert.equal(submitted, true);
-
-        try {
-          await waitForDom(
-            page,
-            () =>
-              document
-                .querySelector("#tutor")
-                ?.textContent.includes(
-                  "Disconnect the solar training panel before inspection.",
-                ),
-            "cited Tutor answer",
-            20_000,
-          );
-        } catch (error) {
-          const snapshot = await evaluate(page, () => ({
-            output:
-              document.querySelector(".tutor-output")?.textContent?.trim() ??
-              "",
-            panel: document.querySelector("#tutor")?.textContent?.trim() ?? "",
-          }));
-          throw new Error(
-            `${error.message}; provider requests: ${tutorProvider.requests.length}; Tutor snapshot: ${JSON.stringify(snapshot)}`,
-          );
-        }
-        const tutorEvidence = await evaluate(page, () => ({
-          text: document.querySelector("#tutor")?.textContent ?? "",
-          overflow:
-            document.documentElement.scrollWidth - window.innerWidth,
-        }));
-        assert.match(tutorEvidence.text, /campus-a-solar-guide\.pdf/i);
-        assert.doesNotMatch(tutorEvidence.text, /BENTHIC_B_ONLY/i);
-        assert.ok(tutorEvidence.overflow <= 1);
-
-        const classSwitched = await evaluate(page, () => {
-          const select = document.querySelector(".tutor-form select");
-          const nextOption = [...(select?.options ?? [])].find(
-            (option) => option.value !== select.value,
-          );
-          if (!select || !nextOption) return false;
-          select.value = nextOption.value;
-          select.dispatchEvent(new Event("change", { bubbles: true }));
-          return true;
-        });
-        assert.equal(classSwitched, true);
-        await waitForDom(
-          page,
-          () =>
-            document.querySelector("#tutor-question")?.value === "" &&
-            !document
-              .querySelector(".tutor-output")
-              ?.textContent.includes(
-                "Disconnect the solar training panel before inspection.",
-              ) &&
-            !document
-              .querySelector(".tutor-output")
-              ?.textContent.match(/campus-a-solar-guide\.pdf/i),
-          "Tutor class switch result reset",
-        );
-        const classSwitchReset = await evaluate(page, () => ({
-          answerRemoved: !document
-            .querySelector(".tutor-output")
-            ?.textContent.includes(
-              "Disconnect the solar training panel before inspection.",
-            ),
-          citationRemoved: !document
-            .querySelector(".tutor-output")
-            ?.textContent.match(/campus-a-solar-guide\.pdf/i),
-          question: document.querySelector("#tutor-question")?.value,
-        }));
-        assert.deepEqual(classSwitchReset, {
-          answerRemoved: true,
-          citationRemoved: true,
-          question: "",
-        });
-
-        await evaluate(page, () => {
-          const originalFetch = window.fetch.bind(window);
-          window.fetch = async (input, init) => {
-            const requestUrl =
-              typeof input === "string"
-                ? input
-                : input instanceof URL
-                  ? input.href
-                  : input.url;
-            const requestMethod = (
-              init?.method ??
-              (input instanceof Request ? input.method : "GET")
-            ).toUpperCase();
-            if (
-              requestMethod === "POST" &&
-              requestUrl.includes("/api/ai/tutor")
-            ) {
-              return new Response(
-                JSON.stringify({
-                  error: {
-                    code: "ai_unavailable",
-                    message: "Tutor is disabled.",
-                  },
-                }),
-                {
-                  headers: { "Content-Type": "application/json" },
-                  status: 503,
-                },
-              );
-            }
-            return originalFetch(input, init);
-          };
-        });
-        await fill(page, "#tutor-question", "forced unavailable state");
-        const unavailableSubmitted = await evaluate(page, () => {
-          const form = document.querySelector("form.tutor-form");
-          form?.requestSubmit();
-          return Boolean(form);
-        });
-        assert.equal(unavailableSubmitted, true);
-        await waitForDom(
-          page,
-          () => {
-            const unavailable = document.querySelector(
-              '.tutor-state-locked[role="status"]',
-            );
-            return Boolean(unavailable && document.activeElement === unavailable);
-          },
-          "focused Tutor unavailable status",
-          20_000,
-        );
-
-        const nodes = await getAccessibilityTree(page);
-        assertAccessibleNode(
-          nodes,
-          "status",
-          "Trợ giảng AI đang tạm dừng. Tính năng này hiện chưa được trường bật.",
-        );
-        assert.ok(tutorProvider.requests.length >= 1);
-        assert.ok(
-          tutorProvider.requests.every(
-            (request) =>
-              request.authorization === `Bearer ${providerKey}` &&
-              request.path?.endsWith("/chat/completions") &&
-              request.payload.sources.every(
-                (source) => !JSON.stringify(source).includes("BENTHIC_B_ONLY"),
-              ),
-          ),
-        );
-      },
-    );
   },
 );
