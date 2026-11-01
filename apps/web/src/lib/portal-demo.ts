@@ -47,10 +47,14 @@ export function weekdayIndex(iso: string) {
 }
 
 const dateFormat = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
-const shortDate = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" });
 const timeFormat = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" });
 export const longDay = (iso: string) => dateFormat.format(new Date(iso));
-export const shortDay = (value: string | number) => shortDate.format(new Date(value));
+export const shortDay = (value: string | number | Date) => {
+  const d = value instanceof Date ? value : new Date(value);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}`;
+};
 export const clock = (iso: string) => timeFormat.format(new Date(iso));
 
 export function money(amount: number) {

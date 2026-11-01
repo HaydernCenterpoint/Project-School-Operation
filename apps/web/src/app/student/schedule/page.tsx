@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { DemoBanner, PageTitle } from "@/components/portal/Parts";
+import { PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
+import { DemoBanner } from "@/components/portal/Parts";
 import { DayStack, WeekPanel, type Kind, type ScheduleItem } from "@/components/portal/ScheduleDay";
 import "@/components/portal/schedule.css";
 import { useSlider } from "@/lib/use-slider";
@@ -14,6 +15,7 @@ import {
   initialActivities,
   initialClubs,
   periods,
+  semester,
   sessions,
   shortDay,
   useDemoState,
@@ -219,25 +221,55 @@ export default function SchedulePage() {
     );
   };
 
+  const sunday = monday + 6 * day;
+  const endYear = new Date(sunday).getFullYear();
+
   return (
     <div className="sch">
+      <div className="sch-backdrop" aria-hidden="true">
+        <span className="sch-orb sch-orb--warm" />
+        <span className="sch-orb sch-orb--gold" />
+        <span className="sch-orb sch-orb--indigo" />
+      </div>
       <DemoBanner />
-      <PageTitle
-        title={`${shortDay(monday)} – ${shortDay(monday + 6 * day)}`}
-        lead={summaryParts.join(" · ")}
-      >
-        <div className="sch-nav" role="group" aria-label="Chọn tuần">
-          <button type="button" aria-label="Tuần trước" onClick={() => moveWeek(offset - 1)}>
-            <Icon name="back" />
-          </button>
-          <button type="button" className="sch-today" onClick={() => moveWeek(0)} disabled={offset === 0}>
-            Hôm nay
-          </button>
-          <button type="button" aria-label="Tuần sau" onClick={() => moveWeek(offset + 1)}>
-            <Icon name="arrow" />
-          </button>
+
+      <section className="sch-cover" aria-label="Bìa lịch học và hoạt động trong tuần">
+        <div className="sch-cover__art" aria-hidden="true">
+          <span className="sch-cover__sun" />
+          <span className="sch-cover__wave" />
+          <PhuongTree className="sch-cover__tree" id="phuong-schedule-cover" />
         </div>
-      </PageTitle>
+
+        <div className="sch-cover__content">
+          <div className="sch-cover__main">
+            <div className="sch-cover__badges">
+              <span className="sch-cover__kicker">
+                <PhuongFlower size={15} /> Thời khóa biểu & Lịch sinh viên
+              </span>
+              <span className="sch-cover__sem">{semester.name}</span>
+            </div>
+            <h2 className="sch-cover__title">
+              {shortDay(monday)} – {shortDay(sunday)}
+              <small>/{endYear}</small>
+            </h2>
+            <p className="sch-cover__lead">{summaryParts.join(" · ")}</p>
+          </div>
+
+          <div className="sch-cover__actions">
+            <div className="sch-nav" role="group" aria-label="Chọn tuần">
+              <button type="button" aria-label="Tuần trước" onClick={() => moveWeek(offset - 1)}>
+                <Icon name="back" />
+              </button>
+              <button type="button" className="sch-today" onClick={() => moveWeek(0)} disabled={offset === 0}>
+                Hôm nay ({shortDay(now)})
+              </button>
+              <button type="button" aria-label="Tuần sau" onClick={() => moveWeek(offset + 1)}>
+                <Icon name="arrow" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Toolbar: Week strip, category filters, and view switcher */}
       <div className="sch-bar">
@@ -267,13 +299,16 @@ export default function SchedulePage() {
           <span className={`sch-pill${pillReady ? " is-ready" : ""}`} style={pillStyle} aria-hidden="true" />
           {weekdays.map((name, index) => {
             const kindsOfDay = [...new Set(byDay[index]!.map((item) => item.kind))];
+            const cellDate = new Date(monday + index * day);
+            const dd = String(cellDate.getDate()).padStart(2, "0");
+            const mm = String(cellDate.getMonth() + 1).padStart(2, "0");
             return (
               <button
                 key={name}
                 type="button"
                 role="tab"
                 aria-selected={index === selected}
-                aria-label={`${name} ${shortDay(monday + index * day)}, ${byDay[index]!.length} mục`}
+                aria-label={`${name} ${dd}/${mm}, ${byDay[index]!.length} mục`}
                 className={`${index === todayIndex ? "is-today" : ""}${index >= 5 ? " is-weekend" : ""}`}
                 onClick={() => {
                   setPicked(index);
@@ -281,7 +316,10 @@ export default function SchedulePage() {
                 }}
               >
                 <span>{dayName[index]}</span>
-                <strong>{new Date(monday + index * day).getDate()}</strong>
+                <strong>
+                  {dd}
+                  <small>/{mm}</small>
+                </strong>
                 <em aria-hidden="true">
                   {kindsOfDay.map((kind) => <i key={kind} className={`k-${kind}`} />)}
                 </em>
@@ -308,13 +346,18 @@ export default function SchedulePage() {
           <div className="sch-scroll">
             <div className="sch-grid" style={{ "--hours": lastHour - firstHour, "--hour": `${hourPx}px` } as React.CSSProperties}>
               <div className="sch-corner" />
-              {weekdays.map((name, index) => (
-                <div key={name} className={`sch-head${index === todayIndex ? " is-today" : ""}${index >= 5 ? " is-weekend" : ""}`}>
-                  <span>{dayName[index]}</span>
-                  <strong>{new Date(monday + index * day).getDate()}</strong>
-                  {index === todayIndex && <em>Hôm nay</em>}
-                </div>
-              ))}
+              {weekdays.map((name, index) => {
+                const cellDate = new Date(monday + index * day);
+                const dd = String(cellDate.getDate()).padStart(2, "0");
+                const mm = String(cellDate.getMonth() + 1).padStart(2, "0");
+                return (
+                  <div key={name} className={`sch-head${index === todayIndex ? " is-today" : ""}${index >= 5 ? " is-weekend" : ""}`}>
+                    <span>{dayName[index]}</span>
+                    <strong>{dd}/{mm}</strong>
+                    {index === todayIndex && <em>Hôm nay</em>}
+                  </div>
+                );
+              })}
               <div className="sch-axis">
                 {Array.from({ length: lastHour - firstHour + 1 }, (_, hour) => (
                   <span key={hour} style={{ top: hour * hourPx }}>{String(firstHour + hour).padStart(2, "0")}:00</span>

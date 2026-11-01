@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { centerOf } from "@/components/landing/SceneTransition";
 import { DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
@@ -47,15 +47,16 @@ export default function AccountPage() {
   const { data, avatarUrl, setAvatarUrl, account, roster, signOut } = useStudent();
   const [leaving, setLeaving] = useState(false);
   const [reveal, setReveal] = useState(false);
-  const [avatarNotice, setAvatarNotice] = useState("");
-  const [avatarError, setAvatarError] = useState("");
+  const [avatarFeedback, setAvatarFeedback] = useState<{
+    accountId: string;
+    notice: string;
+    error: string;
+  }>({ accountId: account.id, notice: "", error: "" });
   const [savingAvatar, setSavingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setAvatarNotice("");
-    setAvatarError("");
-  }, [account.id]);
+  const avatarNotice = avatarFeedback.accountId === account.id ? avatarFeedback.notice : "";
+  const avatarError = avatarFeedback.accountId === account.id ? avatarFeedback.error : "";
 
   if (!data) return null;
 
@@ -104,13 +105,21 @@ export default function AccountPage() {
     event.target.value = "";
     if (!file) return;
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       const cropped = await cropAvatarFile(file);
       await setAvatarUrl(cropped);
-      setAvatarNotice(`Đã lưu ảnh đại diện riêng cho ${account.displayName}`);
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã lưu ảnh đại diện riêng cho ${account.displayName}`,
+        error: "",
+      });
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Không thể cập nhật ảnh đại diện");
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: "",
+        error: err instanceof Error ? err.message : "Không thể cập nhật ảnh đại diện",
+      });
     } finally {
       setSavingAvatar(false);
     }
@@ -118,10 +127,14 @@ export default function AccountPage() {
 
   async function selectPresetAvatar(dataUrl: string, label: string) {
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       await setAvatarUrl(dataUrl);
-      setAvatarNotice(`Đã chọn mẫu "${label}" cho ${account.displayName}`);
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã chọn mẫu "${label}" cho ${account.displayName}`,
+        error: "",
+      });
     } finally {
       setSavingAvatar(false);
     }
@@ -129,10 +142,14 @@ export default function AccountPage() {
 
   async function clearCustomAvatar() {
     setSavingAvatar(true);
-    setAvatarError("");
+    setAvatarFeedback({ accountId: account.id, notice: "", error: "" });
     try {
       await setAvatarUrl(null);
-      setAvatarNotice(`Đã đặt lại ảnh mặc định cho ${account.displayName}`);
+      setAvatarFeedback({
+        accountId: account.id,
+        notice: `Đã đặt lại ảnh mặc định cho ${account.displayName}`,
+        error: "",
+      });
     } finally {
       setSavingAvatar(false);
     }

@@ -203,23 +203,32 @@ export function AppShell({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    queueMicrotask(() => {
+    const syncCollapse = () => {
       try {
         setCollapsed(localStorage.getItem(collapseKey) === "1");
       } catch {
         // Preference only.
       }
-    });
+    };
+    queueMicrotask(syncCollapse);
+    window.addEventListener("storage", syncCollapse);
+    window.addEventListener("sao-do:sidebar-sync", syncCollapse);
+    return () => {
+      window.removeEventListener("storage", syncCollapse);
+      window.removeEventListener("sao-do:sidebar-sync", syncCollapse);
+    };
   }, []);
 
   function toggle() {
     setCollapsed((value) => {
+      const next = !value;
       try {
-        localStorage.setItem(collapseKey, value ? "0" : "1");
+        localStorage.setItem(collapseKey, next ? "1" : "0");
+        window.dispatchEvent(new CustomEvent("sao-do:sidebar-sync"));
       } catch {
         // Preference only.
       }
-      return !value;
+      return next;
     });
   }
 

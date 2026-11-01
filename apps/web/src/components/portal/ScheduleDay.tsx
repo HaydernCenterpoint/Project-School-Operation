@@ -30,6 +30,9 @@ const parts = [
 ] as const;
 
 const hm = (date: Date) => date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+const ddmm = (date: Date) =>
+  `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+const ddmmyyyy = (date: Date) => `${ddmm(date)}/${date.getFullYear()}`;
 
 export function duration(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -127,15 +130,25 @@ export function DayStack({ days, selected, now }: { days: { date: Date; items: S
 function DayAgenda({ date, items, now }: { date: Date; items: ScheduleItem[]; now: number }) {
   const busy = items.length ? `${hm(items[0]!.start)} – ${hm(items.at(-1)!.end)}` : "";
   const classes = items.filter((item) => item.kind === "class").length;
+  const weekdayLabel = date.toLocaleDateString("vi-VN", { weekday: "long" });
   return (
-    <section className="sd-day" aria-label={date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}>
+    <section className="sd-day" aria-label={`${weekdayLabel}, ${ddmmyyyy(date)}`}>
       <header className="sd-day-head">
-        <h2>{date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}</h2>
-        <p>
-          {items.length
-            ? `${classes ? `${classes} buổi học` : ""}${classes && items.length > classes ? " · " : ""}${items.length > classes ? `${items.length - classes} lịch khác` : ""} · khung giờ ${busy}`
-            : "Không có lịch trong ngày"}
-        </p>
+        <div className="sd-day-badge" aria-hidden="true">
+          <span>Ngày/Tháng</span>
+          <strong>{ddmm(date)}</strong>
+        </div>
+        <div className="sd-day-title">
+          <h2>
+            {weekdayLabel}, <span>{ddmm(date)}</span>
+            <small>/{date.getFullYear()}</small>
+          </h2>
+          <p>
+            {items.length
+              ? `${classes ? `${classes} buổi học` : ""}${classes && items.length > classes ? " · " : ""}${items.length > classes ? `${items.length - classes} lịch khác` : ""} · khung giờ ${busy}`
+              : "Không có lịch trong ngày · Thời gian tự học & hoạt động ngoại khóa"}
+          </p>
+        </div>
       </header>
       {items.length ? (
         parts.map((part) => {
@@ -204,7 +217,7 @@ export function WeekPanel({
           </div>
           <h3>{next.title}</h3>
           <p className="sd-next-meta">
-            <span>{next.start.toLocaleDateString("vi-VN", { weekday: "long" })}</span>
+            <span>{next.start.toLocaleDateString("vi-VN", { weekday: "long" })} ({ddmm(next.start)})</span>
             <span>·</span>
             <code>{hm(next.start)} – {hm(next.end)}</code>
             <span>·</span>
