@@ -23,6 +23,7 @@ import {
   subscribeStudentMemories,
 } from "@/lib/ai-student-memory";
 import { greeting, initials } from "@/lib/format";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 import { usePhuongTheme } from "@/lib/theme";
 
@@ -176,7 +177,7 @@ export default function AiWorkspace() {
   } = useStudent();
   const { theme, toggleTheme } = usePhuongTheme();
   const token = data?.token || "local-multi-role-session";
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [consent, setConsent] = useState<boolean | null>(null);
   const intro = useAiIntro(Boolean(data || loadError) && consent !== null);
   const [sideCollapsed, setSideCollapsed] = useState(false);

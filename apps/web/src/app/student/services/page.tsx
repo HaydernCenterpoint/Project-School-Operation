@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { DemoBanner, Empty, PageTitle, Section } from "@/components/portal/Parts";
-import { clock, initialRequests, longDay, money, serviceTypes, useDemoState, type ServiceRequest } from "@/lib/portal-demo";
+import { clock, initialRequests, longDay, money, serviceTypes, useDemoState, useHydratedNow, type ServiceRequest } from "@/lib/portal-demo";
 
 const statusLabel: Record<ServiceRequest["status"], { text: string; chip: string }> = {
   received: { text: "Đã tiếp nhận", chip: "submitted" },
@@ -14,7 +14,7 @@ const statusLabel: Record<ServiceRequest["status"], { text: string; chip: string
 
 function ServicesContent() {
   const searchParams = useSearchParams();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [requests, setRequests] = useDemoState("services", () => initialRequests(now));
   const [chosen, setChosen] = useState<string | null>(null);
   const [purpose, setPurpose] = useState("");

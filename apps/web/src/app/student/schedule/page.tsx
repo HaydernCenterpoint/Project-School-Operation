@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { PhuongFlower, PhuongTree } from "@/components/landing/Phuong";
 import { DemoBanner } from "@/components/portal/Parts";
@@ -19,6 +19,7 @@ import {
   sessions,
   shortDay,
   useDemoState,
+  useHydratedNow,
   weekdays,
   weekStart,
 } from "@/lib/portal-demo";
@@ -162,18 +163,13 @@ function layout(dayItems: Item[]) {
 const dayName = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 export default function SchedulePage() {
-  const [now, setNow] = useState(Date.now);
+  const [now] = useHydratedNow(60_000);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<Kind[]>(kinds.map((item) => item.key));
   const [picked, setPicked] = useState<number | null>(null);
   const [view, setView] = useState<"day" | "week">("day");
   const [joinedClubs] = useDemoState("clubs", () => initialClubs);
   const [registered] = useDemoState("activities", () => initialActivities);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   const monday = weekStart(now) + offset * 7 * day;
   const todayIndex = offset === 0 ? (new Date(now).getDay() + 6) % 7 : -1;

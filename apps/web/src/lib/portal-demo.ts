@@ -25,34 +25,66 @@ export const periods: { start: string; end: string }[] = [
 export const weekdays = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 
 const day = 24 * 3600 * 1000;
+const VN_OFFSET_MS = 7 * 3600 * 1000;
 
-/** Monday 00:00 (local time) of the week containing `time`. */
+/**
+ * Deterministic initial timestamp used during SSR and the first client hydration pass
+ * so static HTML and client hydration always render identical date/time text (preventing React #418).
+ */
+export const HYDRATION_ANCHOR_NOW = Date.parse("2026-11-01T08:00:00+07:00");
+
+export function useHydratedNow(tickMs = 0) {
+  const [now, setNow] = useState(HYDRATION_ANCHOR_NOW);
+  useEffect(() => {
+    queueMicrotask(() => setNow(Date.now()));
+    if (tickMs <= 0) return;
+    const timer = window.setInterval(() => setNow(Date.now()), tickMs);
+    return () => window.clearInterval(timer);
+  }, [tickMs]);
+  return [now, setNow] as const;
+}
+
+/** Monday 00:00 (Vietnam time, UTC+7) of the week containing `time`. */
 export function weekStart(time: number) {
-  const date = new Date(time);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime() - ((date.getDay() + 6) % 7) * day;
+  const vn = new Date(time + VN_OFFSET_MS);
+  vn.setUTCHours(0, 0, 0, 0);
+  const mondayVn = vn.getTime() - ((vn.getUTCDay() + 6) % 7) * day;
+  return mondayVn - VN_OFFSET_MS;
 }
 
-/** A date `offset` days from today at "HH:MM", as an ISO string. */
+/** A date `offset` days from today at "HH:MM" (Vietnam time, UTC+7), as an ISO string. */
 function fromToday(now: number, offset: number, time = "07:00") {
-  const date = new Date(weekStart(now) + ((new Date(now).getDay() + 6) % 7) * day + offset * day);
+  const vn = new Date(now + VN_OFFSET_MS);
+  vn.setUTCHours(0, 0, 0, 0);
   const [hours, minutes] = time.split(":").map(Number);
-  date.setHours(hours!, minutes!, 0, 0);
-  return date.toISOString();
+  const targetVn = vn.getTime() + offset * day + (hours! * 60 + minutes!) * 60_000;
+  return new Date(targetVn - VN_OFFSET_MS).toISOString();
 }
 
-/** Day index 0 (Mon) to 6 (Sun) of an ISO date. */
+/** Day index 0 (Mon) to 6 (Sun) of an ISO date in Vietnam time (UTC+7). */
 export function weekdayIndex(iso: string) {
-  return (new Date(iso).getDay() + 6) % 7;
+  const vn = new Date(Date.parse(iso) + VN_OFFSET_MS);
+  return (vn.getUTCDay() + 6) % 7;
 }
 
-const dateFormat = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
-const timeFormat = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" });
+const dateFormat = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const timeFormat = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 export const longDay = (iso: string) => dateFormat.format(new Date(iso));
 export const shortDay = (value: string | number | Date) => {
-  const d = value instanceof Date ? value : new Date(value);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const ms = value instanceof Date ? value.getTime() : typeof value === "number" ? value : Date.parse(value);
+  const vn = new Date(ms + VN_OFFSET_MS);
+  const dd = String(vn.getUTCDate()).padStart(2, "0");
+  const mm = String(vn.getUTCMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}`;
 };
 export const clock = (iso: string) => timeFormat.format(new Date(iso));

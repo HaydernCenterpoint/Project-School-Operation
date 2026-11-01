@@ -67,14 +67,23 @@ async function run<T>(query: PromiseLike<{ data: unknown; error: { code?: string
 }
 
 export const news = {
-  posts: (limit = 80) =>
-    run<NewsPost[]>(
+  posts: async (limit = 80): Promise<NewsPost[]> => {
+    const { data } = await db().auth.getSession();
+    if (!data.session) return [];
+    return run<NewsPost[]>(
       db().from("news_posts")
         .select("id, url, title, summary, image_url, category, published_at, ai_summary, hidden, source:news_sources(name, kind)")
         .order("published_at", { ascending: false })
         .limit(limit),
-    ),
-  sources: () => run<NewsSource[]>(db().from("news_sources").select("id, kind, name, url, category, active, last_synced_at, last_error").order("name")),
+    );
+  },
+  sources: async (): Promise<NewsSource[]> => {
+    const { data } = await db().auth.getSession();
+    if (!data.session) return [];
+    return run<NewsSource[]>(
+      db().from("news_sources").select("id, kind, name, url, category, active, last_synced_at, last_error").order("name"),
+    );
+  },
   addSource: (tenant: string, source: Pick<NewsSource, "kind" | "name" | "url" | "category">) =>
     run(db().from("news_sources").insert({ ...source, tenant_id: tenant })),
   setActive: (id: string, active: boolean) => run(db().from("news_sources").update({ active }).eq("id", id)),
@@ -124,10 +133,16 @@ export const news = {
 };
 
 const relative = new Intl.RelativeTimeFormat("vi", { numeric: "auto" });
-const fullDate = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+const fullDate = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const NEWS_ANCHOR_MS = Date.parse("2026-11-01T08:00:00+07:00");
 
 /** "3 giờ trước" within a week, the date after that. */
-export function ago(iso: string, now = Date.now()) {
+export function ago(iso: string, now = NEWS_ANCHOR_MS) {
   const minutes = Math.round((Date.parse(iso) - now) / 60_000);
   if (minutes > -60) return relative.format(Math.min(minutes, 0), "minute");
   if (minutes > -1440) return relative.format(Math.round(minutes / 60), "hour");
@@ -139,7 +154,7 @@ export function formatNewsDate(iso: string) {
   return fullDate.format(new Date(iso));
 }
 
-const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
+const hoursAgo = (hours: number) => new Date(NEWS_ANCHOR_MS - hours * 3_600_000).toISOString();
 
 /**
  * Curated SDU campus dispatches shown when the database feed has not been synced yet,

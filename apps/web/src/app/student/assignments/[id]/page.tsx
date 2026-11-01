@@ -10,6 +10,7 @@ import { Icon } from "@/components/Icon";
 import { Section } from "@/components/portal/Parts";
 import { academicRequest } from "@/lib/academic-client";
 import { dueState, formatDate, formatDeadline } from "@/lib/format";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 const maxLength = 20_000;
@@ -45,7 +46,7 @@ export default function AssignmentDetailPage() {
     gradeSubmission,
     refresh,
   } = useStudent();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [content, setContent] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);

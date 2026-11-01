@@ -12,6 +12,7 @@ import {
   type AgentFeedResponse,
   type NewsPost,
 } from "@/lib/news";
+import { useHydratedNow } from "@/lib/portal-demo";
 import "@/components/news/news.css";
 
 const TINYFISH_KEY_STORAGE = "sao-do:tinyfish-api-key";
@@ -51,7 +52,7 @@ function Cover({ post, eager = false }: { post: NewsPost; eager?: boolean }) {
   );
 }
 
-function Card({ post, lead = false }: { post: NewsPost; lead?: boolean }) {
+function Card({ post, lead = false, now }: { post: NewsPost; lead?: boolean; now: number }) {
   const tone = categoryTone[post.category] ?? "is-edu";
   return (
     <article className={`nw-card${lead ? " is-lead" : ""}`}>
@@ -62,8 +63,8 @@ function Card({ post, lead = false }: { post: NewsPost; lead?: boolean }) {
             <i aria-hidden="true" />
             {post.category}
           </span>
-          <time dateTime={post.published_at} title={formatNewsDate(post.published_at)}>
-            {lead ? `${ago(post.published_at)} · ${formatNewsDate(post.published_at)}` : ago(post.published_at)}
+          <time dateTime={post.published_at} title={formatNewsDate(post.published_at)} suppressHydrationWarning>
+            {lead ? `${ago(post.published_at, now)} · ${formatNewsDate(post.published_at)}` : ago(post.published_at, now)}
           </time>
         </div>
         <h3>
@@ -105,6 +106,7 @@ function mergePosts(primary: NewsPost[], secondary: NewsPost[]): NewsPost[] {
 }
 
 export default function NewsPage() {
+  const [now] = useHydratedNow(60_000);
   const [livePosts, setLivePosts] = useState<NewsPost[] | null>(null);
   const [agentMeta, setAgentMeta] = useState<AgentFeedResponse["report"] | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
@@ -347,7 +349,7 @@ export default function NewsPage() {
                   : "Chế độ SDU Live Agent"}
               </span>
               {agentMeta?.ranAt && (
-                <code>Lần quét gần nhất: {ago(agentMeta.ranAt)}</code>
+                <code suppressHydrationWarning>Lần quét gần nhất: {ago(agentMeta.ranAt, now)}</code>
               )}
             </div>
           </header>
@@ -566,7 +568,7 @@ export default function NewsPage() {
         <>
           {!isFiltered && wirePosts.length > 0 ? (
             <div className="nw-desk">
-              <Card post={lead} lead />
+              <Card post={lead} lead now={now} />
 
               <aside className="nw-wire-card" aria-label="Điểm tin nhanh từ các đơn vị">
                 <header className="nw-wire-head">
@@ -587,7 +589,9 @@ export default function NewsPage() {
                             <i aria-hidden="true" />
                             {post.category}
                           </span>
-                          <time dateTime={post.published_at}>{ago(post.published_at)}</time>
+                          <time dateTime={post.published_at} suppressHydrationWarning>
+                            {ago(post.published_at, now)}
+                          </time>
                         </div>
                         <a
                           href={post.url}
@@ -625,7 +629,7 @@ export default function NewsPage() {
             </div>
           ) : (
             <div className="nw-filtered-lead">
-              <Card post={lead} lead />
+              <Card post={lead} lead now={now} />
             </div>
           )}
 
@@ -637,7 +641,7 @@ export default function NewsPage() {
               </header>
               <div className="nw-grid">
                 {gridPosts.map((post) => (
-                  <Card key={post.id} post={post} />
+                  <Card key={post.id} post={post} now={now} />
                 ))}
               </div>
             </section>

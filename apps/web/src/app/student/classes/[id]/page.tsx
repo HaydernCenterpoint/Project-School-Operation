@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { AssignmentRows } from "@/components/AssignmentRows";
 import { Icon } from "@/components/Icon";
 import { Section } from "@/components/portal/Parts";
 import { classCode } from "@/lib/format";
+import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data } = useStudent();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   if (!data) return null;
   const item = data.session.classes.find((entry) => entry.id === id);
 

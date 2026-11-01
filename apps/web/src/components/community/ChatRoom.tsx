@@ -33,8 +33,8 @@ export function when(iso: string) {
   return isToday(iso) ? clock(iso) : shortDay(iso);
 }
 
-const isToday = (iso: string) => new Date(iso).toDateString() === new Date().toDateString();
-const sameDay = (a: string, b: string) => new Date(a).toDateString() === new Date(b).toDateString();
+const isToday = (iso: string) => shortDay(iso) === shortDay(Date.now());
+const sameDay = (a: string, b: string) => shortDay(a) === shortDay(b);
 const stamp = (iso: string) => `${isToday(iso) ? "Hôm nay" : shortDay(iso)} · ${clock(iso)}`;
 
 const continues = (previous: ChatMessage | undefined, next: ChatMessage | undefined) =>
@@ -167,9 +167,7 @@ export function ChatRoom({
   const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>({});
   const picker = useRef<HTMLInputElement>(null);
   const viewer = useRef<HTMLDialogElement>(null);
-  const [showInfo, setShowInfo] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 1280px)").matches : false,
-  );
+  const [showInfo, setShowInfo] = useState(false);
   const log = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const stick = useRef(true);
@@ -182,6 +180,9 @@ export function ChatRoom({
 
   useEffect(() => {
     queueMicrotask(() => {
+      if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) {
+        setShowInfo(true);
+      }
       try {
         const raw = localStorage.getItem(`sao-do:cm-reactions:${room.id}`);
         if (raw) setReactions(JSON.parse(raw));

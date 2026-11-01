@@ -14,12 +14,13 @@ import {
   terms,
   total,
   useDemoState,
+  useHydratedNow,
 } from "@/lib/portal-demo";
 
 const passedCodes = new Set(terms.flatMap((term) => term.rows).filter((row) => total(row) >= 4).map((row) => row.code));
 
 export default function RegistrationPage() {
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [picked, setPicked] = useDemoState("registration", () => initialRegistration);
   const [status, setStatus] = useState("");
   const period = registrationWindow(now);

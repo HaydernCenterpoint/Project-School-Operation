@@ -182,7 +182,7 @@ function currentLocalUserId(): string {
 }
 
 function buildSeedState(): LocalState {
-  const now = Date.now();
+  const now = Date.parse("2026-11-01T08:00:00+07:00");
   const minsAgo = (m: number) => new Date(now - m * 60_000).toISOString();
 
   const profiles: Profile[] = [

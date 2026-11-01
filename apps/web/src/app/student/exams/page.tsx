@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { countdown, daysUntil, DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
-import { clock, courseByCode, exams, longDay, semester } from "@/lib/portal-demo";
+import { clock, courseByCode, exams, longDay, semester, useHydratedNow } from "@/lib/portal-demo";
 
 const rounds = ["Tất cả", "Giữa kỳ", "Cuối kỳ"] as const;
 
 export default function ExamsPage() {
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [round, setRound] = useState<(typeof rounds)[number]>("Tất cả");
   const list = exams(now)
     .filter((exam) => round === "Tất cả" || exam.round === round)

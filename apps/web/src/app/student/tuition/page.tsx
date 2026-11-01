@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { countdown, daysUntil, DemoBanner, PageTitle, Section } from "@/components/portal/Parts";
-import { bank, clock, courses, invoices, longDay, money, payments, useDemoState } from "@/lib/portal-demo";
+import { bank, clock, courses, invoices, longDay, money, payments, useDemoState, useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
 
 const perCredit = 450_000;
@@ -53,7 +53,7 @@ function buildQrMatrix(payload: string): boolean[][] {
 
 export default function TuitionPage() {
   const { data, account } = useStudent();
-  const [now] = useState(Date.now);
+  const [now] = useHydratedNow();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [settledExtra, setSettledExtra] = useDemoState<number>("tuition-settled", () => 0);
