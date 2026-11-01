@@ -9,7 +9,7 @@ import { PhuongFlower } from "@/components/landing/Phuong";
 import "../landing.css";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = { title: "Đăng nhập" };
+export const metadata: Metadata = { title: "Đăng nhập · Đại học Sao Đỏ" };
 
 export default function LoginPage() {
   return (
@@ -43,6 +43,7 @@ export default function LoginPage() {
             <Image src="/sao-do-logo.png" alt="" width={40} height={43} />
             <span>
               <strong>Đại học Sao Đỏ</strong>
+              <small>Cổng học tập sinh viên</small>
             </span>
           </Link>
           <header>
@@ -59,7 +60,7 @@ export default function LoginPage() {
           </p>
         </div>
         <p className="auth-back">
-          <Link href="/">← Về trang chủ</Link>
+          <Link href="/" className="mp-underline-link">← Về trang chủ</Link>
         </p>
       </main>
     </div>
