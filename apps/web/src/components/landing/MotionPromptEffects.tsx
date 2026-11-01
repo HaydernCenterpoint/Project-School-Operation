@@ -321,12 +321,18 @@ export function CountUpStat({
     const numStr = match[2];
     const suffix = match[3] ?? "";
     const hasDotThousands = /^\d{1,3}(\.\d{3})+$/.test(numStr);
+    const decimalMatch = !hasDotThousands ? numStr.match(/([.,])(\d+)$/) : null;
+    const decimalSep = decimalMatch?.[1] ?? ".";
+    const decimalPlaces = decimalMatch?.[2]?.length ?? 0;
     const target = hasDotThousands
       ? parseInt(numStr.replace(/\./g, ""), 10)
       : parseFloat(numStr.replace(",", "."));
     if (!Number.isFinite(target) || target <= 0) return;
 
     const formatVal = (v: number) => {
+      if (decimalPlaces > 0) {
+        return v.toFixed(decimalPlaces).replace(".", decimalSep);
+      }
       const rounded = Math.round(v);
       if (hasDotThousands) {
         return rounded.toLocaleString("vi-VN");
@@ -351,7 +357,7 @@ export function CountUpStat({
           const elapsed = now - t0;
           const p = clamp(elapsed / countDur, 0, 1);
           const eased = 1 - Math.pow(1 - p, 4);
-          const v = Math.round(target * eased);
+          const v = decimalPlaces > 0 ? target * eased : Math.round(target * eased);
           setDisplay(`${prefix}${formatVal(v)}${suffix}`);
           setRatio(target > 0 ? v / target : 1);
 

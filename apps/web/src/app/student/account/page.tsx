@@ -81,7 +81,12 @@ export default function AccountPage() {
           { label: "Sĩ số lớp chủ nhiệm", value: `${roster.length} sinh viên thuộc lớp ${account.cohortClass}`, mono: true },
         ]
       : profile.education.map((field) => {
-          if (field.label === "Mã hồ sơ") return { ...field, value: `22SDU.CNTT.${account.code.slice(-4)}` };
+          if (field.label === "Mã hồ sơ") {
+            return {
+              ...field,
+              value: account.code === "2200286" ? "221SDUOM.00028" : `22SDU.CNTT.${account.code.slice(-4)}`,
+            };
+          }
           if (field.label === "Lớp niên chế") return { ...field, value: account.cohortClass };
           if (field.label === "Cố vấn học tập") return { ...field, value: account.advisorName };
           return field;

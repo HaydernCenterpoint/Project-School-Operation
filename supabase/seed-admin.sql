@@ -29,7 +29,7 @@ select ('10000000-0000-0000-0000-' || lpad(s.code, 12, '0'))::uuid, 'a0000000-00
        s.code, s.name, s.birth::date, s.gender, s.class_name, s.faculty, s.major, s.cohort, s.phone,
        '10000000-0000-0000-0000-0000000000a1'
 from (values
-  ('2200286', 'Sinh viên 2200286', '2004-05-12', 'Nam', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Công nghệ thông tin', 'K17', '0900000286'),
+  ('2200286', 'Nguyễn Văn Đạt', '2004-07-03', 'Nam', 'DK13-CNTT1', 'Khoa Công nghệ thông tin', 'Công nghệ thông tin', 'K13', '0936651618'),
   ('2200301', 'Nguyễn Minh Anh', '2004-02-18', 'Nữ', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Công nghệ thông tin', 'K17', '0900000301'),
   ('2200302', 'Trần Đức Huy', '2004-09-03', 'Nam', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Công nghệ thông tin', 'K17', '0900000302'),
   ('2200303', 'Lê Thu Trang', '2004-11-21', 'Nữ', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán', 'K17', '0900000303'),

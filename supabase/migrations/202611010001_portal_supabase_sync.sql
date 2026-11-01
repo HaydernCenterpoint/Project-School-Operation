@@ -162,7 +162,7 @@ to anon, authenticated;
 insert into public.teacher_class_roster (
   student_code, account_id, full_name, email, phone, cohort_class, role_in_class, attendance_pct, gpa, status, teacher_note
 ) values
-  ('2200286', 'acc-leader-minh', 'Nguyễn Văn Minh', '2200286@sv.saodo.edu.vn', '0987654286', 'DK13-CNTT1', 'Trưởng CLB Tin học', 98, 3.48, 'active', 'Chủ nhiệm CLB Tin học Sao Đỏ, nắm vững kiến trúc OOP và hỗ trợ các nhóm thực hành tại phòng B1-Lab 3.'),
+  ('2200286', 'acc-leader-minh', 'Nguyễn Văn Đạt', '2200286@sv.saodo.edu.vn', '0936651618', 'DK13-CNTT1', 'Trưởng CLB Tin học', 100, 3.08, 'active', 'Sinh viên lớp DK13-CNTT1 (Mã hồ sơ 221SDUOM.00028), đã tích lũy 143/163 tín chỉ (GPA HK8 đạt 3.74/4.0 Xuất sắc, Thực tập doanh nghiệp 10.0, Đồ án CNPM 9.2).'),
   ('2200287', 'acc-student-linh', 'Phạm Khánh Linh', '2200287@sv.saodo.edu.vn', '0974118209', 'DK13-CNTT1', 'Lớp trưởng', 100, 3.72, 'active', 'Lớp trưởng gương mẫu, tổng hợp sĩ số và bài nộp của lớp đúng hạn mọi tuần.'),
   ('2200288', 'acc-student-hoang', 'Lê Việt Hoàng', '2200288@sv.saodo.edu.vn', '0963502914', 'DK13-CNTT1', 'Thành viên lớp', 92, 3.15, 'active', 'Tư duy thuật toán khá, cần chú ý tách giao diện header/implementation rõ hơn trong bài thực hành.'),
   ('2200289', 'acc-student-trang', 'Đỗ Thu Trang', '2200289@sv.saodo.edu.vn', '0936194820', 'DK13-CNTT1', 'Bí thư Chi đoàn', 96, 3.54, 'active', 'Bí thư Chi đoàn năng nổ, hoàn thành tốt phần thiết kế lược đồ CSDL và báo cáo nhóm.'),
@@ -221,7 +221,7 @@ insert into public.portal_submissions (
     '22222222-2222-4222-8222-222222222201',
     'acc-leader-minh',
     '2200286',
-    'Nguyễn Văn Minh',
+    'Nguyễn Văn Đạt',
     'Đã xây dựng lớp trừu tượng TaiLieu (maTaiLieu, tenNhaXuatBan, soBanPhatHanh) và phương thức thuần ảo tinhPhiQuaHan(int soNgay). Ba lớp kế thừa SachGiaoTrinh, LuanVan, TapChi áp dụng đa hình qua con trỏ thông minh std::unique_ptr<TaiLieu> và kiểm thử 12 ca biên.',
     now() - interval '1 day',
     'reviewed',
@@ -263,7 +263,7 @@ insert into public.portal_submissions (
     '22222222-2222-4222-8222-222222222202',
     'acc-leader-minh',
     '2200286',
-    'Nguyễn Văn Minh',
+    'Nguyễn Văn Đạt',
     'Lược đồ 3NF gồm 5 bảng: SINH_VIEN, LOP_NIEN_CHE, HOAT_DONG, DANG_KY_HOAT_DONG, DIEM_REN_LUYEN_KY. Đã viết đầy đủ khóa ngoại ON DELETE CASCADE và 5 truy vấn tổng hợp theo khoa/lớp.',
     now() - interval '2 days',
     'submitted',
@@ -300,7 +300,7 @@ on conflict (id) do nothing;
 insert into public.club_members (
   id, club_id, student_code, full_name, cohort_class, member_role, status, joined_at, note
 ) values
-  ('cm-1', 'club-it', '2200286', 'Nguyễn Văn Minh', 'DK13-CNTT1', 'Chủ nhiệm CLB', 'active', '2024-09-15', 'Điều phối chung CLB Tin học Sao Đỏ & phụ trách đội tuyển Olympic Tin học.'),
+  ('cm-1', 'club-it', '2200286', 'Nguyễn Văn Đạt', 'DK13-CNTT1', 'Chủ nhiệm CLB', 'active', '2024-09-15', 'Điều phối chung CLB Tin học Sao Đỏ & phụ trách nhóm phát triển phần mềm.'),
   ('cm-2', 'club-it', '2200287', 'Phạm Khánh Linh', 'DK13-CNTT1', 'Phó chủ nhiệm', 'active', '2024-10-02', 'Phụ trách truyền thông sự kiện và kết nối sinh viên khóa mới.'),
   ('cm-3', 'club-it', '2200291', 'Hoàng Minh Tuấn', 'DK13-CNTT1', 'Trưởng ban Chuyên môn', 'active', '2025-01-12', 'Phụ trách nhóm Web & Cloud tại phòng Lab nhà B1.'),
   ('cm-4', 'club-it', '2200288', 'Lê Việt Hoàng', 'DK13-CNTT1', 'Thành viên', 'pending', '2026-10-30', 'Sinh viên lớp DK13-CNTT1 đăng ký tham gia nhóm Lập trình hướng đối tượng & Web.'),
@@ -310,8 +310,8 @@ on conflict (id) do nothing;
 insert into public.club_events (
   id, club_id, title, time, place, summary, created_by, created_at
 ) values
-  ('ce-1', 'club-it', 'Workshop: Xây dựng AI Web Agent & Thực hành Git/GitHub cho sinh viên CNTT', 'Thứ 5 · 18:00 – 20:00', 'Phòng B1-Lab 2', 'Hướng dẫn quy trình làm việc nhóm với Pull Request, kiểm thử tự động và tích hợp AI Agent.', 'Nguyễn Văn Minh (Trưởng CLB)', now() - interval '1 day'),
-  ('ce-2', 'club-it', 'Luyện tập giải đề Olympic Tin học & Cấu trúc dữ liệu tuần 9', 'Chủ nhật · 08:30 – 11:00', 'Phòng B1-Lab 3', 'Ôn tập quy hoạch động, đồ thị và tối ưu độ phức tạp thuật toán cho đội tuyển sinh viên.', 'Nguyễn Văn Minh (Trưởng CLB)', now() - interval '4 days')
+  ('ce-1', 'club-it', 'Workshop: Xây dựng AI Web Agent & Thực hành Git/GitHub cho sinh viên CNTT', 'Thứ 5 · 18:00 – 20:00', 'Phòng B1-Lab 2', 'Hướng dẫn quy trình làm việc nhóm với Pull Request, kiểm thử tự động và tích hợp AI Agent.', 'Nguyễn Văn Đạt (Trưởng CLB)', now() - interval '1 day'),
+  ('ce-2', 'club-it', 'Luyện tập giải đề Olympic Tin học & Cấu trúc dữ liệu tuần 9', 'Chủ nhật · 08:30 – 11:00', 'Phòng B1-Lab 3', 'Ôn tập quy hoạch động, đồ thị và tối ưu độ phức tạp thuật toán cho đội tuyển sinh viên.', 'Nguyễn Văn Đạt (Trưởng CLB)', now() - interval '4 days')
 on conflict (id) do nothing;
 
 do $$

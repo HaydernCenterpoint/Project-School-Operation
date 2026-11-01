@@ -499,11 +499,11 @@ function buildSeedState(): LocalState {
   const profiles: Profile[] = [
     {
       user_id: uid(286),
-      display_name: "Nguyễn Văn Minh",
+      display_name: "Nguyễn Văn Đạt",
       student_code: "2200286",
       class_name: "DK13-CNTT1",
       faculty: "Khoa Công nghệ thông tin",
-      bio: "Chủ nhiệm CLB Tin học Sao Đỏ, phụ trách nhóm thực hành OOP và dự án Web tại phòng B1-Lab 3",
+      bio: "Sinh viên lớp DK13-CNTT1 (Chuyên ngành Công nghệ phần mềm), Chủ nhiệm CLB Tin học Sao Đỏ",
       role_title: "Chủ nhiệm CLB Tin học",
     },
     {
@@ -766,7 +766,7 @@ function buildSeedState(): LocalState {
       id: mid(4),
       room_id: rid(1),
       author_id: uid(306),
-      body: "@Nguyễn Văn Minh hôm trước bạn hỏi về mẫu kiểm thử đa hình với std::unique_ptr, mình đã cập nhật ví dụ mẫu trong kênh Kho học liệu.",
+      body: "@Nguyễn Văn Đạt hôm trước bạn hỏi về mẫu kiểm thử đa hình với std::unique_ptr, mình đã cập nhật ví dụ mẫu trong kênh Kho học liệu.",
       reply_to: null,
       mentions: [uid(286)],
       media: [],

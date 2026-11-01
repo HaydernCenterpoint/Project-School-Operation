@@ -5,7 +5,7 @@
 -- 2200286 already exists in seed.sql; conflicts leave it untouched.
 with seed_student(code, name, class_name, faculty, bio) as (
   values
-    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200286', 'Nguyễn Văn Đạt', 'DK13-CNTT1', 'Khoa Công nghệ thông tin', 'Sinh viên lớp DK13-CNTT1 · Chuyên ngành Công nghệ phần mềm · Chủ nhiệm CLB Tin học Sao Đỏ.'),
     ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
     ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
     ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
@@ -30,7 +30,7 @@ on conflict (id) do nothing;
 
 with seed_student(code, name, class_name, faculty, bio) as (
   values
-    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200286', 'Nguyễn Văn Đạt', 'DK13-CNTT1', 'Khoa Công nghệ thông tin', 'Sinh viên lớp DK13-CNTT1 · Chuyên ngành Công nghệ phần mềm · Chủ nhiệm CLB Tin học Sao Đỏ.'),
     ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
     ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
     ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
@@ -56,7 +56,7 @@ end if;
 
 with seed_student(code, name, class_name, faculty, bio) as (
   values
-    ('2200286', 'Sinh viên 2200286', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', ''),
+    ('2200286', 'Nguyễn Văn Đạt', 'DK13-CNTT1', 'Khoa Công nghệ thông tin', 'Sinh viên lớp DK13-CNTT1 · Chuyên ngành Công nghệ phần mềm · Chủ nhiệm CLB Tin học Sao Đỏ.'),
     ('2200301', 'Nguyễn Minh Anh', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Lớp trưởng CNTT17.10. Thích React và cà phê sữa đá.'),
     ('2200302', 'Trần Đức Huy', 'DC.CNTT17.10', 'Khoa Công nghệ thông tin', 'Backend, Node.js. Hỏi gì về SQL cứ ping mình.'),
     ('2200303', 'Lê Thu Trang', 'DC.KT17.02', 'Khoa Kinh tế', 'Kế toán năm 3, đang tìm chỗ thực tập.'),
@@ -142,7 +142,7 @@ from (values
   ('e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 302, 'Đề giữa kỳ năm ngoái có 1 câu Flexbox và 1 câu fetch API, mọi người ôn kỹ phần này nhé.', null, '{}'::int[], 1500),
   ('e1000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000001', 309, 'useEffect chạy 2 lần trong dev là do StrictMode đúng không mọi người?', null, '{}', 95),
   ('e1000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000001', 302, 'Đúng rồi, chỉ ở dev thôi, build production thì chạy 1 lần.', 'e1000000-0000-0000-0000-000000000002', '{}', 90),
-  ('e1000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000001', 306, '@Sinh viên 2200286 hôm trước bạn hỏi về CSS Grid, mình gửi link bài hướng dẫn trong kênh Chia sẻ tài liệu rồi nhé.', null, '{286}', 40),
+  ('e1000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000001', 306, '@Nguyễn Văn Đạt hôm trước bạn hỏi về CSS Grid, mình gửi link bài hướng dẫn trong kênh Chia sẻ tài liệu rồi nhé.', null, '{286}', 40),
   ('e1000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000001', 301, 'Tối nay 8h ai vào call ôn bài cùng không?', null, '{}', 12),
   ('e1000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000002', 308, 'Workshop Git cơ bản 14h thứ 7 này tại phòng B1-Lab 3, mọi người mang theo laptop.', null, '{}', 300),
   ('e1000000-0000-0000-0000-000000000007', 'e0000000-0000-0000-0000-000000000002', 301, 'Có cần cài sẵn gì không anh?', 'e1000000-0000-0000-0000-000000000006', '{}', 280),

@@ -490,7 +490,7 @@ export default function AccountManagementDashboardPage() {
       </Section>
 
       <Section
-        title="4. Quản lý Thành viên CLB Tin học Sao Đỏ (Trưởng CLB: Nguyễn Văn Minh)"
+        title="4. Quản lý Thành viên CLB Tin học Sao Đỏ (Trưởng CLB: Nguyễn Văn Đạt)"
         action={
           <span className="reg-table-meta">
             {activeClubMembers.length} chính thức · {pendingClubMembers.length} chờ duyệt

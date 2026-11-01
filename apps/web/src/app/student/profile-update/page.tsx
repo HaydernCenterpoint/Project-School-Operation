@@ -36,7 +36,7 @@ function ProfileUpdateContent() {
   const searchParams = useSearchParams();
   const [category, setCategory] = useState<ProfileUpdateProposal["category"]>("Hồ sơ cá nhân");
   const [fieldLabel, setFieldLabel] = useState("Địa chỉ liên hệ hiện tại");
-  const [oldValue, setOldValue] = useState("Ký túc xá khu B, Trường Đại học Sao Đỏ");
+  const [oldValue, setOldValue] = useState("471, Tổ 4, Khu Quang Trung, Mạo Khê, Đông Triều, Quảng Ninh");
   const [newValue, setNewValue] = useState("");
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState("");

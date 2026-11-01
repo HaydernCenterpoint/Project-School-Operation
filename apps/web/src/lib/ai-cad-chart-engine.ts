@@ -1450,7 +1450,7 @@ export function ensureVisualBlocksInAnswer(userPrompt: string, assistantText: st
       subtitle: "Tổng hợp tự động bởi Model SDU 1.3 (Qwen 3.8)",
       unit: "điểm",
       labels: [
-        "Nguyễn Văn Minh",
+        "Nguyễn Văn Đạt",
         "Phạm Khánh Linh",
         "Lê Việt Hoàng",
         "Đỗ Thu Trang",
@@ -1458,8 +1458,8 @@ export function ensureVisualBlocksInAnswer(userPrompt: string, assistantText: st
         "Hoàng Minh Tuấn",
       ],
       series: [
-        { name: "GPA (Hệ 4.0)", color: "#e11d48", values: [3.48, 3.72, 3.15, 3.54, 2.78, 3.32] },
-        { name: "Điểm rèn luyện (/25)", color: "#2563eb", values: [3.52, 3.76, 3.16, 3.64, 2.88, 3.4] },
+        { name: "GPA (Hệ 4.0)", color: "#e11d48", values: [3.08, 3.72, 3.15, 3.54, 2.78, 3.32] },
+        { name: "Điểm rèn luyện (/25)", color: "#2563eb", values: [3.56, 3.76, 3.16, 3.64, 2.88, 3.4] },
       ],
       note: "Dữ liệu trích xuất trực tiếp từ Hệ thống Bộ nhớ Học sinh AI — Trường Đại học Sao Đỏ.",
     };

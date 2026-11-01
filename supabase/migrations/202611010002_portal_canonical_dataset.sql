@@ -30,7 +30,7 @@ end $$;
 insert into public.teacher_class_roster (
   student_code, account_id, full_name, email, phone, cohort_class, role_in_class, attendance_pct, gpa, status, teacher_note
 ) values
-  ('2200286', 'acc-leader-minh', 'Nguyễn Văn Minh', '2200286@sv.saodo.edu.vn', '0987654286', 'DK13-CNTT1', 'Trưởng CLB Tin học', 98, 3.48, 'active', 'Chủ nhiệm CLB Tin học Sao Đỏ, nắm vững kiến trúc OOP và hỗ trợ các nhóm thực hành tại phòng B1-Lab 3.'),
+  ('2200286', 'acc-leader-minh', 'Nguyễn Văn Đạt', '2200286@sv.saodo.edu.vn', '0936651618', 'DK13-CNTT1', 'Trưởng CLB Tin học', 100, 3.08, 'active', 'Sinh viên lớp DK13-CNTT1 (Mã hồ sơ 221SDUOM.00028), đã tích lũy 143/163 tín chỉ (GPA HK8 đạt 3.74/4.0 Xuất sắc, Thực tập doanh nghiệp 10.0, Đồ án CNPM 9.2).'),
   ('2200287', 'acc-student-linh', 'Phạm Khánh Linh', '2200287@sv.saodo.edu.vn', '0974118209', 'DK13-CNTT1', 'Lớp trưởng', 100, 3.72, 'active', 'Lớp trưởng gương mẫu, tổng hợp sĩ số và bài nộp của lớp đúng hạn mọi tuần.'),
   ('2200288', 'acc-student-hoang', 'Lê Việt Hoàng', '2200288@sv.saodo.edu.vn', '0963502914', 'DK13-CNTT1', 'Thành viên lớp', 92, 3.15, 'active', 'Tư duy thuật toán khá, cần chú ý tách giao diện header/implementation rõ hơn trong bài thực hành.'),
   ('2200289', 'acc-student-trang', 'Đỗ Thu Trang', '2200289@sv.saodo.edu.vn', '0936194820', 'DK13-CNTT1', 'Bí thư Chi đoàn', 96, 3.54, 'active', 'Bí thư Chi đoàn năng nổ, hoàn thành tốt phần thiết kế lược đồ CSDL và báo cáo nhóm.'),
