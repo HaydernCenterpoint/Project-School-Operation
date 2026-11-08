@@ -25,7 +25,7 @@ export default function ClubsPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("Thứ 6 · 18:00 – 20:00");
-  const [eventPlace, setEventPlace] = useState("Phòng B1-Lab 2");
+  const [eventPlace, setEventPlace] = useState("Phòng B1-202");
   const [eventSummary, setEventSummary] = useState("");
 
   const isClubLeader = account.permissions.canManageClubMembers;

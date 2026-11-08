@@ -26,6 +26,10 @@ import {
   type AttachmentBlock,
 } from "@/lib/ai-attachments";
 import { DEFAULT_ASSIGNMENTS } from "@/lib/accounts";
+import {
+  formatCourseMaterialsContext,
+  retrieveRelevantMaterials,
+} from "@/lib/course-materials";
 
 const maxHistoryChars = 60_000;
 const generationTimeoutMs = 120_000;
@@ -94,6 +98,7 @@ export async function POST(request: Request) {
     reasoningEffort,
     history: clientHistory,
     studentContext,
+    materialsContext: clientMaterialsContext,
   } = body.value;
   const content = typeof body.value.content === "string" ? body.value.content.trim() : "";
   const requestId = request.headers.get("idempotency-key");
@@ -251,6 +256,23 @@ export async function POST(request: Request) {
           label: `Đang đọc ${attached.names.length} tệp đính kèm (${attached.names.slice(0, 2).join(", ")})`,
         });
       }
+      const matchedMaterials = retrieveRelevantMaterials(content, {
+        attachedFileNames: attached.names,
+        limit: 4,
+      });
+      if (matchedMaterials.length > 0) {
+        send({
+          type: "step",
+          label: `Đối chiếu học liệu SDU (${matchedMaterials.length}): ${matchedMaterials
+            .slice(0, 2)
+            .map((m) => m.courseCode)
+            .join(", ")}`,
+        });
+      }
+      const resolvedMaterialsContext =
+        typeof clientMaterialsContext === "string" && clientMaterialsContext.trim().length > 0
+          ? clientMaterialsContext.slice(0, 48_000)
+          : formatCourseMaterialsContext(matchedMaterials);
       send({
         type: "step",
         label:
@@ -272,6 +294,7 @@ export async function POST(request: Request) {
             source,
             attached.names.length > 0,
             typeof studentContext === "string" ? studentContext.slice(0, 64_000) : undefined,
+            resolvedMaterialsContext,
           ),
           withAttachments(toTurns(historyRows), attached.blocks),
           (delta) => {

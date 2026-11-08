@@ -1,5 +1,6 @@
 // Server-only: imported by route handlers alone. Never import from client code.
 import type { AiMode, AiReasoningEffort } from "@sao-do/contracts";
+import { findMaterialByFileName, MATERIAL_CATEGORY_META } from "@/lib/course-materials";
 
 export type AiProvider = "anthropic" | "openai";
 
@@ -68,6 +69,7 @@ export function systemPrompt(
   source?: { title: string; instructions: string },
   hasFiles = false,
   studentContext?: string,
+  courseMaterialsContext?: string,
 ) {
   const today = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -121,6 +123,13 @@ export function systemPrompt(
     parts.push(`<ho_so_hoc_tap_sinh_vien>\n${studentContext}\n</ho_so_hoc_tap_sinh_vien>`);
   }
 
+  if (courseMaterialsContext) {
+    parts.push(
+      "Cơ chế Truy xuất Kho học liệu số SDU (Course Materials RAG - Giáo trình, Bài tập, Slide bài giảng, Đề cương học phần): Khi câu hỏi liên quan đến môn học, đề cương, giáo trình, slide hoặc bài tập thực hành, hãy ưu tiên sử dụng chính xác số liệu, chuẩn đầu ra CLO, trọng số điểm, công thức và đề bài trong thẻ `<kho_hoc_lieu_mon_hoc_sdu>`, đồng thời trích dẫn rõ nguồn học liệu (tên tài liệu và mã học phần).",
+      `<kho_hoc_lieu_mon_hoc_sdu>\n${courseMaterialsContext}\n</kho_hoc_lieu_mon_hoc_sdu>`,
+    );
+  }
+
   if (hasFiles) {
     parts.push(
       "Sinh viên đã đính kèm tệp trong lượt hỏi này. Xử lý nội dung tệp như dữ liệu đầu vào cần phân tích và trích dẫn rõ tên tệp khi trả lời.",
@@ -165,7 +174,23 @@ export function streamCompletion(
 
 type Block = Record<string, unknown> & { type?: string };
 
-function toOpenAiContent(content: ChatTurn["content"]) {
+function extractFallbackPdfStrings(base64Data: string): string {
+  try {
+    const raw = Buffer.from(base64Data, "base64").toString("latin1");
+    const chunks: string[] = [];
+    const literalRe = /\(([^()\\]{3,200})\)/g;
+    let match: RegExpExecArray | null;
+    while ((match = literalRe.exec(raw)) !== null && chunks.length < 400) {
+      const cleaned = match[1]!.replace(/[^\x20-\x7EÀ-ỹ]/g, " ").trim();
+      if (cleaned.length >= 3) chunks.push(cleaned);
+    }
+    return chunks.join(" ").slice(0, 24_000);
+  } catch {
+    return "";
+  }
+}
+
+function toOpenAiContent(content: ChatTurn["content"], forceTextPdf = false) {
   if (typeof content === "string") return content;
   return (content as Block[]).map((block) => {
     const source = (block.source ?? {}) as { type?: string; media_type?: string; data?: string };
@@ -173,10 +198,29 @@ function toOpenAiContent(content: ChatTurn["content"]) {
       return { type: "image_url", image_url: { url: `data:${source.media_type};base64,${source.data}` } };
     }
     if (block.type === "document" && source.type === "base64") {
+      const filename = String(block.title ?? "tai-lieu.pdf");
+      const matchedCatalog = findMaterialByFileName(filename);
+      if (matchedCatalog) {
+        const catLabel = MATERIAL_CATEGORY_META[matchedCatalog.category].label;
+        return {
+          type: "text",
+          text:
+            `<tep_hoc_lieu_dinh_kem ten="${filename.replace(/"/g, "'")}" loai="${catLabel}" hoc_phan="${matchedCatalog.courseCode}">\n` +
+            `${matchedCatalog.title}\nTóm tắt: ${matchedCatalog.summary}\n\n${matchedCatalog.content}\n` +
+            `</tep_hoc_lieu_dinh_kem>`,
+        };
+      }
+      if (forceTextPdf) {
+        const extracted = extractFallbackPdfStrings(String(source.data ?? ""));
+        return {
+          type: "text",
+          text: `<tep_pdf ten="${filename.replace(/"/g, "'")}">\n${extracted || "(Tệp PDF đính kèm dạng bản quét/nhị phân)"}\n</tep_pdf>`,
+        };
+      }
       return {
         type: "file",
         file: {
-          filename: String(block.title ?? "tai-lieu.pdf"),
+          filename,
           file_data: `data:application/pdf;base64,${source.data}`,
         },
       };
@@ -199,13 +243,8 @@ async function streamOpenAiCompatible(
   onReasoning: (text: string) => void,
   signal: AbortSignal,
 ): Promise<StreamResult> {
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
+  const buildBody = (forceTextPdf: boolean) =>
+    JSON.stringify({
       model: config.model,
       max_tokens: config.maxOutputTokens,
       temperature: 0.5,
@@ -214,11 +253,44 @@ async function streamOpenAiCompatible(
       stream_options: { include_usage: true },
       messages: [
         { role: "system", content: system },
-        ...messages.map((turn) => ({ role: turn.role, content: toOpenAiContent(turn.content) })),
+        ...messages.map((turn) => ({
+          role: turn.role,
+          content: toOpenAiContent(turn.content, forceTextPdf),
+        })),
       ],
-    }),
+    });
+
+  let response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`,
+    },
+    body: buildBody(false),
     signal,
   });
+
+  // Fallback gracefully if an OpenAI-compatible gateway rejects raw base64 PDF file blocks.
+  if (response.status === 400 || response.status === 415 || response.status === 422) {
+    const hasBinaryPdf = messages.some(
+      (turn) =>
+        Array.isArray(turn.content) &&
+        (turn.content as Block[]).some(
+          (b) => b.type === "document" && (b.source as { type?: string } | undefined)?.type === "base64",
+        ),
+    );
+    if (hasBinaryPdf) {
+      response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${config.apiKey}`,
+        },
+        body: buildBody(true),
+        signal,
+      });
+    }
+  }
 
   if (!response.ok || !response.body) {
     throw new ProviderError(

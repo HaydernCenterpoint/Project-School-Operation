@@ -1,11 +1,20 @@
 "use client";
 
 import type { Route } from "next";
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { ClassCard } from "@/components/Dashboard";
 import { Icon } from "@/components/Icon";
 import { PageTitle, Section } from "@/components/portal/Parts";
 import type { ClassStudentRosterItem } from "@/lib/accounts";
+import {
+  BUILTIN_COURSE_MATERIALS,
+  COURSE_MATERIAL_GROUPS,
+  MATERIAL_CATEGORY_META,
+  readCustomCourseMaterials,
+  subscribeCustomCourseMaterials,
+  type CourseMaterial,
+} from "@/lib/course-materials";
 import { classCode, formatDate } from "@/lib/format";
 import { useStudent } from "@/lib/student-context";
 
@@ -43,10 +52,24 @@ export default function ClassesPage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [attendanceDraft, setAttendanceDraft] = useState(100);
   const [statusMessage, setStatusMessage] = useState("");
+  const [selectedMatCourse, setSelectedMatCourse] = useState<string>("all");
+  const [customMaterials, setCustomMaterials] = useState<CourseMaterial[]>([]);
+
+  useEffect(() => {
+    setCustomMaterials(readCustomCourseMaterials());
+    return subscribeCustomCourseMaterials(() => {
+      setCustomMaterials(readCustomCourseMaterials());
+    });
+  }, []);
 
   if (!data) return null;
   const { classes } = data.session;
   const isTeacher = account.permissions.canManageClassRoster;
+  const allCourseMaterials = [...customMaterials, ...BUILTIN_COURSE_MATERIALS];
+  const visibleMaterials =
+    selectedMatCourse === "all"
+      ? allCourseMaterials
+      : allCourseMaterials.filter((m) => m.courseCode === selectedMatCourse);
 
   const pendingGradingCount = allSubmissions.filter((item) => item.status === "submitted").length;
   const gradedCount = allSubmissions.filter((item) => item.status === "reviewed").length;
@@ -239,7 +262,7 @@ export default function ClassesPage() {
                 required
                 value={noticeTitle}
                 onChange={(e) => setNoticeTitle(e.target.value)}
-                placeholder="VD: Nhắc lịch kiểm tra thực hành giữa kỳ tại phòng B1-Lab 3"
+                placeholder="VD: Nhắc lịch kiểm tra thực hành giữa kỳ tại phòng B1-203"
               />
             </label>
             <label className="field">
@@ -501,6 +524,94 @@ export default function ClassesPage() {
             <p>Lớp được nhà trường phân công sẽ xuất hiện tại đây.</p>
           </div>
         )}
+      </Section>
+
+      <Section
+        title="Kho học liệu mẫu các học phần (Đề cương · Giáo trình · Slide · Bài tập)"
+        action={
+          <Link className="button button-primary button-xs" href={"/student/ai?course=all" as Route}>
+            <Icon name="sparkle" /> Mở Kho học liệu trên Chat AI ({allCourseMaterials.length})
+          </Link>
+        }
+      >
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          <button
+            type="button"
+            className={`button button-xs ${selectedMatCourse === "all" ? "button-primary" : "button-outline"}`}
+            onClick={() => setSelectedMatCourse("all")}
+          >
+            Tất cả ({allCourseMaterials.length})
+          </button>
+          {COURSE_MATERIAL_GROUPS.map((grp) => (
+            <button
+              key={grp.courseCode}
+              type="button"
+              className={`button button-xs ${
+                selectedMatCourse === grp.courseCode ? "button-primary" : "button-outline"
+              }`}
+              onClick={() => setSelectedMatCourse(grp.courseCode)}
+            >
+              {grp.courseCode} · {grp.courseName}
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {visibleMaterials.map((doc) => {
+            const catMeta = MATERIAL_CATEGORY_META[doc.category];
+            return (
+              <article
+                key={doc.id}
+                className="card"
+                style={{
+                  padding: "14px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span className="chip reviewed">{catMeta.shortLabel}</span>
+                    <small style={{ color: "var(--muted)" }}>
+                      {doc.courseCode} · Phòng {doc.room}
+                    </small>
+                  </div>
+                  <h4 style={{ margin: "8px 0 5px", fontSize: "0.93rem", lineHeight: 1.38 }}>{doc.title}</h4>
+                  <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.48 }}>
+                    {doc.summary}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingTop: 6 }}>
+                  {doc.publicUrl && (
+                    <a
+                      className="button button-outline button-xs"
+                      href={doc.publicUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Icon name="file" /> Xem PDF
+                    </a>
+                  )}
+                  <Link
+                    className="button button-primary button-xs"
+                    style={{ marginLeft: "auto" }}
+                    href={`/student/ai?material=${encodeURIComponent(doc.id)}` as Route}
+                  >
+                    <Icon name="sparkle" /> Hỏi Trợ lý AI
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </Section>
     </>
   );

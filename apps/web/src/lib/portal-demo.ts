@@ -126,15 +126,15 @@ export type Session = { course: string; day: number; from: number; to: number; r
 
 /** Weekly timetable. `day` is 0 (Mon) to 6 (Sun); `from`/`to` are 1-based periods. */
 export const sessions: Session[] = [
-  { course: "0101103389", day: 0, from: 1, to: 3, room: "A2-304", kind: "Lý thuyết" },
-  { course: "0101103567", day: 0, from: 6, to: 8, room: "B1-Lab 3", kind: "Thực hành" },
-  { course: "0101071809", day: 1, from: 2, to: 4, room: "A2-201", kind: "Lý thuyết" },
-  { course: "0101102875", day: 2, from: 1, to: 3, room: "B1-Lab 2", kind: "Thực hành" },
-  { course: "0101103391", day: 2, from: 7, to: 9, room: "C3-105", kind: "Lý thuyết" },
-  { course: "0101103387", day: 3, from: 1, to: 3, room: "A1-402", kind: "Lý thuyết" },
-  { course: "0101071809", day: 3, from: 6, to: 8, room: "B1-Lab 1", kind: "Thực hành" },
-  { course: "0101102400", day: 4, from: 2, to: 4, room: "B1-Lab 2", kind: "Thực hành" },
-  { course: "0101103567", day: 5, from: 1, to: 3, room: "B1-Lab 4", kind: "Thực hành" },
+  { course: "0101103389", day: 0, from: 1, to: 3, room: "B1-302", kind: "Lý thuyết" },
+  { course: "0101103567", day: 0, from: 6, to: 8, room: "B1-203", kind: "Thực hành" },
+  { course: "0101071809", day: 1, from: 2, to: 4, room: "B1-202", kind: "Lý thuyết" },
+  { course: "0101102875", day: 2, from: 1, to: 3, room: "B1-202", kind: "Thực hành" },
+  { course: "0101103391", day: 2, from: 7, to: 9, room: "B1-305", kind: "Lý thuyết" },
+  { course: "0101103387", day: 3, from: 1, to: 3, room: "B1-301", kind: "Lý thuyết" },
+  { course: "0101071809", day: 3, from: 6, to: 8, room: "B1-201", kind: "Thực hành" },
+  { course: "0101102400", day: 4, from: 2, to: 4, room: "B1-202", kind: "Thực hành" },
+  { course: "0101103567", day: 5, from: 1, to: 3, room: "B1-204", kind: "Thực hành" },
 ];
 
 export function sessionTime(session: Session) {
@@ -156,12 +156,12 @@ export type Exam = {
 export function exams(now: number): Exam[] {
   return [
     { course: "0101102400", at: fromToday(now, 4, "08:00"), minutes: 90, room: "Hội đồng B1-202", seat: "SBD 008", form: "Vấn đáp", round: "Cuối kỳ" },
-    { course: "0101103567", at: fromToday(now, 9, "13:30"), minutes: 60, room: "B1-Lab 3", seat: "SBD 008", form: "Thực hành", round: "Giữa kỳ" },
-    { course: "0101071809", at: fromToday(now, 18, "07:30"), minutes: 90, room: "B1-Lab 1", seat: "SBD 014", form: "Thực hành", round: "Cuối kỳ" },
-    { course: "0101102875", at: fromToday(now, 24, "08:00"), minutes: 90, room: "B1-Lab 2", seat: "SBD 003", form: "Vấn đáp", round: "Cuối kỳ" },
-    { course: "0101103387", at: fromToday(now, 31, "07:30"), minutes: 90, room: "A1-402", seat: "SBD 009", form: "Thực hành", round: "Cuối kỳ" },
-    { course: "0101103389", at: fromToday(now, 36, "13:30"), minutes: 90, room: "A2-304", seat: "SBD 018", form: "Tự luận", round: "Cuối kỳ" },
-    { course: "0101103391", at: fromToday(now, 40, "07:30"), minutes: 60, room: "C3-105", seat: "SBD 011", form: "Trắc nghiệm trên máy", round: "Cuối kỳ" },
+    { course: "0101103567", at: fromToday(now, 9, "13:30"), minutes: 60, room: "B1-203", seat: "SBD 008", form: "Thực hành", round: "Giữa kỳ" },
+    { course: "0101071809", at: fromToday(now, 18, "07:30"), minutes: 90, room: "B1-201", seat: "SBD 014", form: "Thực hành", round: "Cuối kỳ" },
+    { course: "0101102875", at: fromToday(now, 24, "08:00"), minutes: 90, room: "B1-202", seat: "SBD 003", form: "Vấn đáp", round: "Cuối kỳ" },
+    { course: "0101103387", at: fromToday(now, 31, "07:30"), minutes: 90, room: "B1-301", seat: "SBD 009", form: "Thực hành", round: "Cuối kỳ" },
+    { course: "0101103389", at: fromToday(now, 36, "13:30"), minutes: 90, room: "B1-302", seat: "SBD 018", form: "Tự luận", round: "Cuối kỳ" },
+    { course: "0101103391", at: fromToday(now, 40, "07:30"), minutes: 60, room: "B1-305", seat: "SBD 011", form: "Trắc nghiệm trên máy", round: "Cuối kỳ" },
   ];
 }
 
@@ -350,11 +350,11 @@ export function registrationWindow(now: number) {
 }
 
 export const offerings: Offering[] = [
-  { code: "IT3100", name: "Phát triển ứng dụng web", credits: 3, lecturer: "ThS. Nguyễn Hoài Nam", schedule: "Thứ 2, tiết 1-3 · A1-305", capacity: 60, enrolled: 52, prerequisite: "IT3040" },
-  { code: "IT3120", name: "Hệ điều hành", credits: 3, lecturer: "TS. Bùi Văn Thắng", schedule: "Thứ 3, tiết 6-8 · A2-201", capacity: 70, enrolled: 70 },
-  { code: "IT3150", name: "Trí tuệ nhân tạo", credits: 3, lecturer: "TS. Phạm Thu Hà", schedule: "Thứ 4, tiết 1-3 · A1-402", capacity: 60, enrolled: 41, prerequisite: "IT2010" },
-  { code: "IT3160", name: "Kiểm thử phần mềm", credits: 3, lecturer: "ThS. Trần Minh Đức", schedule: "Thứ 5, tiết 6-8 · B1-Lab 2", capacity: 45, enrolled: 18 },
-  { code: "EN3140", name: "Tiếng Anh giao tiếp nâng cao", credits: 2, lecturer: "ThS. Đỗ Thanh Mai", schedule: "Thứ 6, tiết 7-8 · C1-104", capacity: 40, enrolled: 33 },
+  { code: "IT3100", name: "Phát triển ứng dụng web", credits: 3, lecturer: "ThS. Nguyễn Hoài Nam", schedule: "Thứ 2, tiết 1-3 · B1-205", capacity: 60, enrolled: 52, prerequisite: "IT3040" },
+  { code: "IT3120", name: "Hệ điều hành", credits: 3, lecturer: "TS. Bùi Văn Thắng", schedule: "Thứ 3, tiết 6-8 · B1-202", capacity: 70, enrolled: 70 },
+  { code: "IT3150", name: "Trí tuệ nhân tạo", credits: 3, lecturer: "TS. Phạm Thu Hà", schedule: "Thứ 4, tiết 1-3 · B1-301", capacity: 60, enrolled: 41, prerequisite: "IT2010" },
+  { code: "IT3160", name: "Kiểm thử phần mềm", credits: 3, lecturer: "ThS. Trần Minh Đức", schedule: "Thứ 5, tiết 6-8 · B1-202", capacity: 45, enrolled: 18 },
+  { code: "EN3140", name: "Tiếng Anh giao tiếp nâng cao", credits: 2, lecturer: "ThS. Đỗ Thanh Mai", schedule: "Thứ 6, tiết 7-8 · B1-104", capacity: 40, enrolled: 33 },
   { code: "SS2020", name: "Kinh tế chính trị Mác - Lênin", credits: 2, lecturer: "ThS. Ngô Thị Lan", schedule: "Thứ 7, tiết 1-3 · Hội trường B", capacity: 150, enrolled: 96 },
 ];
 
@@ -367,7 +367,7 @@ export type Activity = { id: string; title: string; organizer: string; at: strin
 export function activities(now: number): Activity[] {
   return [
     { id: "act-1", title: "Hiến máu tình nguyện \"Giọt hồng Sao Đỏ\"", organizer: "Đoàn Thanh niên trường", at: fromToday(now, 2, "07:30"), place: "Hội trường B, cơ sở 1", points: 5, category: "Tình nguyện", capacity: 200, registered: 164 },
-    { id: "act-2", title: "Hội thảo: Kỹ năng viết CV và phỏng vấn IT", organizer: "Phòng Công tác sinh viên", at: fromToday(now, 4, "14:00"), place: "Phòng A1-501", points: 3, category: "Kỹ năng", capacity: 120, registered: 87 },
+    { id: "act-2", title: "Hội thảo: Kỹ năng viết CV và phỏng vấn IT", organizer: "Phòng Công tác sinh viên", at: fromToday(now, 4, "14:00"), place: "Phòng B1-401", points: 3, category: "Kỹ năng", capacity: 120, registered: 87 },
     { id: "act-3", title: "Giải bóng đá sinh viên khoa CNTT", organizer: "Liên chi đoàn khoa CNTT", at: fromToday(now, 6, "15:30"), place: "Sân vận động trường", points: 2, category: "Thể thao", capacity: 160, registered: 158 },
     { id: "act-4", title: "Ngày hội việc làm 2026", organizer: "Trung tâm Hỗ trợ sinh viên", at: fromToday(now, 12, "08:00"), place: "Nhà thi đấu đa năng", points: 3, category: "Việc làm", capacity: 800, registered: 312 },
     { id: "act-5", title: "Chủ nhật xanh: dọn vệ sinh ký túc xá", organizer: "Đoàn Thanh niên trường", at: fromToday(now, 7, "07:00"), place: "Khu ký túc xá", points: 4, category: "Tình nguyện", capacity: 80, registered: 45 },
@@ -381,12 +381,12 @@ export const conduct = { term: "Đợt 2 (2025-2026)", score: 89, rank: "Tốt",
 export type Club = { id: string; name: string; category: string; about: string; members: number; day: number; time: string; place: string };
 
 export const clubs: Club[] = [
-  { id: "club-it", name: "CLB Tin học Sao Đỏ", category: "Học thuật", about: "Lập trình thi đấu, dự án web và mobile, chia sẻ kinh nghiệm thực tập.", members: 124, day: 3, time: "18:00", place: "B1-Lab 2" },
-  { id: "club-en", name: "CLB Tiếng Anh SEC", category: "Học thuật", about: "Luyện nói theo chủ đề, luyện thi IELTS/TOEIC, giao lưu với sinh viên quốc tế.", members: 96, day: 1, time: "17:45", place: "C1-104" },
+  { id: "club-it", name: "CLB Tin học Sao Đỏ", category: "Học thuật", about: "Lập trình thi đấu, dự án web và mobile, chia sẻ kinh nghiệm thực tập.", members: 124, day: 3, time: "18:00", place: "B1-202" },
+  { id: "club-en", name: "CLB Tiếng Anh SEC", category: "Học thuật", about: "Luyện nói theo chủ đề, luyện thi IELTS/TOEIC, giao lưu với sinh viên quốc tế.", members: 96, day: 1, time: "17:45", place: "B1-104" },
   { id: "club-vol", name: "CLB Tình nguyện Hoa Phượng", category: "Tình nguyện", about: "Chương trình mùa hè xanh, hỗ trợ trẻ em vùng khó khăn, hiến máu nhân đạo.", members: 210, day: 5, time: "08:00", place: "Nhà văn hoá sinh viên" },
   { id: "club-fb", name: "CLB Bóng đá", category: "Thể thao", about: "Tập luyện hằng tuần và thi đấu giải sinh viên các trường khu vực Hải Phòng.", members: 58, day: 2, time: "16:45", place: "Sân vận động trường" },
   { id: "club-art", name: "CLB Văn nghệ Sắc Màu", category: "Văn hoá - Nghệ thuật", about: "Hát, múa, nhạc cụ; biểu diễn trong các sự kiện lớn của trường.", members: 73, day: 4, time: "18:30", place: "Hội trường B" },
-  { id: "club-skill", name: "CLB Kỹ năng Sinh viên", category: "Kỹ năng", about: "Thuyết trình, làm việc nhóm, quản lý thời gian và tổ chức sự kiện.", members: 88, day: 0, time: "18:00", place: "A1-501" },
+  { id: "club-skill", name: "CLB Kỹ năng Sinh viên", category: "Kỹ năng", about: "Thuyết trình, làm việc nhóm, quản lý thời gian và tổ chức sự kiện.", members: 88, day: 0, time: "18:00", place: "B1-401" },
 ];
 
 // ---------- Tuition ----------
@@ -854,13 +854,13 @@ export type ProgressScheduleItem = {
 
 export const scheduleProgress: ProgressScheduleItem[] = [
   { id: "sp-1", classCode: "010110240001", courseCode: "0101102400", courseName: "Thực tập tốt nghiệp", credits: 8, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 2 - Thứ 6", periods: "Tiết 1 - 10", room: "Doanh nghiệp / Khoa CNTT", lecturer: "ThS. Trần Minh Đức", startDate: "10/08/2026", endDate: "18/10/2026", weeksRange: "Tuần 1 - 10", completedWeeks: 10, totalWeeks: 10 },
-  { id: "sp-2", classCode: "010110356701", courseCode: "0101103567", courseName: "Đồ án tốt nghiệp", credits: 12, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 2 & Thứ 7", periods: "Tiết 6 - 8", room: "B1-Lab 3", lecturer: "TS. Nguyễn Văn Hòa", startDate: "19/10/2026", endDate: "25/01/2027", weeksRange: "Tuần 11 - 24", completedWeeks: 6, totalWeeks: 14 },
-  { id: "sp-3", classCode: "010107180901", courseCode: "0101071809", courseName: "Xử lý ảnh", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 3", periods: "Tiết 2 - 4", room: "A2-201", lecturer: "TS. Nguyễn Văn Hòa", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
-  { id: "sp-4", classCode: "010107180901", courseCode: "0101071809", courseName: "Xử lý ảnh", credits: 3, group: "TH1", kind: "Thực hành", dayOfWeek: "Thứ 5", periods: "Tiết 6 - 8", room: "B1-Lab 1", lecturer: "TS. Nguyễn Văn Hòa", startDate: "19/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 2 - 15", completedWeeks: 14, totalWeeks: 14 },
-  { id: "sp-5", classCode: "010110287501", courseCode: "0101102875", courseName: "Đồ án Công nghệ phần mềm", credits: 3, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 4", periods: "Tiết 1 - 3", room: "B1-Lab 2", lecturer: "ThS. Trần Minh Đức", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
-  { id: "sp-6", classCode: "010110338701", courseCode: "0101103387", courseName: "Thị giác máy tính", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 5", periods: "Tiết 1 - 3", room: "A1-402", lecturer: "TS. Phạm Quốc Tuấn", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
-  { id: "sp-7", classCode: "010110338901", courseCode: "0101103389", courseName: "Dữ liệu lớn – Big Data", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 2", periods: "Tiết 1 - 3", room: "A2-304", lecturer: "ThS. Lê Thị Hồng", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
-  { id: "sp-8", classCode: "010110339101", courseCode: "0101103391", courseName: "Tin sinh học", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 4", periods: "Tiết 7 - 9", room: "C3-105", lecturer: "TS. Vũ Hoàng Nam", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
+  { id: "sp-2", classCode: "010110356701", courseCode: "0101103567", courseName: "Đồ án tốt nghiệp", credits: 12, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 2 & Thứ 7", periods: "Tiết 6 - 8", room: "B1-203", lecturer: "TS. Nguyễn Văn Hòa", startDate: "19/10/2026", endDate: "25/01/2027", weeksRange: "Tuần 11 - 24", completedWeeks: 6, totalWeeks: 14 },
+  { id: "sp-3", classCode: "010107180901", courseCode: "0101071809", courseName: "Xử lý ảnh", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 3", periods: "Tiết 2 - 4", room: "B1-202", lecturer: "TS. Nguyễn Văn Hòa", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
+  { id: "sp-4", classCode: "010107180901", courseCode: "0101071809", courseName: "Xử lý ảnh", credits: 3, group: "TH1", kind: "Thực hành", dayOfWeek: "Thứ 5", periods: "Tiết 6 - 8", room: "B1-201", lecturer: "TS. Nguyễn Văn Hòa", startDate: "19/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 2 - 15", completedWeeks: 14, totalWeeks: 14 },
+  { id: "sp-5", classCode: "010110287501", courseCode: "0101102875", courseName: "Đồ án Công nghệ phần mềm", credits: 3, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 4", periods: "Tiết 1 - 3", room: "B1-202", lecturer: "ThS. Trần Minh Đức", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
+  { id: "sp-6", classCode: "010110338701", courseCode: "0101103387", courseName: "Thị giác máy tính", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 5", periods: "Tiết 1 - 3", room: "B1-301", lecturer: "TS. Phạm Quốc Tuấn", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
+  { id: "sp-7", classCode: "010110338901", courseCode: "0101103389", courseName: "Dữ liệu lớn - Big Data", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 2", periods: "Tiết 1 - 3", room: "B1-302", lecturer: "ThS. Lê Thị Hồng", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
+  { id: "sp-8", classCode: "010110339101", courseCode: "0101103391", courseName: "Tin sinh học", credits: 3, group: "LT", kind: "Lý thuyết", dayOfWeek: "Thứ 4", periods: "Tiết 7 - 9", room: "B1-305", lecturer: "TS. Vũ Hoàng Nam", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
   { id: "sp-9", classCode: "010110376401", courseCode: "0101103764", courseName: "Thực tập doanh nghiệp", credits: 6, group: "TH", kind: "Thực hành", dayOfWeek: "Thứ 6", periods: "Tiết 1 - 5", room: "Doanh nghiệp đối tác", lecturer: "ThS. Trần Minh Đức", startDate: "12/01/2026", endDate: "15/05/2026", weeksRange: "Tuần 1 - 15", completedWeeks: 15, totalWeeks: 15 },
 ];
 
