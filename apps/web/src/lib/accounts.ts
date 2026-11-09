@@ -429,7 +429,7 @@ const INITIAL_ROSTER: ClassStudentRosterItem[] = [
     attendancePct: 84,
     gpa: 2.78,
     status: "warning",
-    teacherNote: "Vắng 2 buổi thực hành Lab 3; đã nhắc bổ sung bài thực hành Kế thừa trước thứ Sáu.",
+    teacherNote: "Vắng 2 buổi thực hành tại phòng B1-203; đã nhắc bổ sung bài thực hành Kế thừa trước thứ Sáu.",
   },
   {
     accountId: "acc-student-tuan",
@@ -567,8 +567,8 @@ const INITIAL_CLASS_ANNOUNCEMENTS: ClassAnnouncement[] = [
   {
     id: "ann-1",
     classId: "11111111-1111-4111-8111-111111111101",
-    title: "Lịch bảo vệ bài thực hành số 1 tại phòng B1-Lab 3",
-    body: "Thứ Tư tuần này lớp DK13-CNTT1 mang theo mã nguồn trên máy cá nhân hoặc nạp sẵn lên kho lưu trữ để chấm vấn đáp trực tiếp tại phòng B1-Lab 3.",
+    title: "Lịch bảo vệ bài thực hành số 1 tại phòng B1-203",
+    body: "Thứ Tư tuần này lớp DK13-CNTT1 mang theo mã nguồn trên máy cá nhân hoặc nạp sẵn lên kho lưu trữ để chấm vấn đáp trực tiếp tại phòng B1-203.",
     authorName: "ThS. Trần Minh Đức",
     createdAt: daysFromNow(-1, 11, 20),
     pinned: true,
@@ -647,7 +647,7 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
     clubId: "club-it",
     title: "Workshop: Xây dựng AI Web Agent & Thực hành Git/GitHub cho sinh viên CNTT",
     time: "Thứ 5 · 18:00 – 20:00",
-    place: "Phòng B1-Lab 2",
+    place: "Phòng B1-202",
     summary: "Hướng dẫn quy trình làm việc nhóm với Pull Request, kiểm thử tự động và tích hợp AI Agent.",
     createdBy: "Nguyễn Văn Đạt (Trưởng CLB)",
     createdAt: daysFromNow(-1, 14, 0),
@@ -657,7 +657,7 @@ const INITIAL_CLUB_EVENTS: ClubEventRecord[] = [
     clubId: "club-it",
     title: "Luyện tập giải đề Olympic Tin học & Cấu trúc dữ liệu tuần 9",
     time: "Chủ nhật · 08:30 – 11:00",
-    place: "Phòng B1-Lab 3",
+    place: "Phòng B1-203",
     summary: "Ôn tập quy hoạch động, đồ thị và tối ưu độ phức tạp thuật toán cho đội tuyển sinh viên.",
     createdBy: "Nguyễn Văn Đạt (Trưởng CLB)",
     createdAt: daysFromNow(-4, 19, 0),
@@ -673,7 +673,7 @@ const INITIAL_SUBJECT_CLASSES: TeacherSubjectClass[] = [
     credits: 3,
     cohortClass: "DK13-CNTT1",
     schedule: "Thứ 2 (Tiết 1–3) · Thứ 4 (Tiết 6–9)",
-    room: "A1-301 / B1-Lab 3",
+    room: "B1-201 / B1-203",
     semester: "HK1 2026-2027",
     totalPeriods: 60,
     completedPeriods: 36,
@@ -688,7 +688,7 @@ const INITIAL_SUBJECT_CLASSES: TeacherSubjectClass[] = [
     credits: 3,
     cohortClass: "DK13-CNTT1",
     schedule: "Thứ 5 (Tiết 6–8) · Thứ 6 (Tiết 1–3)",
-    room: "B1-Lab 2",
+    room: "B1-202",
     semester: "HK1 2026-2027",
     totalPeriods: 45,
     completedPeriods: 27,
@@ -703,7 +703,7 @@ const INITIAL_SUBJECT_CLASSES: TeacherSubjectClass[] = [
     credits: 3,
     cohortClass: "DK13-CNTT2",
     schedule: "Thứ 3 (Tiết 1–3) · Thứ 6 (Tiết 6–9)",
-    room: "A1-302 / B1-Lab 3",
+    room: "B1-202 / B1-203",
     semester: "HK1 2026-2027",
     totalPeriods: 60,
     completedPeriods: 32,
@@ -717,7 +717,7 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
     id: "att-it3040-w9",
     subjectClassId: "11111111-1111-4111-8111-111111111101",
     date: "28/10/2026",
-    periods: "Tiết 6 - 9 (Thực hành Lab 3)",
+    periods: "Tiết 6 - 9 (Thực hành B1-203)",
     topic: "Thực hành đa hình động, bảng phương thức ảo (vtable) & con trỏ thông minh",
     marks: {
       "2200286": "present",
@@ -728,7 +728,7 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
       "2200291": "present",
     },
     notes: {
-      "2200290": "Vắng buổi thực hành Lab 3 không báo trước",
+      "2200290": "Vắng buổi thực hành B1-203 không báo trước",
     },
     createdAt: daysFromNow(-3, 16, 30),
   },
@@ -736,7 +736,7 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
     id: "att-it3040-w8",
     subjectClassId: "11111111-1111-4111-8111-111111111101",
     date: "21/10/2026",
-    periods: "Tiết 1 - 3 (Lý thuyết A1-301)",
+    periods: "Tiết 1 - 3 (Lý thuyết B1-201)",
     topic: "Kế thừa đơn, kế thừa bội và lớp cơ sở trừu tượng trong C++/Java",
     marks: {
       "2200286": "excused",
@@ -756,7 +756,7 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
     id: "att-it3160-w9",
     subjectClassId: "11111111-1111-4111-8111-111111111104",
     date: "29/10/2026",
-    periods: "Tiết 6 - 8 (Thực hành B1-Lab 2)",
+    periods: "Tiết 6 - 8 (Thực hành B1-202)",
     topic: "Thiết kế ca kiểm thử hộp đen (Phân vùng tương đương & Giá trị biên)",
     marks: {
       "2200286": "present",
@@ -776,11 +776,26 @@ const INITIAL_ATTENDANCE_SESSIONS: TeacherAttendanceSessionRecord[] = [
 const STORAGE_KEY = "sao-do:multi-account-state:v2";
 const SYNC_EVENT = "sao-do:accounts-sync";
 
+function sanitizeRoomLabels(value: string): string {
+  return value
+    .replace(/A1-301\s*\/\s*B1-Lab\s*3/g, "B1-201 / B1-203")
+    .replace(/A1-302\s*\/\s*B1-Lab\s*3/g, "B1-202 / B1-203")
+    .replace(/B1-Lab\s*1/g, "B1-201")
+    .replace(/B1-Lab\s*2/g, "B1-202")
+    .replace(/B1-Lab\s*3/g, "B1-203")
+    .replace(/B1-Lab\s*4/g, "B1-204")
+    .replace(/Lab\s*3/g, "B1-203")
+    .replace(/A1-301/g, "B1-201")
+    .replace(/A1-302/g, "B1-202")
+    .replace(/A1-305/g, "B1-205")
+    .replace(/A1-402/g, "B1-301");
+}
+
 function normalizeStudent2200286State(state: SharedPortalState): SharedPortalState {
   return {
     ...state,
-    roster: state.roster.map((r) =>
-      r.studentCode === "2200286"
+    roster: state.roster.map((r) => ({
+      ...(r.studentCode === "2200286"
         ? {
             ...r,
             fullName: "Nguyễn Văn Đạt",
@@ -788,8 +803,22 @@ function normalizeStudent2200286State(state: SharedPortalState): SharedPortalSta
             gpa: 3.08,
             attendancePct: 100,
           }
-        : r,
-    ),
+        : r),
+      teacherNote: sanitizeRoomLabels(r.teacherNote),
+    })),
+    subjectClasses: state.subjectClasses.map((sc) => ({
+      ...sc,
+      room: sanitizeRoomLabels(sc.room),
+    })),
+    attendanceSessions: state.attendanceSessions.map((s) => ({
+      ...s,
+      periods: sanitizeRoomLabels(s.periods),
+    })),
+    classAnnouncements: state.classAnnouncements.map((a) => ({
+      ...a,
+      title: sanitizeRoomLabels(a.title),
+      body: sanitizeRoomLabels(a.body),
+    })),
     submissions: state.submissions.map((s) =>
       s.studentCode === "2200286" ? { ...s, studentName: "Nguyễn Văn Đạt" } : s,
     ),
@@ -798,6 +827,7 @@ function normalizeStudent2200286State(state: SharedPortalState): SharedPortalSta
     ),
     clubEvents: state.clubEvents.map((ce) => ({
       ...ce,
+      place: sanitizeRoomLabels(ce.place),
       createdBy: ce.createdBy.replace(/Nguyễn Văn Minh/g, "Nguyễn Văn Đạt"),
     })),
   };
@@ -1611,7 +1641,7 @@ export function usePortalAccounts() {
         credits: Math.max(1, Math.min(10, Number(input.credits) || 3)),
         cohortClass: input.cohortClass.trim() || "DK13-CNTT1",
         schedule: input.schedule.trim() || "Thứ 2 (Tiết 1–3)",
-        room: input.room.trim() || "A1-301",
+        room: input.room.trim() || "B1-201",
         semester: "HK1 2026-2027",
         totalPeriods: Math.max(15, Number(input.totalPeriods) || 45),
         completedPeriods: 0,

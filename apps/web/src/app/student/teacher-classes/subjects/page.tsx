@@ -25,7 +25,7 @@ export default function TeacherSubjectsPage() {
   const [subjCredits, setSubjCredits] = useState("3");
   const [subjCohort, setSubjCohort] = useState("DK13-CNTT1");
   const [subjSchedule, setSubjSchedule] = useState("Thứ 3 (Tiết 1–3) · Thứ 5 (Tiết 6–9)");
-  const [subjRoom, setSubjRoom] = useState("A1-301 / B1-Lab 3");
+  const [subjRoom, setSubjRoom] = useState("B1-201 / B1-203");
   const [subjPeriods, setSubjPeriods] = useState("60");
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -205,7 +205,7 @@ export default function TeacherSubjectsPage() {
                   type="text"
                   value={subjRoom}
                   onChange={(e) => setSubjRoom(e.target.value)}
-                  placeholder="A1-305 / B1-Lab 2"
+                  placeholder="B1-205 / B1-202"
                 />
               </label>
             </div>

@@ -22,6 +22,19 @@ import {
   readStudentMemories,
   subscribeStudentMemories,
 } from "@/lib/ai-student-memory";
+import {
+  BUILTIN_COURSE_MATERIALS,
+  COURSE_MATERIAL_GROUPS,
+  formatCourseMaterialsContext,
+  MATERIAL_CATEGORY_META,
+  readCustomCourseMaterials,
+  removeCustomCourseMaterial,
+  retrieveRelevantMaterials,
+  saveCustomCourseMaterial,
+  subscribeCustomCourseMaterials,
+  type CourseMaterial,
+  type MaterialCategory,
+} from "@/lib/course-materials";
 import { greeting, initials } from "@/lib/format";
 import { useHydratedNow } from "@/lib/portal-demo";
 import { useStudent } from "@/lib/student-context";
@@ -32,43 +45,50 @@ const modes: { key: AiMode; label: string; icon: IconName; hint: string; suggest
     key: "explain",
     label: "Giải thích",
     icon: "book",
-    hint: "Hỏi về môn học, lịch học, điểm số hoặc khái niệm bạn chưa hiểu…",
+    hint: "Hỏi về giáo trình, slide, đề cương, lịch học, điểm số hoặc khái niệm chưa hiểu…",
     suggestions: [
-      "Tóm tắt lịch học trong tuần và các bài tập sắp đến hạn của mình",
-      "Giải thích đệ quy và chuẩn hoá cơ sở dữ liệu 3NF kèm ví dụ thực tế",
+      "Dựa vào giáo trình IT3040, giải thích cơ chế vptr/vtable và tại sao lớp cơ sở phải có hàm hủy ảo",
+      "Giải thích thuật toán chuẩn hóa 3NF bảo toàn phụ thuộc hàm trong giáo trình Cơ sở dữ liệu (IT3090)",
     ],
   },
   {
     key: "summarize",
     label: "Tóm tắt",
     icon: "list",
-    hint: "Dán ghi chép hoặc hỏi tổng hợp bảng điểm, học phí, lịch thi…",
+    hint: "Đính kèm PDF học liệu hoặc hỏi tóm tắt đề cương, slide, bảng điểm, học phí…",
     suggestions: [
-      "Tổng hợp kết quả học tập (GPA), tiến độ tín chỉ và học phí kỳ này của mình",
-      "Tóm tắt nội dung trọng tâm các môn đang học trong học kỳ HK1 2026-2027",
+      "Tóm tắt chuẩn đầu ra CLO, trọng số điểm và kế hoạch 15 tuần trong đề cương môn Lập trình hướng đối tượng (IT3040)",
+      "So sánh cân bằng Histogram toàn cục với CLAHE và phép Mở/Đóng trong slide môn Xử lý ảnh",
     ],
   },
   {
     key: "practice",
     label: "Luyện tập",
     icon: "question",
-    hint: "Nhập chủ đề hoặc mã học phần muốn luyện tập…",
+    hint: "Chọn bài tập môn học hoặc nhập mã học phần muốn luyện giải…",
     suggestions: [
-      "Ra 5 câu hỏi ôn tập môn IT3080 (Mạng máy tính) và IT3090 (Cơ sở dữ liệu)",
-      "Đố 3 bài toán tự lượng giá về Lập trình hướng đối tượng (IT3040)",
+      "Hướng dẫn thiết kế lớp VienChuc - GiangVien cho Bài 2 trong phiếu bài tập thực hành IT3040",
+      "Hướng dẫn viết mã PySpark giải Bài tập phân tích log học tập (Broadcast Join + Parquet) môn Big Data",
     ],
   },
   {
     key: "plan",
     label: "Lập kế hoạch",
     icon: "calendar",
-    hint: "Mô tả mục tiêu ôn thi hoặc bài tập cần lập tiến độ…",
+    hint: "Mô tả mục tiêu ôn thi theo đề cương hoặc bài tập cần lập tiến độ…",
     suggestions: [
-      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ dựa trên lịch thi thật của mình",
-      "Chia nhỏ tiến độ hoàn thành các bài tập đang mở trong lớp học phần",
+      "Lập kế hoạch ôn thi giữa kỳ và cuối kỳ dựa trên đề cương các môn và lịch thi tại dãy nhà B1",
+      "Chia nhỏ tiến độ hoàn thành các bài tập thực hành môn IT3040, IT3090 và EN2130 trong tuần này",
     ],
   },
 ];
+
+const QUICK_DEMO_MATERIAL_IDS = [
+  "it3040-syllabus",
+  "it3090-textbook",
+  "xla-slide",
+  "bigdata-exercise",
+] as const;
 
 const consentKey = "sao-do:ai-consent";
 const sideKey = "sao-do:ai-side-collapsed";
@@ -205,6 +225,47 @@ export default function AiWorkspace() {
   const imagePicker = useRef<HTMLInputElement>(null);
   const filePicker = useRef<HTMLInputElement>(null);
   const folderPicker = useRef<HTMLInputElement>(null);
+  const customMatFilePicker = useRef<HTMLInputElement>(null);
+
+  // Course Materials Library (Đề cương, Giáo trình, Slide, Bài tập)
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libCourseFilter, setLibCourseFilter] = useState<string>("all");
+  const [libCatFilter, setLibCatFilter] = useState<"all" | MaterialCategory>("all");
+  const [customMaterials, setCustomMaterials] = useState<CourseMaterial[]>([]);
+  const [showUploadMat, setShowUploadMat] = useState(false);
+  const [newMatCourse, setNewMatCourse] = useState<string>(COURSE_MATERIAL_GROUPS[0]!.courseCode);
+  const [newMatCat, setNewMatCat] = useState<MaterialCategory>("slide");
+  const [newMatTitle, setNewMatTitle] = useState("");
+  const [newMatContent, setNewMatContent] = useState("");
+  const [newMatFileName, setNewMatFileName] = useState("");
+
+  useEffect(() => {
+    setCustomMaterials(readCustomCourseMaterials());
+    return subscribeCustomCourseMaterials(() => {
+      setCustomMaterials(readCustomCourseMaterials());
+    });
+  }, []);
+
+  const allMaterials = useMemo(
+    () => [...customMaterials, ...BUILTIN_COURSE_MATERIALS],
+    [customMaterials],
+  );
+
+  const filteredMaterials = useMemo(() => {
+    return allMaterials.filter((item) => {
+      if (libCourseFilter !== "all" && item.courseCode !== libCourseFilter) return false;
+      if (libCatFilter !== "all" && item.category !== libCatFilter) return false;
+      return true;
+    });
+  }, [allMaterials, libCatFilter, libCourseFilter]);
+
+  const quickDemoMaterials = useMemo(
+    () =>
+      QUICK_DEMO_MATERIAL_IDS.map((id) => allMaterials.find((m) => m.id === id)).filter(
+        (m): m is CourseMaterial => Boolean(m),
+      ),
+    [allMaterials],
+  );
 
   useEffect(() => {
     return subscribeStudentMemories(() => setMemoryTick((t) => t + 1));
@@ -280,9 +341,24 @@ export default function AiWorkspace() {
     queueMicrotask(() => {
       setConsent(readFlag(consentKey));
       setSideCollapsed(readFlag(sideKey));
-      const preset = new URLSearchParams(location.search).get("assignment");
+      const params = new URLSearchParams(location.search);
+      const preset = params.get("assignment");
       if (preset) setAssignmentId(preset);
+      const courseParam = params.get("course");
+      if (courseParam) {
+        setLibCourseFilter(courseParam);
+        setLibraryOpen(true);
+      }
+      const matParam = params.get("material");
+      if (matParam) {
+        const all = [...readCustomCourseMaterials(), ...BUILTIN_COURSE_MATERIALS];
+        const found = all.find((item) => item.id === matParam);
+        if (found) {
+          void attachMaterialFile(found, false);
+        }
+      }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -315,9 +391,14 @@ export default function AiWorkspace() {
     requestAnimationFrame(() => composer.current?.focus());
   }, [streaming]);
 
-  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes the custom delete modal.
+  // Ctrl/⌘ + Shift + O starts a new conversation; Escape closes open modals.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && libraryOpen) {
+        event.preventDefault();
+        setLibraryOpen(false);
+        return;
+      }
       if (event.key === "Escape" && pendingDelete) {
         event.preventDefault();
         setPendingDelete(null);
@@ -330,7 +411,7 @@ export default function AiWorkspace() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newConversation, pendingDelete]);
+  }, [libraryOpen, newConversation, pendingDelete]);
 
   async function openConversation(id: string) {
     if (streaming) return;
@@ -379,8 +460,8 @@ export default function AiWorkspace() {
     }
   }
 
-  async function send(content: string) {
-    const files = attachments;
+  async function send(content: string, overrideFiles?: Attachment[]) {
+    const files = overrideFiles ?? attachments;
     // Files alone are a valid question; give the model something to answer.
     const text = content.trim() || (files.length ? "Hãy xem giúp mình các tệp đính kèm." : "");
     if (!text || streaming || !token) return;
@@ -402,6 +483,13 @@ export default function AiWorkspace() {
       "2200286";
     autoLearnFromUserMessage(text, fallbackStudentCode, roster);
     const latestContext = studentContext;
+
+    const matchedMaterials = retrieveRelevantMaterials(text, {
+      attachedFileNames: files.map((f) => f.name),
+      extraMaterials: customMaterials,
+      limit: 4,
+    });
+    const latestMaterialsContext = formatCourseMaterialsContext(matchedMaterials, customMaterials);
 
     const priorHistory = messages
       .filter(
@@ -443,6 +531,7 @@ export default function AiWorkspace() {
           assignmentId: assignmentId || null,
           history: priorHistory,
           studentContext: latestContext,
+          materialsContext: latestMaterialsContext,
         },
         requestId,
         (event: AiStreamEvent) => {
@@ -559,6 +648,117 @@ export default function AiWorkspace() {
     setNotice([result.error, skipped].filter(Boolean).join(" "));
     if (result.added.length) setStatus(`Đã đính kèm ${result.added.length} tệp.`);
     composer.current?.focus();
+  }
+
+  /** Fetches a course material PDF (or synthesizes its text file for custom notes) and attaches/sends it. */
+  async function attachMaterialFile(mat: CourseMaterial, autoSend = false) {
+    if (streaming) return;
+    setLibraryOpen(false);
+    setAttaching(true);
+    setNotice("");
+    try {
+      let file: File;
+      if (mat.publicUrl) {
+        const res = await fetch(mat.publicUrl);
+        if (!res.ok) throw new Error("fetch_failed");
+        const blob = await res.blob();
+        file = new File([blob], mat.fileName, {
+          type: blob.type || (mat.fileName.toLowerCase().endsWith(".pdf") ? "application/pdf" : "text/plain"),
+        });
+      } else {
+        file = new File([mat.content], mat.fileName || `${mat.courseCode}-hoc-lieu.txt`, {
+          type: "text/plain;charset=utf-8",
+        });
+      }
+      const existing = attachments.filter((item) => item.name.toLowerCase() !== file.name.toLowerCase());
+      const result = await addFiles([file], existing);
+      setAttaching(false);
+      const nextAttachments = [...existing, ...result.added];
+      if (autoSend) {
+        void send(mat.samplePrompt, nextAttachments);
+        return;
+      }
+      setAttachments(nextAttachments);
+      setDraft((prev) => (prev.trim() ? prev : mat.samplePrompt));
+      setStatus(`Đã nạp học liệu ${mat.fileName} vào khung chat.`);
+      requestAnimationFrame(() => composer.current?.focus());
+    } catch {
+      setAttaching(false);
+      const fallbackFile = new File([mat.content], mat.fileName.replace(/\.pdf$/i, ".txt"), {
+        type: "text/plain;charset=utf-8",
+      });
+      const result = await addFiles([fallbackFile], attachments);
+      const nextAttachments = [...attachments, ...result.added];
+      if (autoSend) {
+        void send(mat.samplePrompt, nextAttachments);
+      } else {
+        setAttachments(nextAttachments);
+        setDraft((prev) => (prev.trim() ? prev : mat.samplePrompt));
+        requestAnimationFrame(() => composer.current?.focus());
+      }
+    }
+  }
+
+  async function handleCustomMatFileChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const pickedFile = event.target.files?.[0];
+    event.target.value = "";
+    if (!pickedFile) return;
+    setNewMatFileName(pickedFile.name);
+    if (!newMatTitle.trim()) {
+      setNewMatTitle(pickedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+    }
+    if (!pickedFile.name.toLowerCase().endsWith(".pdf")) {
+      try {
+        const text = await pickedFile.text();
+        setNewMatContent(text.slice(0, 16_000));
+      } catch {
+        // Ignore read error.
+      }
+    } else if (!newMatContent.trim()) {
+      setNewMatContent(
+        `Tài liệu PDF người dùng tải lên: ${pickedFile.name} (${formatSize(pickedFile.size)}). Hãy đính kèm trực tiếp để đọc nội dung chi tiết.`,
+      );
+    }
+    void attach([pickedFile]);
+  }
+
+  function handleSaveCustomMaterial(event: FormEvent) {
+    event.preventDefault();
+    if (!newMatTitle.trim() || !newMatContent.trim()) return;
+    const grp =
+      COURSE_MATERIAL_GROUPS.find((g) => g.courseCode === newMatCourse) ?? COURSE_MATERIAL_GROUPS[0]!;
+    const safeFile =
+      newMatFileName.trim() ||
+      `${grp.courseCode}-${newMatCat}-${Date.now().toString().slice(-5)}.txt`;
+    const created: CourseMaterial = {
+      id: `custom-${Date.now()}`,
+      courseCode: grp.courseCode,
+      courseName: grp.courseName,
+      classId: grp.classId,
+      credits: grp.credits,
+      lecturer: grp.lecturer,
+      room: grp.room,
+      semester: "HK1 2026-2027",
+      category: newMatCat,
+      title: newMatTitle.trim(),
+      fileName: safeFile,
+      publicUrl: "",
+      pageCount: Math.max(1, Math.ceil(newMatContent.trim().length / 1800)),
+      updatedAt: new Date().toISOString().slice(0, 10),
+      summary: newMatContent.trim().replace(/\s+/g, " ").slice(0, 160),
+      samplePrompt: `Tóm tắt và giải thích các ý chính trong tài liệu "${newMatTitle.trim()}" của môn ${grp.courseName} (${grp.courseCode}).`,
+      keywords: [grp.courseCode.toLowerCase(), newMatTitle.trim().toLowerCase()],
+      content: newMatContent.trim(),
+      isCustom: true,
+    };
+    const updated = saveCustomCourseMaterial(created);
+    setCustomMaterials(updated);
+    setNewMatTitle("");
+    setNewMatContent("");
+    setNewMatFileName("");
+    setShowUploadMat(false);
+    setLibCourseFilter(grp.courseCode);
+    setStatus(`Đã thêm học liệu "${created.title}" vào kho học liệu môn ${grp.courseCode}.`);
   }
 
   function detach(id: string) {
@@ -746,6 +946,15 @@ export default function AiWorkspace() {
           >
             <Icon name="paperclip" />
           </button>
+          <button
+            type="button"
+            className="aw-lib-trigger"
+            onClick={() => setLibraryOpen(true)}
+            disabled={!enabled || exhausted || streaming}
+            title="Chọn Đề cương, Giáo trình, Slide, Bài tập mẫu hoặc tải thêm học liệu mới"
+          >
+            <Icon name="book" /> Kho học liệu ({allMaterials.length})
+          </button>
           <div id="aw-attach-menu" popover="auto" className="aw-attach-menu">
             <button type="button" onClick={() => pick(imagePicker.current)}>
               <Icon name="sparkle" />
@@ -797,6 +1006,18 @@ export default function AiWorkspace() {
         <button className="aw-new" type="button" onClick={newConversation} disabled={streaming}>
           <Icon name="plus" /> Cuộc trò chuyện mới
           <kbd>Ctrl ⇧ O</kbd>
+        </button>
+        <button
+          className="aw-side-lib-btn"
+          type="button"
+          onClick={() => {
+            setSideOpen(false);
+            setLibraryOpen(true);
+          }}
+          disabled={streaming}
+        >
+          <Icon name="book" /> Kho học liệu môn học
+          <span className="aw-side-lib-count">{allMaterials.length}</span>
         </button>
         <label className="aw-search">
           <Icon name="search" />
@@ -918,20 +1139,61 @@ export default function AiWorkspace() {
               ))}
             </div>
             {enabled && !exhausted && (
-              <div className="aw-suggestions">
-                {currentMode.suggestions.map((text) => (
-                  <button
-                    key={text}
-                    type="button"
-                    onClick={() => {
-                      setDraft(text.endsWith(":") ? `${text}\n` : text);
-                      composer.current?.focus();
-                    }}
-                  >
-                    {text} <Icon name="arrow" />
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="aw-demo-strip" aria-label="Học liệu mẫu sẵn sàng demo">
+                  <div className="aw-demo-strip-head">
+                    <strong>
+                      <Icon name="book" /> Học liệu mẫu 5 học phần (Đề cương · Giáo trình · Slide · Bài tập)
+                    </strong>
+                    <button
+                      type="button"
+                      className="aw-demo-open-all"
+                      onClick={() => setLibraryOpen(true)}
+                    >
+                      Mở cả {allMaterials.length} tài liệu & Tải thêm <Icon name="arrow" />
+                    </button>
+                  </div>
+                  <div className="aw-demo-cards">
+                    {quickDemoMaterials.map((mat) => {
+                      const cat = MATERIAL_CATEGORY_META[mat.category];
+                      return (
+                        <button
+                          key={mat.id}
+                          type="button"
+                          className="aw-demo-card"
+                          disabled={streaming || attaching}
+                          onClick={() => void attachMaterialFile(mat, false)}
+                          title={`Đính kèm ${mat.fileName} và điền câu hỏi mẫu`}
+                        >
+                          <span className="aw-demo-card-top">
+                            <span className={`aw-lib-badge tone-${cat.badgeTone}`}>{cat.shortLabel}</span>
+                            <span>
+                              {mat.courseCode} · Phòng {mat.room}
+                            </span>
+                          </span>
+                          <strong>{mat.title}</strong>
+                          <small>{mat.samplePrompt}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="aw-suggestions">
+                  {currentMode.suggestions.map((text) => (
+                    <button
+                      key={text}
+                      type="button"
+                      onClick={() => {
+                        setDraft(text.endsWith(":") ? `${text}\n` : text);
+                        composer.current?.focus();
+                      }}
+                    >
+                      {text} <Icon name="arrow" />
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         ) : (
@@ -1017,6 +1279,222 @@ export default function AiWorkspace() {
         )}
         <p className="sr-only" role="status" aria-live="polite">{status}</p>
       </main>
+      {libraryOpen && (
+        <div
+          className="aw-modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setLibraryOpen(false);
+          }}
+        >
+          <div
+            className="aw-lib-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="aw-lib-title"
+          >
+            <div className="aw-lib-head">
+              <div>
+                <h2 id="aw-lib-title">Kho học liệu số SDU · Trợ lý Học tập RAG</h2>
+                <p>
+                  Đã nạp sẵn {allMaterials.length} tài liệu chuẩn của 5 học phần (Đề cương, Giáo trình, Slide bài giảng,
+                  Bài tập thực hành) để đính kèm PDF hoặc hỏi trực tiếp trên Chat AI.
+                </p>
+              </div>
+              <div className="aw-lib-head-actions">
+                <button
+                  type="button"
+                  className="aw-lib-btn"
+                  onClick={() => setShowUploadMat((v) => !v)}
+                >
+                  <Icon name="plus" /> {showUploadMat ? "Ẩn form tải lên" : "Tải thêm học liệu"}
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Đóng kho học liệu"
+                  onClick={() => setLibraryOpen(false)}
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+            </div>
+
+            {showUploadMat && (
+              <form className="aw-lib-upload-panel" onSubmit={handleSaveCustomMaterial}>
+                <div className="aw-lib-upload-grid">
+                  <label>
+                    Học phần
+                    <select value={newMatCourse} onChange={(e) => setNewMatCourse(e.target.value)}>
+                      {COURSE_MATERIAL_GROUPS.map((grp) => (
+                        <option key={grp.courseCode} value={grp.courseCode}>
+                          {grp.courseCode} · {grp.courseName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Loại học liệu
+                    <select
+                      value={newMatCat}
+                      onChange={(e) => setNewMatCat(e.target.value as MaterialCategory)}
+                    >
+                      <option value="syllabus">Đề cương học phần</option>
+                      <option value="textbook">Giáo trình môn học</option>
+                      <option value="slide">Slide bài giảng</option>
+                      <option value="exercise">Bài tập & Thực hành</option>
+                    </select>
+                  </label>
+                  <label>
+                    Tiêu đề học liệu
+                    <input
+                      type="text"
+                      required
+                      value={newMatTitle}
+                      onChange={(e) => setNewMatTitle(e.target.value)}
+                      placeholder="VD: Slide Ôn tập Chương 5 - Giao dịch & Khóa 2PL"
+                    />
+                  </label>
+                </div>
+                <label>
+                  Nội dung trích xuất / Ghi chú kiến thức để AI đối chiếu
+                  <textarea
+                    rows={3}
+                    required
+                    value={newMatContent}
+                    onChange={(e) => setNewMatContent(e.target.value)}
+                    placeholder="Dán nội dung giáo trình, đề cương, bài tập hoặc chọn tệp từ máy tính để tự động nạp…"
+                  />
+                </label>
+                <input
+                  ref={customMatFilePicker}
+                  type="file"
+                  hidden
+                  accept=".pdf,.txt,.md,.csv,.json,.py,.cpp,.h,.java,.sql"
+                  onChange={(e) => void handleCustomMatFileChosen(e)}
+                />
+                <div className="aw-lib-upload-foot">
+                  <button
+                    type="button"
+                    className="aw-lib-btn"
+                    onClick={() => customMatFilePicker.current?.click()}
+                  >
+                    <Icon name="paperclip" /> Chọn tệp từ máy (.pdf, .md, .txt, mã nguồn)
+                    {newMatFileName ? ` · ${newMatFileName}` : ""}
+                  </button>
+                  <button type="submit" className="aw-lib-btn is-primary">
+                    <Icon name="check" /> Lưu vào Kho học liệu
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="aw-lib-toolbar">
+              <div className="aw-lib-filter-row" role="group" aria-label="Lọc theo môn học">
+                <button
+                  type="button"
+                  className={`aw-lib-chip${libCourseFilter === "all" ? " is-active" : ""}`}
+                  onClick={() => setLibCourseFilter("all")}
+                >
+                  Tất cả môn ({allMaterials.length})
+                </button>
+                {COURSE_MATERIAL_GROUPS.map((grp) => (
+                  <button
+                    key={grp.courseCode}
+                    type="button"
+                    className={`aw-lib-chip${libCourseFilter === grp.courseCode ? " is-active" : ""}`}
+                    onClick={() => setLibCourseFilter(grp.courseCode)}
+                  >
+                    {grp.courseCode} · {grp.courseName}
+                  </button>
+                ))}
+              </div>
+              <div className="aw-lib-filter-row" role="group" aria-label="Lọc theo loại tài liệu">
+                <button
+                  type="button"
+                  className={`aw-lib-chip${libCatFilter === "all" ? " is-active" : ""}`}
+                  onClick={() => setLibCatFilter("all")}
+                >
+                  Mọi loại tài liệu
+                </button>
+                {(["syllabus", "textbook", "slide", "exercise"] as MaterialCategory[]).map((catKey) => (
+                  <button
+                    key={catKey}
+                    type="button"
+                    className={`aw-lib-chip${libCatFilter === catKey ? " is-active" : ""}`}
+                    onClick={() => setLibCatFilter(catKey)}
+                  >
+                    {MATERIAL_CATEGORY_META[catKey].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="aw-lib-body">
+              <div className="aw-lib-grid">
+                {filteredMaterials.map((mat) => {
+                  const catMeta = MATERIAL_CATEGORY_META[mat.category];
+                  return (
+                    <article key={mat.id} className="aw-lib-card">
+                      <div>
+                        <div className="aw-lib-card-meta">
+                          <span className={`aw-lib-badge tone-${catMeta.badgeTone}`}>{catMeta.label}</span>
+                          <span>
+                            <strong>{mat.courseCode}</strong> · {mat.credits} TC · Phòng {mat.room}
+                          </span>
+                        </div>
+                        <h3>{mat.title}</h3>
+                        <p>{mat.summary}</p>
+                        <p className="aw-lib-card-sub">
+                          GV: {mat.lecturer} · Tệp: <code>{mat.fileName}</code> ({mat.pageCount} trang)
+                        </p>
+                      </div>
+                      <div className="aw-lib-card-actions">
+                        {mat.publicUrl && (
+                          <a
+                            className="aw-lib-btn"
+                            href={mat.publicUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Icon name="eye" /> Xem PDF
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          className="aw-lib-btn"
+                          disabled={streaming || attaching}
+                          onClick={() => void attachMaterialFile(mat, false)}
+                        >
+                          <Icon name="paperclip" /> Đính kèm
+                        </button>
+                        {mat.isCustom && (
+                          <button
+                            type="button"
+                            className="aw-lib-btn"
+                            onClick={() => setCustomMaterials(removeCustomCourseMaterial(mat.id))}
+                            title="Xoá học liệu tự tải lên"
+                          >
+                            <Icon name="trash" /> Xoá
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="aw-lib-btn is-primary"
+                          disabled={streaming || attaching}
+                          onClick={() => void attachMaterialFile(mat, true)}
+                        >
+                          <Icon name="sparkle" /> Nạp & Hỏi thử ngay
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {pendingDelete && (
         <div
           className="aw-modal-backdrop"

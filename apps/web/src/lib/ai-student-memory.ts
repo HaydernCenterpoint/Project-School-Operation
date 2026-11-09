@@ -156,7 +156,7 @@ export const STUDENT_DETAILED_PROFILES: Record<string, DetailedStudentStaticProf
     ],
     hobbies: [
       "Xây dựng ứng dụng Web Full-stack, AI Agent và Xử lý ảnh / Thị giác máy tính",
-      "Điều hành CLB Tin học Sao Đỏ tại phòng B1-Lab 2",
+      "Điều hành CLB Tin học Sao Đỏ tại phòng B1-202",
       "Nghiên cứu kiến trúc phần mềm và phát triển ứng dụng di động",
     ],
   },

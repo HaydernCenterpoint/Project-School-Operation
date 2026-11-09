@@ -62,6 +62,7 @@ export type StreamChatPayload = {
   reasoningEffort?: AiReasoningEffort;
   history?: { role: "user" | "assistant"; content: string }[];
   studentContext?: string;
+  materialsContext?: string;
 };
 
 export async function streamChat(

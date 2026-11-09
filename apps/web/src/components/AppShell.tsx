@@ -80,11 +80,11 @@ const studentSearchCatalog: SearchSuggestion[] = [
   { id: "s-profile-update", label: "Đề xuất cập nhật thông tin", detail: "Đề xuất chỉnh sửa hồ sơ cá nhân, tài khoản ngân hàng và BHYT", category: "Tài khoản", href: "/student/profile-update" as Route, icon: "pen", keywords: "de xuat cap nhat thong tin ngan hang bhyt ho so" },
   { id: "s-services", label: "Thủ tục & Góp ý (Một cửa)", detail: "Xin giấy xác nhận sinh viên, cấp bảng điểm, làm lại thẻ", category: "Tài khoản", href: "/student/services" as Route, icon: "file", keywords: "thu tuc mot cua giay xac nhan bang diem the sinh vien bao luu gop y" },
   { id: "s-settings", label: "Cài đặt giao diện & hệ thống", detail: "Điều chỉnh giao diện Sáng / Tối và đổi mật khẩu tài khoản", category: "Tài khoản", href: "/student/settings" as Route, icon: "sparkle", keywords: "cai dat giao dien sang toi dark mode light mode theme doi mat khau" },
-  { id: "c-it3040", label: "IT3040 · Lập trình hướng đối tượng", detail: "ThS. Trần Minh Đức · 3 tín chỉ · A1-301 / B1-Lab 3", category: "Học phần", href: "/student/schedule" as Route, icon: "code", keywords: "it3040 oop lap trinh huong doi tuong ke thua da hinh" },
-  { id: "c-it3090", label: "IT3090 · Cơ sở dữ liệu", detail: "TS. Phạm Thu Hà · 3 tín chỉ · A1-402 / B1-Lab 1", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3090 csdl co so du lieu sql truy van" },
-  { id: "c-it3080", label: "IT3080 · Mạng máy tính", detail: "ThS. Lê Quang Vinh · 3 tín chỉ · A1-301 / B1-Lab 2", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3080 mang may tinh network" },
-  { id: "c-en2130", label: "EN2130 · Tiếng Anh chuyên ngành", detail: "ThS. Đỗ Thanh Mai · 2 tín chỉ · C1-104", category: "Học phần", href: "/student/schedule" as Route, icon: "language", keywords: "en2130 tieng anh chuyen nganh english" },
-  { id: "c-mi1140", label: "MI1140 · Toán rời rạc", detail: "TS. Vũ Đình Khoa · 3 tín chỉ · A2-205", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "mi1140 toan roi rac discrete math" },
+  { id: "c-it3040", label: "IT3040 · Lập trình hướng đối tượng", detail: "ThS. Trần Minh Đức · 3 tín chỉ · B1-201 / B1-203", category: "Học phần", href: "/student/schedule" as Route, icon: "code", keywords: "it3040 oop lap trinh huong doi tuong ke thua da hinh" },
+  { id: "c-it3090", label: "IT3090 · Cơ sở dữ liệu", detail: "TS. Phạm Thu Hà · 3 tín chỉ · B1-204 / B1-201", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3090 csdl co so du lieu sql truy van" },
+  { id: "c-it3080", label: "IT3080 · Mạng máy tính", detail: "ThS. Lê Quang Vinh · 3 tín chỉ · B1-201 / B1-202", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "it3080 mang may tinh network" },
+  { id: "c-en2130", label: "EN2130 · Tiếng Anh chuyên ngành", detail: "ThS. Đỗ Thanh Mai · 2 tín chỉ · B1-104", category: "Học phần", href: "/student/schedule" as Route, icon: "language", keywords: "en2130 tieng anh chuyen nganh english" },
+  { id: "c-mi1140", label: "MI1140 · Toán rời rạc", detail: "TS. Vũ Đình Khoa · 3 tín chỉ · B1-205", category: "Học phần", href: "/student/schedule" as Route, icon: "book", keywords: "mi1140 toan roi rac discrete math" },
 ];
 
 const managementSearchCatalog: SearchSuggestion[] = [

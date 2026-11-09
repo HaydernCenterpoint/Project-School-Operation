@@ -201,7 +201,7 @@ export default function TeacherAttendancePage() {
                   required
                   value={attPeriods}
                   onChange={(e) => setAttPeriods(e.target.value)}
-                  placeholder="VD: Tiết 1 - 3 (Lý thuyết A1-301)"
+                  placeholder="VD: Tiết 1 - 3 (Lý thuyết B1-201)"
                 />
               </label>
               <label className="field">
